@@ -88,7 +88,7 @@ function loadAllPosts(): Post[] {
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 }
 
-// Singleton — evaluated once at module load (all eager, no async needed)
+// Singleton - evaluated once at module load (all eager, no async needed)
 export const ALL_POSTS: Post[] = loadAllPosts();
 
 export function getPost(slug: string): Post | undefined {

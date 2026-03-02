@@ -23,7 +23,7 @@
   --tag-border: rgba(0, 217, 109, 0.18);
   --scrollbar: #1C3024;
   --scrollbar-thumb: #2A4838;
-  /* Shadows — subtle in dark */
+  /* Shadows - subtle in dark */
   --shadow-sm: 0 1px 3px rgba(0,0,0,0.4);
   --shadow-md: 0 4px 14px rgba(0,0,0,0.45);
   --shadow-lg: 0 8px 32px rgba(0,0,0,0.5);
@@ -49,7 +49,7 @@
   --tag-border: rgba(0, 122, 61, 0.18);
   --scrollbar: #E0DED6;
   --scrollbar-thumb: #BEBCB4;
-  /* Shadows — pronounced in light for real elevation */
+  /* Shadows - pronounced in light for real elevation */
   --shadow-sm: 0 1px 3px rgba(14, 26, 17, 0.07), 0 1px 2px rgba(14, 26, 17, 0.04);
   --shadow-md: 0 4px 12px rgba(14, 26, 17, 0.09), 0 2px 4px rgba(14, 26, 17, 0.05);
   --shadow-lg: 0 8px 28px rgba(14, 26, 17, 0.11), 0 4px 8px rgba(14, 26, 17, 0.06);
@@ -235,7 +235,7 @@ a:hover {
 
 /* ─────────────────────────────────────────────
    LIGHT MODE OVERRIDES
-   Elevation, texture, depth — all the things
+   Elevation, texture, depth - all the things
    the dark mode doesn't need
 ──────────────────────────────────────────────── */
 
@@ -277,7 +277,7 @@ a:hover {
   letter-spacing: 0.14em;
 }
 
-/* Tags — crisper in light */
+/* Tags - crisper in light */
 [data-theme="light"] .tag {
   background: rgba(0, 122, 61, 0.07);
   border-color: rgba(0, 122, 61, 0.16);
@@ -285,7 +285,7 @@ a:hover {
   font-weight: 500;
 }
 
-/* Buttons — add shadow in light mode */
+/* Buttons - add shadow in light mode */
 [data-theme="light"] .btn-primary {
   box-shadow: 0 2px 8px rgba(0, 122, 61, 0.22);
 }
@@ -308,7 +308,7 @@ a:hover {
   background: #C2C0B8;
 }
 
-/* Hero grid pattern — more visible in light */
+/* Hero grid pattern - more visible in light */
 [data-theme="light"] #hero > div[style*="backgroundImage"] {
   opacity: 0.55 !important;
 }
@@ -323,18 +323,18 @@ a:hover {
   box-shadow: 0 0 6px rgba(0, 122, 61, 0.5) !important;
 }
 
-/* Section headings — slightly tighter tracking in light */
+/* Section headings - slightly tighter tracking in light */
 [data-theme="light"] .section-heading {
   letter-spacing: -0.025em;
 }
 
-/* Dividers — more prominent in light */
+/* Dividers - more prominent in light */
 [data-theme="light"] .divider {
   background: var(--border);
   height: 1px;
 }
 
-/* Code / mono text — slightly darker in light for contrast */
+/* Code / mono text - slightly darker in light for contrast */
 [data-theme="light"] .font-mono,
 [data-theme="light"] [style*="JetBrains Mono"] {
   font-feature-settings: "calt" 1, "liga" 1;
@@ -345,12 +345,12 @@ a:hover {
   filter: drop-shadow(0 0 3px rgba(0, 122, 61, 0.7));
 }
 
-/* Featured card hover — warmer shadow in light */
+/* Featured card hover - warmer shadow in light */
 [data-theme="light"] a:hover[style*="transform: translateY(-3px)"] {
   box-shadow: 0 12px 32px rgba(14, 26, 17, 0.12), 0 4px 8px rgba(0, 122, 61, 0.08) !important;
 }
 
-/* Skill bars — slightly warmer gradient in light */
+/* Skill bars - slightly warmer gradient in light */
 [data-theme="light"] [style*="linear-gradient(90deg, var(--accent-dim), var(--accent))"] {
   background: linear-gradient(90deg, #00622E, #007A3D) !important;
 }

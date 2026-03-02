@@ -7,8 +7,8 @@ import { PenLine } from 'lucide-react';
 export default function BlogListPage() {
   // Update page title
   useEffect(() => {
-    document.title = 'Blog — Dhruv Choudhary';
-    return () => { document.title = 'Dhruv Choudhary — AI Engineer'; };
+    document.title = 'Blog - Dhruv Choudhary';
+    return () => { document.title = 'Dhruv Choudhary - AI Engineer'; };
   }, []);
 
   return (
@@ -79,7 +79,7 @@ export default function BlogListPage() {
             fontSize: '0.8rem',
             color: 'var(--text-dim)',
           }}>
-            no posts yet — check back soon
+            no posts yet - check back soon
           </div>
         ) : (
           ALL_POSTS.map(post => (

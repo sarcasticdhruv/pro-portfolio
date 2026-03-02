@@ -148,7 +148,7 @@ export default function MarkdownRenderer({ content }: Props) {
           color: var(--text);
         }
 
-        /* highlight.js overrides — works in both dark & light */
+        /* highlight.js overrides - works in both dark & light */
         .md-body .hljs { background: transparent; }
         .md-body .hljs-keyword,
         .md-body .hljs-selector-tag { color: #8be9fd; }

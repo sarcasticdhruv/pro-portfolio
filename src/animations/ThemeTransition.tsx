@@ -31,7 +31,7 @@ export default function ThemeTransition({ transition }: Props) {
     // ── METEOR SHOWER: light → dark ────────────────────────────────
     function runMeteorShower(ctx: CanvasRenderingContext2D, W: number, H: number, t0: number, dur: number) {
       const DIAG = Math.sqrt(W * W + H * H);
-      const BASE_ANGLE = Math.PI * 1.25; // 225° — exact top-right → bottom-left
+      const BASE_ANGLE = Math.PI * 1.25; // 225° - exact top-right → bottom-left
       const COS = Math.cos(BASE_ANGLE);
       const SIN = Math.sin(BASE_ANGLE);
 

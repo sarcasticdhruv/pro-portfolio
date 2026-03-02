@@ -11,7 +11,7 @@ There is no friendlier blank space
 than the one after the prompt.
 
 You type. The machine listens.
-Not patiently — it has no patience —
+Not patiently - it has no patience -
 but exactly. It does what you said.
 Not what you meant, not what you wanted:
 what you said.

@@ -13,20 +13,20 @@ export default function BlogPostPage() {
 
   useEffect(() => {
     if (!post) { navigate('/blog', { replace: true }); return; }
-    document.title = `${post.title} — Dhruv Choudhary`;
+    document.title = `${post.title} - Dhruv Choudhary`;
     // OG + description meta
     const setMeta = (sel: string, val: string) => {
       const el = document.querySelector<HTMLMetaElement>(sel);
       if (el) el.content = val;
     };
     setMeta('meta[name="description"]', post.excerpt);
-    setMeta('meta[property="og:title"]', `${post.title} — Dhruv Choudhary`);
+    setMeta('meta[property="og:title"]', `${post.title} - Dhruv Choudhary`);
     setMeta('meta[property="og:description"]', post.excerpt);
     window.scrollTo(0, 0);
     return () => {
-      document.title = 'Dhruv Choudhary — AI Engineer';
-      setMeta('meta[name="description"]', 'Dhruv Choudhary — AI Engineer & Software Developer. Building scalable AI systems, GenAI solutions, and full-stack applications.');
-      setMeta('meta[property="og:title"]', 'Dhruv Choudhary — AI Engineer');
+      document.title = 'Dhruv Choudhary - AI Engineer';
+      setMeta('meta[name="description"]', 'Dhruv Choudhary - AI Engineer & Software Developer. Building scalable AI systems, GenAI solutions, and full-stack applications.');
+      setMeta('meta[property="og:title"]', 'Dhruv Choudhary - AI Engineer');
       setMeta('meta[property="og:description"]', 'Building scalable AI systems and GenAI solutions.');
     };
   }, [post]);

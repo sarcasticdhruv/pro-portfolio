@@ -19,7 +19,7 @@ export default function About() {
             </h2>
             <p style={{ color: 'var(--text-muted)', marginBottom: '18px', lineHeight: 1.8 }}>
               Final-year B.Tech student at MITS Gwalior, Department Rank 2 in Information Technology.
-              I work at the intersection of AI systems and practical engineering — not just notebooks
+              I work at the intersection of AI systems and practical engineering - not just notebooks
               and demos, but pipelines that handle real client data at scale.
             </p>
             <p style={{ color: 'var(--text-muted)', marginBottom: '18px', lineHeight: 1.8 }}>

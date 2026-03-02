@@ -25,7 +25,7 @@ These requirements don't come from the AI itself. They come from the engineering
 
 ---
 
-At my current role, I've worked on AI systems deployed to real government infrastructure — knowledge management for a state-level health ministry, a grievance management system for a district planning body. These are not systems where you can afford to demo-think.
+At my current role, I've worked on AI systems deployed to real government infrastructure - knowledge management for a state-level health ministry, a grievance management system for a district planning body. These are not systems where you can afford to demo-think.
 
 In both cases, the AI component was the easy part.
 
@@ -37,7 +37,7 @@ None of these questions appear in a demo. All of them appear on day two of produ
 
 There's a mindset that I've started thinking of as demo culture in AI development. It's not dishonest, exactly. But it treats impressive capability as the goal rather than as a precondition. The assumption is: first get the AI to work impressively, then figure out deployment.
 
-The problem is that impressive AI and deployable AI are not on the same optimization path. They're sometimes in tension. A more constrained system that only does one thing but does it reliably is a better production system than a capable system that does many things impressionistically. Confidence calibration — the ability of a model to know what it doesn't know — is more valuable in production than raw benchmark performance.
+The problem is that impressive AI and deployable AI are not on the same optimization path. They're sometimes in tension. A more constrained system that only does one thing but does it reliably is a better production system than a capable system that does many things impressionistically. Confidence calibration - the ability of a model to know what it doesn't know - is more valuable in production than raw benchmark performance.
 
 ---
 
@@ -45,7 +45,7 @@ This is not an argument against capability research. That work matters enormousl
 
 This is specifically about the middle layer: the engineers and builders who take capable models and ship them as products. That work requires a different set of concerns than capability research, and it deserves its own clear-eyed thinking rather than being treated as a straightforward extension of the research phase.
 
-The IMC 2025 presentation I was part of — demonstrating an AI system to Union Minister Scindia — was a carefully prepared demo. But what made it credible was that the system behind it was already deployed and processing real requests from real users. The demo was the system, with real inputs from the live deployment.
+The IMC 2025 presentation I was part of - demonstrating an AI system to Union Minister Scindia - was a carefully prepared demo. But what made it credible was that the system behind it was already deployed and processing real requests from real users. The demo was the system, with real inputs from the live deployment.
 
 That distinction mattered. I could answer questions about failure modes, about edge cases, about what the system did when it didn't know the answer. I wasn't speculating about future work. I was describing a thing that existed.
 

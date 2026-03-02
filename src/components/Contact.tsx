@@ -34,7 +34,7 @@ export default function Contact() {
             </h2>
             <p style={{ color: 'var(--text-muted)', marginBottom: '20px', lineHeight: 1.8 }}>
               Open to AI/ML engineering roles, research collaborations, and interesting problems.
-              Graduating May 2026 — actively looking for full-time opportunities.
+              Graduating May 2026 - actively looking for full-time opportunities.
             </p>
             <p style={{ color: 'var(--text-muted)', marginBottom: '32px', lineHeight: 1.8, fontSize: '0.91rem' }}>
               Currently between Raipur and Hyderabad. Will relocate. Will debug your production

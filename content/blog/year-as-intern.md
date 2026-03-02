@@ -19,7 +19,7 @@ This sounds like a complaint. It isn't. The infrastructure work was where I lear
 
 AI systems live inside larger systems. The reliability of the larger system is the ceiling on the reliability of the AI component. A model that performs beautifully in isolation performs as well as its infrastructure in production. You can optimize the model indefinitely without improving the product if the deployment infrastructure is unreliable.
 
-The SEO Automation Agent I built — the one that improved lead coverage by 35% — didn't work when I first deployed it. Not because the model was wrong. Because the rate limiting on the APIs I was calling wasn't handling failures gracefully. The model did exactly what I trained it to do. The system around it failed silently. Those failures were invisible until we set up proper logging.
+The SEO Automation Agent I built - the one that improved lead coverage by 35% - didn't work when I first deployed it. Not because the model was wrong. Because the rate limiting on the APIs I was calling wasn't handling failures gracefully. The model did exactly what I trained it to do. The system around it failed silently. Those failures were invisible until we set up proper logging.
 
 Logging. Not a beautiful insight. But I think about it more than I think about most model architecture decisions now.
 
@@ -33,7 +33,7 @@ I've carried this forward. When I'm scoping a new system, the first question I a
 
 ---
 
-The no-code chatbot builder was the project I initially least wanted to work on. It didn't feel like AI work. It felt like product work — building an interface for other people to build things. That turned out to be exactly the point.
+The no-code chatbot builder was the project I initially least wanted to work on. It didn't feel like AI work. It felt like product work - building an interface for other people to build things. That turned out to be exactly the point.
 
 Building tools that other people use to build things forces a level of robustness that building systems for yourself doesn't. You can't depend on users knowing what the system expects. You can't depend on them reading documentation. You have to build systems robust enough to work incorrectly and degrade gracefully rather than fail catastrophically.
 

@@ -1,7 +1,7 @@
 ---
 title: "What RAG Gets Wrong, and What to Do About It"
 date: "2026-02-05"
-excerpt: "A practical critique of retrieval-augmented generation as it's commonly implemented — the failure modes that don't show up in benchmarks."
+excerpt: "A practical critique of retrieval-augmented generation as it's commonly implemented - the failure modes that don't show up in benchmarks."
 tags: ["RAG", "LLM", "engineering", "opinion"]
 coverImage: ""
 published: true
@@ -27,11 +27,11 @@ The better approach is to build hierarchical context into the retrieval. Retriev
 
 **The embedding mismatch problem**
 
-Embedding models are trained on specific data distributions. The text in your knowledge base and the queries your users submit are often distributed very differently. Domain-specific knowledge bases are particularly vulnerable to this — the formal, technical language in a policy document or an engineering specification sits far in embedding space from the natural language question a user might ask.
+Embedding models are trained on specific data distributions. The text in your knowledge base and the queries your users submit are often distributed very differently. Domain-specific knowledge bases are particularly vulnerable to this - the formal, technical language in a policy document or an engineering specification sits far in embedding space from the natural language question a user might ask.
 
 The symptom is poor recall: queries that should return relevant results don't, because the semantic similarity between the query and the matching document is low by the embedding model's metric.
 
-The fix depends on severity. Hybrid search — combining BM25 keyword matching with dense vector retrieval — helps in most cases. Fine-tuning the embedding model on domain-specific examples helps in severe cases. Adding a reranker over the initial retrieval pool is effective and relatively cheap.
+The fix depends on severity. Hybrid search - combining BM25 keyword matching with dense vector retrieval - helps in most cases. Fine-tuning the embedding model on domain-specific examples helps in severe cases. Adding a reranker over the initial retrieval pool is effective and relatively cheap.
 
 The one thing that doesn't help is adding more data to the knowledge base. More data with the same mismatch problem means more irrelevant results to sift through.
 
@@ -39,9 +39,9 @@ The one thing that doesn't help is adding more data to the knowledge base. More 
 
 **The confidence problem**
 
-Standard RAG architectures return an answer. They do not return an uncertainty estimate. When retrieval fails — when the knowledge base simply doesn't contain the information needed to answer the query — a naive RAG pipeline will generate a plausible-sounding answer anyway, using the LLM's parametric knowledge as a fallback.
+Standard RAG architectures return an answer. They do not return an uncertainty estimate. When retrieval fails - when the knowledge base simply doesn't contain the information needed to answer the query - a naive RAG pipeline will generate a plausible-sounding answer anyway, using the LLM's parametric knowledge as a fallback.
 
-This is the most dangerous failure mode, especially in domains with high stakes. A system that expresses confident uncertainty — "I don't find information in the knowledge base about this, here's what I do have" — is more useful than a system that confidently generates a plausible answer that isn't grounded in your knowledge base.
+This is the most dangerous failure mode, especially in domains with high stakes. A system that expresses confident uncertainty - "I don't find information in the knowledge base about this, here's what I do have" - is more useful than a system that confidently generates a plausible answer that isn't grounded in your knowledge base.
 
 Implementing this requires checking the relevance of retrieved context against the query before passing it to the generation step. If no retrieved chunk exceeds a relevance threshold, the system should flag this rather than proceed. You can use the retrieval similarity scores as a rough proxy, though a small separate classification step on "is this retrieved content actually useful for this query" is more reliable.
 

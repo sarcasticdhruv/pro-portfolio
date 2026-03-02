@@ -5,20 +5,20 @@ const EXPERIENCE = [{
   company: 'AI LifeBOT', parent: 'Ignited Wings Technology Pvt. Ltd.', current: true,
   roles: [
     {
-      title: 'AI Engineer — GenAI Solutions', badge: 'Promoted',
-      period: 'Nov 2025 – Present', location: 'Raipur / Hyderabad',
+      title: 'AI Engineer - GenAI Solutions', badge: 'Promoted',
+      period: 'Nov 2025 - Present', location: 'Raipur / Hyderabad',
       bullets: [
         'Led on-site client engagement for CHMSCL, delivering a GPT-based enterprise knowledge solution on AWS integrating large-scale structured and unstructured data.',
         'Designed, managed, and stabilized the AI-powered Grievance Management System for DPDMIS on OCI, ensuring production uptime for state government workflows.',
-        'Contributed .NET-based development to EMIS (CHMSCL) live production system — bridging ML and backend engineering in real healthcare context.',
+        'Contributed .NET-based development to EMIS (CHMSCL) live production system - bridging ML and backend engineering in real healthcare context.',
       ],
       tags: ['GenAI', 'AWS', 'OCI', 'GPT', 'Enterprise AI', '.NET', 'Healthcare AI'],
     },
     {
       title: 'AI Engineer Intern', badge: null,
-      period: 'Oct 2024 – Oct 2025', location: 'Noida',
+      period: 'Oct 2024 - Oct 2025', location: 'Noida',
       bullets: [
-        'Built an AI SEO Automation Agent using Playwright & Puppeteer, expanding lead coverage by 35% vs. Google Places API — automated large-scale multi-source scraping end-to-end.',
+        'Built an AI SEO Automation Agent using Playwright & Puppeteer, expanding lead coverage by 35% vs. Google Places API - automated large-scale multi-source scraping end-to-end.',
         'Developed client-specific data pipelines for EIE Instruments and a lead automation agent, enabling scalable automated data collection and processing.',
         'Collaborated on an OCR-based Invoice Validator Agent, automating entity extraction and cross-checking; reduced manual verification effort by 60%.',
         'Architected a no-code chatbot builder platform with modular design, omnichannel integration, and real-time analytics.',
@@ -138,10 +138,10 @@ export default function Experience() {
                   </span>
                 </div>
                 <p style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '0.72rem', color: 'var(--text-dim)', marginBottom: '5px' }}>
-                  B.Tech IT (IoT) · CGPA 8.94/10 · Oct 2022 – May 2026 · Gwalior
+                  B.Tech IT (IoT) · CGPA 8.94/10 · Oct 2022 - May 2026 · Gwalior
                 </p>
                 <p style={{ color: 'var(--text-muted)', fontSize: '0.86rem' }}>
-                  Google Cyber Security — 96.83% · Kaggle ML · 4+ Google Cloud Certifications
+                  Google Cyber Security - 96.83% · Kaggle ML · 4+ Google Cloud Certifications
                 </p>
               </div>
             </div>

@@ -15,8 +15,8 @@ waiting to be wrong.
 
 The loss is large at first.
 This is expected.
-You compute the gradient — the direction
-of steepest ascent — and step
+You compute the gradient - the direction
+of steepest ascent - and step
 the other way.
 
 Not far. Never too far.
@@ -36,7 +36,7 @@ It doesn't care how long the training takes,
 only whether the loss is lower
 than it was before.
 
-And eventually — not always, but often —
+And eventually - not always, but often -
 convergence. The weights settle.
 The model has learned
 what the data had to teach.

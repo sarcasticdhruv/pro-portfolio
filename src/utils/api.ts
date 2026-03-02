@@ -28,7 +28,7 @@ function setCache<T>(key: string, data: T): void {
     const entry: CacheEntry<T> = { data, timestamp: Date.now() };
     localStorage.setItem(`gh_cache_${key}`, JSON.stringify(entry));
   } catch {
-    // Storage full — ignore
+    // Storage full - ignore
   }
 }
 

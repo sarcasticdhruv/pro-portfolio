@@ -21,7 +21,7 @@ These are different problems. They require different muscles.
 
 ---
 
-The .NET contributions I made to EMIS — a live production system — were initially terrifying in a way that no exam has ever been. Not because the technical content was harder, but because the system was live. Real users. Real data. No version of "I misread the question" that gets you partial credit. You either understand what the change is supposed to do, trace all the places it touches, verify the change doesn't break the invariants the system depends on, and deploy carefully — or something goes wrong in a way that other people notice.
+The .NET contributions I made to EMIS - a live production system - were initially terrifying in a way that no exam has ever been. Not because the technical content was harder, but because the system was live. Real users. Real data. No version of "I misread the question" that gets you partial credit. You either understand what the change is supposed to do, trace all the places it touches, verify the change doesn't break the invariants the system depends on, and deploy carefully - or something goes wrong in a way that other people notice.
 
 The first time I deployed something to production and nothing broke, I felt a kind of relief I've never felt handing in an exam. That feeling is different from satisfaction. It's specifically relief because you were trying to do something careful and it turned out you did it carefully enough.
 
@@ -29,7 +29,7 @@ Academic performance taught me that I can learn things. Production taught me how
 
 ---
 
-Being careful is not the same as being slow. It's a mode of attention. You build a model in your head of how a system works — data flows, dependencies, assumptions baked into the code — and you run mental simulations of what your change does to that model before you touch anything. Good engineers do this fast and mostly correctly. I'm getting better at it.
+Being careful is not the same as being slow. It's a mode of attention. You build a model in your head of how a system works - data flows, dependencies, assumptions baked into the code - and you run mental simulations of what your change does to that model before you touch anything. Good engineers do this fast and mostly correctly. I'm getting better at it.
 
 The academic mode is something like: here is a clearly bounded problem, what is the answer. The production mode is: here is a system with state and history and dependencies, what changes can I safely make and how do I verify I made them correctly.
 

@@ -73,7 +73,7 @@ export default function Hero({ github }: Props) {
         WebkitMaskImage: 'radial-gradient(ellipse 80% 80% at 30% 50%, black 30%, transparent 100%)',
       }} />
 
-      {/* TOP: Status badge + Name + Typewriter — full width */}
+      {/* TOP: Status badge + Name + Typewriter - full width */}
       <div style={{ position: 'relative', zIndex: 1, marginBottom: '28px' }}>
         {/* Status */}
         <div style={{
@@ -88,7 +88,7 @@ export default function Hero({ github }: Props) {
           </span>
         </div>
 
-        {/* Name — click triggers neoport Easter egg */}
+        {/* Name - click triggers neoport Easter egg */}
         <h1
           onClick={() => setShowPopup(true)}
           title="Click me 👀"
@@ -163,9 +163,9 @@ export default function Hero({ github }: Props) {
           {/* Stats
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px' }}>
             {[
-              { label: 'repos', value: github.loading ? '—' : String(github.profile?.public_repos ?? 0) },
-              { label: 'stars', value: github.loading ? '—' : String(github.totalStars) },
-              { label: 'followers', value: github.loading ? '—' : String(github.profile?.followers ?? 0) },
+              { label: 'repos', value: github.loading ? '-' : String(github.profile?.public_repos ?? 0) },
+              { label: 'stars', value: github.loading ? '-' : String(github.totalStars) },
+              { label: 'followers', value: github.loading ? '-' : String(github.profile?.followers ?? 0) },
               { label: 'dept rank', value: '#2' },
             ].map(({ label, value }) => (
               <div key={label} style={{
@@ -187,7 +187,7 @@ export default function Hero({ github }: Props) {
           </div>*/}
         </div> 
 
-        {/* Right: Terminal — aligned with bio paragraph */}
+        {/* Right: Terminal - aligned with bio paragraph */}
         {showTerminal && (
           <div className="hero-terminal-wrap" style={{
             flex: 1,
