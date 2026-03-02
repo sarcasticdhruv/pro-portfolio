@@ -141,7 +141,7 @@ export default function Hero({ github }: Props) {
             fontSize: '0.75rem', color: 'var(--text-dim)',
           }}>
             <MapPin size={12} />
-            Bhopal / Raipur / Hyderabad
+            Bhopal —&gt; Raipur / Hyderabad
           </div>
 
           {/* CTAs */}

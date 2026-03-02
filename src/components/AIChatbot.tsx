@@ -94,7 +94,7 @@ async function groqChat(
 
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
-    throw new Error(err?.error?.message ?? `Groq error ${res.status}`);
+    throw new Error(err?.error?.message ?? `AI error ${res.status}`);
   }
   const data = await res.json();
   return data.choices?.[0]?.message?.content?.trim() ?? 'No response.';
@@ -116,6 +116,19 @@ const SUGGESTIONS = [
   'How can I contact him?',
 ];
 
+// rotating subtitle lines for header
+const SUBTITLES = [
+  'powered by coffe and 73% water.',
+  'Powered by neurons and nonsense.',
+  'Powered by organized chaos.',
+  'Powered by questions.',
+  'Powered by late-night deployments.',
+  'Powered by curiosity & clean commits.',
+  'Powered by thoughts at 2AM.',
+  'Powered by human energy.',
+  'Powered by relentless debugging.',
+];
+
 // ── Component ────────────────────────────────────────────────────────────────
 export default function AIChatbot() {
   const [open, setOpen] = useState(false);
@@ -124,6 +137,8 @@ export default function AIChatbot() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [hasOpened, setHasOpened] = useState(false);
+
+  const [subtitleIdx, setSubtitleIdx] = useState(0);
 
   const bodyRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -134,6 +149,15 @@ export default function AIChatbot() {
       bodyRef.current.scrollTop = bodyRef.current.scrollHeight;
     }
   }, [messages, loading]);
+
+  // cycle subtitle every 5 seconds
+  useEffect(() => {
+    const handle = setInterval(() => {
+      setSubtitleIdx(i => (i + 1) % SUBTITLES.length);
+    }, 5000);
+    return () => clearInterval(handle);
+  }, []);
+
 
   // Focus input when opened
   useEffect(() => {
@@ -242,7 +266,7 @@ export default function AIChatbot() {
               fontSize: '0.65rem',
               color: 'var(--accent)',
               letterSpacing: '0.04em',
-            }}>powered by Groq · llama-3.1</div>
+            }}>{SUBTITLES[subtitleIdx]}</div>
           </div>
           <button
             onClick={() => setOpen(false)}
