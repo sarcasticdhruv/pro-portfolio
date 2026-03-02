@@ -59,7 +59,7 @@ export default function About() {
               {[
                 ['Degree', 'B.Tech IT (IoT) · MITS Gwalior'],
                 ['CGPA', '8.94 / 10'],
-                ['Location', 'Bhopal —> Raipur / Hyderabad'],
+                ['Location', 'Bhopal —→ Raipur / Hyderabad'],
                 ['Role', 'AI Engineer @ Ignited Wings'],
                 ['Paper', 'IEEE MPCON-2025'],
               ].map(([k, v]) => (
