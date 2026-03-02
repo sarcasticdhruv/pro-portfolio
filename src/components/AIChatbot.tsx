@@ -304,7 +304,7 @@ export default function AIChatbot() {
                 background: m.role === 'user'
                   ? 'var(--accent)'
                   : 'var(--surface-2)',
-                color: m.role === 'user' ? '#07110A' : 'var(--text)',
+                color: m.role === 'user' ? 'var(--chat-user-text)' : 'var(--text)',
                 fontSize: '0.84rem',
                 lineHeight: 1.6,
                 fontFamily: "'DM Sans', sans-serif",

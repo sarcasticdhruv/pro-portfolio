@@ -28,6 +28,8 @@
   --shadow-md: 0 4px 14px rgba(0,0,0,0.45);
   --shadow-lg: 0 8px 32px rgba(0,0,0,0.5);
   --shadow-accent: 0 8px 24px rgba(0, 217, 109, 0.15);
+  /* Chat bubble text for user messages */
+  --chat-user-text: #07110A;
 }
 
 [data-theme="light"] {
@@ -54,6 +56,8 @@
   --shadow-md: 0 4px 12px rgba(14, 26, 17, 0.09), 0 2px 4px rgba(14, 26, 17, 0.05);
   --shadow-lg: 0 8px 28px rgba(14, 26, 17, 0.11), 0 4px 8px rgba(14, 26, 17, 0.06);
   --shadow-accent: 0 6px 20px rgba(0, 122, 61, 0.18);
+  /* user bubble text white in light mode */
+  --chat-user-text: #FFFFFF;
 }
 
 html {
