@@ -128,7 +128,6 @@ export default function Hero({ github }: Props) {
         <div style={{ flex: '0 0 auto', maxWidth: '440px', width: '100%' }}>
           {/* Bio */}
           <p style={{ fontSize: '0.97rem', color: 'var(--text-muted)', marginBottom: '28px', lineHeight: 1.78 }}>
-            B.Tech IT @ MITS Gwalior, Dept Rank 2 (CGPA 8.94).
             Building production AI systems at AI LifeBOT. IEEE-published researcher.
             Python purist, systems thinker, occasional C++ masochist.
           </p>

@@ -143,11 +143,13 @@ export default function AIChatbot() {
   const bodyRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Scroll to bottom
+  // Scroll to bottom and make sure the input remains focused when new
+  // messages arrive or loading state changes.
   useEffect(() => {
     if (bodyRef.current) {
       bodyRef.current.scrollTop = bodyRef.current.scrollHeight;
     }
+    inputRef.current?.focus();
   }, [messages, loading]);
 
   // cycle subtitle every 5 seconds
@@ -180,6 +182,8 @@ export default function AIChatbot() {
     if (!content || loading) return;
     setInput('');
     setError('');
+    // keep focus on the input box immediately after triggering a send
+    setTimeout(() => inputRef.current?.focus(), 0);
 
     const userMsg: Msg = { id: msgId++, role: 'user', content };
     setMessages(prev => [...prev, userMsg]);

@@ -148,11 +148,13 @@ export default function Terminal({ github, onClose, isFloating = false }: Props)
   const success = (msg: React.ReactNode): Line => out(<Colored col="#00D96D">{msg}</Colored>);
   const dim = (msg: React.ReactNode): Line => out(<Dim>{msg}</Dim>);
 
-  // Scroll to bottom
+  // Scroll to bottom and keep the prompt focused whenever new lines
+  // are added (so typing doesn't lose focus after submitting a command).
   useEffect(() => {
     if (outputRef.current) {
       outputRef.current.scrollTop = outputRef.current.scrollHeight;
     }
+    inputRef.current?.focus();
   }, [lines]);
 
   // Boot sequence — run neofetch once on mount
@@ -792,6 +794,9 @@ Be direct. Max 15 lines.`;
     if (e.key === 'Enter') {
       handleCommand(input);
       setInput('');
+      // re-focus the input after the command has been sent so the user
+      // can immediately continue typing without clicking again
+      setTimeout(() => inputRef.current?.focus(), 0);
       return;
     }
     if (e.key === 'ArrowUp') {
