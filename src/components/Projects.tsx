@@ -80,7 +80,7 @@ export default function Projects({ github }: Props) {
         </div>
 
         {/* Featured grid */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(290px, 1fr))', gap: '18px', marginBottom: '48px' }}>
+        <div className="projects-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(290px, 1fr))', gap: '18px', marginBottom: '48px' }}>
           {featuredWithGH.map(p => <FeaturedCard key={p.name} project={p} />)}
         </div>
 
@@ -121,6 +121,14 @@ export default function Projects({ github }: Props) {
       <style>{`
         @keyframes spin { to { transform: rotate(360deg); } }
         .spin { animation: spin 1.2s linear infinite; }
+        @media (max-width: 640px) {
+          .projects-grid { grid-template-columns: 1fr !important; }
+          .repo-meta .repo-date { display: none; }
+        }
+        @media (max-width: 420px) {
+          .repo-meta { gap: 8px !important; }
+          .repo-meta .repo-lang-label { display: none; }
+        }
       `}</style>
     </section>
   );
@@ -220,11 +228,11 @@ function RepoRow({ repo }: { repo: any }) {
           </p>
         )}
       </div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', fontFamily: "'JetBrains Mono', monospace", fontSize: '0.69rem', color: 'var(--text-dim)', flexShrink: 0 }}>
+      <div className="repo-meta" style={{ display: 'flex', alignItems: 'center', gap: '12px', fontFamily: "'JetBrains Mono', monospace", fontSize: '0.69rem', color: 'var(--text-dim)', flexShrink: 0 }}>
         {repo.language && (
           <span style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
             <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: color, display: 'inline-block' }} />
-            {repo.language}
+            <span className="repo-lang-label">{repo.language}</span>
           </span>
         )}
         {repo.stargazers_count > 0 && (
@@ -232,7 +240,7 @@ function RepoRow({ repo }: { repo: any }) {
             <Star size={9} /> {repo.stargazers_count}
           </span>
         )}
-        <span>{formatDate(repo.updated_at)}</span>
+        <span className="repo-date">{formatDate(repo.updated_at)}</span>
         <ExternalLink size={11} style={{ opacity: hovered ? 1 : 0, transition: 'opacity 0.18s', color: 'var(--accent)' }} />
       </div>
     </a>

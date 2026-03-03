@@ -40,7 +40,7 @@ export default function Experience() {
         <p className="label" style={{ marginBottom: '14px' }}>02 / experience</p>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '48px', flexWrap: 'wrap', gap: '14px' }}>
           <h2 className="section-heading">Where I've<br /><span style={{ color: 'var(--accent)' }}>shipped.</span></h2>
-          <p style={{ fontSize: '0.85rem', color: 'var(--text-dim)', fontFamily: "'JetBrains Mono', monospace", maxWidth: '320px', textAlign: 'right' }}>
+          <p className="exp-subtitle" style={{ fontSize: '0.85rem', color: 'var(--text-dim)', fontFamily: "'JetBrains Mono', monospace", maxWidth: '320px', textAlign: 'right' }}>
             Production AI systems. Real users. Real stakes.
           </p>
         </div>
@@ -73,10 +73,10 @@ export default function Experience() {
             </div>
 
             {/* Roles */}
-            <div style={{ position: 'relative', paddingLeft: '28px', borderLeft: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: '44px' }}>
+            <div className="exp-timeline" style={{ position: 'relative', paddingLeft: '28px', borderLeft: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: '44px' }}>
               {company.roles.map(role => (
                 <div key={role.title} style={{ position: 'relative' }}>
-                  <div style={{
+                  <div className="exp-dot" style={{
                     position: 'absolute', left: '-36px', top: '5px',
                     width: '9px', height: '9px', borderRadius: '50%',
                     background: role.badge ? 'var(--accent)' : 'var(--border-2)',
@@ -124,6 +124,13 @@ export default function Experience() {
             </div>
 
             {/* Education card */}
+            <style>{`
+              @media (max-width: 480px) {
+                .exp-subtitle { text-align: left !important; }
+                .exp-timeline { padding-left: 20px !important; }
+                .exp-dot { left: -28px !important; }
+              }
+            `}</style>
             <div style={{ marginTop: '44px', padding: '22px', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '10px', display: 'flex', gap: '18px', alignItems: 'flex-start', boxShadow: 'var(--shadow-sm)' }}>
               <div style={{ width: '40px', height: '40px', background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                 <GraduationCap size={16} style={{ color: 'var(--accent)' }} />

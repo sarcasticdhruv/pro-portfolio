@@ -97,7 +97,7 @@ export default function Navbar({ theme, onToggleTheme }: Props) {
         <div style={{
           position: 'fixed', top: '60px', left: 0, right: 0, zIndex: 99,
           background: 'var(--bg)', borderBottom: '1px solid var(--border)',
-          padding: '20px 32px', display: 'flex', flexDirection: 'column', gap: '18px',
+          padding: '20px 20px', display: 'flex', flexDirection: 'column', gap: '18px',
         }}>
           {NAV_LINKS.map(link => (
             <a key={link.label} href={link.href} onClick={() => setMenuOpen(false)} style={{
@@ -125,6 +125,9 @@ export default function Navbar({ theme, onToggleTheme }: Props) {
         @media (max-width: 768px) {
           .nav-desktop { display: none !important; }
           .nav-mobile { display: flex !important; }
+        }
+        @media (max-width: 480px) {
+          nav { padding: 0 16px !important; }
         }
       `}</style>
     </>

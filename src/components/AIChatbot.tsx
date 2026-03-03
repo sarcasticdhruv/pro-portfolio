@@ -215,8 +215,8 @@ export default function AIChatbot() {
         style={{
           position: 'fixed',
           bottom: open ? '88px' : '72px',
-          right: '24px',
-          width: 'clamp(320px, 90vw, 384px)',
+          right: 'clamp(12px, 4vw, 24px)',
+          width: 'clamp(286px, 92vw, 384px)',
           height: open ? 'min(540px, 80vh)' : '0px',
           opacity: open ? 1 : 0,
           pointerEvents: open ? 'all' : 'none',
@@ -498,7 +498,7 @@ export default function AIChatbot() {
         style={{
           position: 'fixed',
           bottom: '24px',
-          right: '24px',
+          right: 'clamp(12px, 4vw, 24px)',
           width: '56px',
           height: '56px',
           borderRadius: '50%',

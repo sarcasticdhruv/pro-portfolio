@@ -324,7 +324,7 @@ export default function Terminal({ github, onClose, isFloating = false }: Props)
 
     if (!res.ok) {
       const errData = await res.json().catch(() => ({}));
-      throw new Error(errData?.error?.message ?? `Groq API error ${res.status}`);
+      throw new Error(errData?.error?.message ?? `API error ${res.status}`);
     }
 
     const data = await res.json();
@@ -395,8 +395,8 @@ export default function Terminal({ github, onClose, isFloating = false }: Props)
             ['resume', 'Show resume summary'],
             ['contact', 'Show contact details'],
             ['open <target>', 'Open: github | linkedin | twitter | email'],
-            ['search "<query>"', 'AI-powered web search (Groq)'],
-            ['ask "<question>"', 'Ask anything (Groq AI)'],
+            ['search "<query>"', 'Web search'],
+            ['ask "<question>"', 'Ask anything (AI Powered)'],
             ['history', 'Show command history'],
             ['echo <text>', 'Print text'],
             ['date', 'Show current date and time'],

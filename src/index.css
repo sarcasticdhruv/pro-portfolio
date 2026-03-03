@@ -369,3 +369,41 @@ a:hover {
   box-shadow: 0 0 8px rgba(0, 122, 61, 0.45) !important;
 }
 
+
+/* ─────────────────────────────────────────────
+   RESPONSIVE / MOBILE
+──────────────────────────────────────────────── */
+
+@media (max-width: 768px) {
+  .container {
+    padding: 0 20px;
+  }
+  .section {
+    padding: 72px 0;
+  }
+}
+
+@media (max-width: 480px) {
+  .container {
+    padding: 0 15px;
+  }
+  .section {
+    padding: 52px 0;
+  }
+  .btn {
+    padding: 9px 16px;
+    font-size: 0.78rem;
+  }
+  /* Reduce section-heading on very small screens */
+  .section-heading {
+    font-size: clamp(1.6rem, 8vw, 2.4rem);
+  }
+}
+
+/* ── Touch target helpers ── */
+@media (hover: none) {
+  .btn {
+    /* Slightly taller for easier tapping */
+    min-height: 42px;
+  }
+}

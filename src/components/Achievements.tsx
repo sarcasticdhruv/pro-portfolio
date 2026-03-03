@@ -73,7 +73,7 @@ export default function Achievements() {
           Milestones &<br /><span style={{ color: 'var(--accent)' }}>recognition.</span>
         </h2>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(295px, 1fr))', gap: '18px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '18px' }}>
           {ACHIEVEMENTS.map(a => (
             <div key={a.title} style={{
               padding: '22px', background: 'var(--bg)',
