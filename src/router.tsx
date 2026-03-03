@@ -3,6 +3,7 @@ import App from './App';
 import HomePage from './pages/HomePage';
 import BlogListPage from './pages/BlogListPage';
 import BlogPostPage from './pages/BlogPostPage';
+import NotFoundPage from './pages/NotFoundPage';
 
 const router = createBrowserRouter([
   {
@@ -11,7 +12,9 @@ const router = createBrowserRouter([
     children: [
       { index: true, element: <HomePage /> },
       { path: 'blog', element: <BlogListPage /> },
+      { path: 'blogs', element: <BlogListPage /> },
       { path: 'blog/:slug', element: <BlogPostPage /> },
+      { path: '*', element: <NotFoundPage /> },
     ],
   },
 ]);

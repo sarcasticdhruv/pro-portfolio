@@ -61,14 +61,12 @@ export default function BlogListPage() {
             color: 'var(--text-muted)',
             maxWidth: '540px',
           }}>
-            Thinking out loud about AI systems, production engineering, and what it means
-            to build things that matter. Not tutorials. Not hot takes. Just honest notes
-            from someone trying to figure it out.
+            Just honest notes from someone trying to figure it out.
           </p>
         </div>
 
         {/* Divider */}
-        <div style={{ borderTop: '1px solid var(--border)', marginBottom: '0' }} />
+        <div style={{ borderTop: '3px solid var(--divider-contrast)', marginBottom: '0' }} />
 
         {/* Post list */}
         {ALL_POSTS.length === 0 ? (

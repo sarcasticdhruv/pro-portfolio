@@ -1003,6 +1003,10 @@ Be direct. Max 15 lines.`;
         .term-output::-webkit-scrollbar { width: 4px; }
         .term-output::-webkit-scrollbar-track { background: #070F09; }
         .term-output::-webkit-scrollbar-thumb { background: #1C3024; border-radius: 2px; }
+        /* smaller font on very narrow viewports */
+        @media (max-width: 480px) {
+          .term-output { font-size: 0.68rem !important; }
+        }
         .term-scanline {
           position: absolute; inset: 0;
           background: repeating-linear-gradient(

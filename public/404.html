@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>404 – Page not found</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: 'DM Sans', sans-serif;
+      background: var(--bg, #07110A);
+      color: var(--text, #DFF0E3);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      text-align: center;
+      padding: 24px;
+    }
+    h1 {
+      font-family: 'Syne', sans-serif;
+      font-size: 3rem;
+      color: var(--accent, #00D96D);
+      margin-bottom: 1rem;
+    }
+    p {
+      font-size: 1.1rem;
+      margin-bottom: 2rem;
+    }
+    a {
+      display: inline-block;
+      padding: 0.7rem 1.2rem;
+      background: var(--accent, #00D96D);
+      color: #000;
+      border-radius: 6px;
+      text-decoration: none;
+      font-family: 'JetBrains Mono', monospace;
+    }
+  </style>
+</head>
+<body>
+  <div>
+    <h1>404</h1>
+    <p id="msg">Whoops…</p>
+    <a href="/">Back home</a>
+  </div>
+
+  <script>
+    const messages = [
+      'Oops! This page escaped our neural network.',
+      '404: Even AI can’t find this.',
+      'The page you’re looking for went on a coffee break.',
+      'Looks like you wandered into the void… 🕳️',
+      'Well, this is awkward. Nothing here but air.',
+      'We looked everywhere. Even under the couch. Nada.',
+      'You fell into the 404 dungeon. Escape?',
+      'This page is lost… like socks in the dryer.',
+      '404: This is not the blog post you are looking for.',
+      'Houston, we have a 404.'
+    ];
+    function pick() {
+      return messages[Math.floor(Math.random() * messages.length)];
+    }
+    document.getElementById('msg').textContent = pick();
+  </script>
+</body>
+</html>

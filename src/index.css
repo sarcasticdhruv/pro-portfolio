@@ -30,6 +30,8 @@
   --shadow-accent: 0 8px 24px rgba(0, 217, 109, 0.15);
   /* Chat bubble text for user messages */
   --chat-user-text: #07110A;
+  /* divider color switches with theme */
+  --divider-contrast: #ffffff;
 }
 
 [data-theme="light"] {
@@ -58,6 +60,8 @@
   --shadow-accent: 0 6px 20px rgba(0, 122, 61, 0.18);
   /* user bubble text white in light mode */
   --chat-user-text: #FFFFFF;
+  /* divider color switches with theme */
+  --divider-contrast: #000000;
 }
 
 html {

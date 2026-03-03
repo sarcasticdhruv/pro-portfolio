@@ -18,7 +18,8 @@ export default function BlogCard({ post }: Props) {
         className="blog-card"
         style={{
           padding: '32px 0',
-          borderBottom: '1px solid var(--border)',
+          /* separator adjusts to theme (white in dark mode) */
+          borderBottom: '2px solid var(--divider-contrast)',
           cursor: 'pointer',
           transition: 'transform 0.2s ease, opacity 0.2s ease',
         }}
