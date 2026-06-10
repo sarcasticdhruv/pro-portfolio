@@ -1,7 +1,9 @@
 import { useState, useEffect, useRef, useCallback, type KeyboardEvent } from 'react';
+import { createPortal } from 'react-dom';
 
 import { Maximize2, Minimize2, X, Terminal as TermIcon } from 'lucide-react';
 import type { GitHubStats } from '../types';
+import TerminalSnake from './games/TerminalSnake';
 
 interface Props {
   github: GitHubStats;
@@ -122,7 +124,7 @@ function Colored({ col, children }: { col: string; children: React.ReactNode }) 
 }
 
 function Dim({ children }: { children: React.ReactNode }) {
-  return <span style={{ color: '#4A6A52' }}>{children}</span>;
+  return <span style={{ color: '#6E8C76' }}>{children}</span>;
 }
 
 export default function Terminal({ github, onClose, isFloating = false }: Props) {
@@ -133,10 +135,12 @@ export default function Terminal({ github, onClose, isFloating = false }: Props)
   const [cwd, setCwd] = useState('~');
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [booted, setBooted] = useState(false);
+  const [inputFocused, setInputFocused] = useState(false);
+  const [gameMode, setGameMode] = useState<null | 'snake'>(null);
 
   const outputRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const bootedRef = useRef(false);
 
   const addLines = useCallback((newLines: Line[]) => {
     setLines(prev => [...prev, ...newLines]);
@@ -148,44 +152,51 @@ export default function Terminal({ github, onClose, isFloating = false }: Props)
   const success = (msg: React.ReactNode): Line => out(<Colored col="#00D96D">{msg}</Colored>);
   const dim = (msg: React.ReactNode): Line => out(<Dim>{msg}</Dim>);
 
-  // Scroll to bottom and keep the prompt focused whenever new lines
-  // are added (so typing doesn't lose focus after submitting a command).
+  // Auto-scroll to the bottom only when the user is already near it, so
+  // scrolling up to read earlier output isn't yanked back down. We do NOT
+  // force focus here — on mobile that pops the soft keyboard open on load
+  // and after every command.
   useEffect(() => {
-    if (outputRef.current) {
-      outputRef.current.scrollTop = outputRef.current.scrollHeight;
-    }
-    inputRef.current?.focus();
+    const el = outputRef.current;
+    if (!el) return;
+    const nearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 120;
+    if (nearBottom) el.scrollTop = el.scrollHeight;
   }, [lines]);
 
-  // Boot sequence — run neofetch once on mount
+  // Boot sequence — print login lines progressively, then neofetch.
+  // Guarded by a ref so React 18 StrictMode's double-invoke can't boot twice.
   useEffect(() => {
-    if (booted) return;
-    setBooted(true);
-    const bootLines: Line[] = [
+    if (bootedRef.current) return;
+    bootedRef.current = true;
+
+    const seq: Line[] = [
       dim('Arch Linux 6.9.3-arch1-1 (tty1)'),
-      // blank(),
-      // out(<span><Dim>[  </Dim><Colored col="#28C840"> OK </Colored><Dim>  ] Reached target </Dim><span style={{color:'#DFF0E3'}}>Multi-User System</span></span>),
-      // out(<span><Dim>[  </Dim><Colored col="#28C840"> OK </Colored><Dim>  ] Started </Dim><span style={{color:'#DFF0E3'}}>Network Manager</span></span>),
-      // out(<span><Dim>[  </Dim><Colored col="#28C840"> OK </Colored><Dim>  ] Started </Dim><span style={{color:'#DFF0E3'}}>OpenSSH Daemon</span></span>),
-      // blank(),
-      out(<span><Colored col="#1E90FF">arch</Colored> <Dim>login:</Dim> <span style={{color:'#DFF0E3'}}>dhruv</span></span>),
-      out(<span><Dim>Password: </Dim><span style={{color:'#070F09', userSelect:'none'}}>••••••••</span></span>),
+      out(<span><Colored col="#1E90FF">arch</Colored> <Dim>login:</Dim> <span style={{ color: '#DFF0E3' }}>dhruv</span></span>),
+      out(<span><Dim>Password: </Dim><span style={{ color: '#070F09', userSelect: 'none' }}>••••••••</span></span>),
       blank(),
-      out(<span><Dim>Last login: </Dim><span style={{color:'#7A9E82'}}>{new Date().toDateString()} on tty1</span></span>),
+      out(<span><Dim>Last login: </Dim><span style={{ color: '#7A9E82' }}>{new Date().toDateString()} on tty1</span></span>),
       blank(),
     ];
-    setLines(bootLines);
-    setTimeout(() => {
-      runNeofetch(github);
-    }, 420);
+
+    const timers: ReturnType<typeof setTimeout>[] = [];
+    seq.forEach((line, i) => {
+      timers.push(setTimeout(() => setLines(prev => [...prev, line]), i * 130));
+    });
+    timers.push(setTimeout(() => runNeofetch(github), seq.length * 130 + 220));
+
+    return () => timers.forEach(clearTimeout);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Update neofetch if github data loads
+  // Esc exits fullscreen.
   useEffect(() => {
-    if (!github.loading && booted) {
-      // Don't re-run, just silently available for next 'neofetch' call
-    }
-  }, [github.loading]);
+    if (!isFullscreen) return;
+    const onKey = (e: globalThis.KeyboardEvent) => {
+      if (e.key === 'Escape') setIsFullscreen(false);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [isFullscreen]);
 
   function runNeofetch(gh: GitHubStats) {
     const uptime = Math.floor((Date.now() - PAGE_LOAD_TIME) / 1000);
@@ -231,6 +242,9 @@ export default function Terminal({ github, onClose, isFloating = false }: Props)
       ['Terminal', 'Alacritty 0.13.2'],
       ['Font', 'JetBrains Mono 11'],
       ['Resolution', res],
+      ['Repos', String(repos)],
+      ['Stars', String(stars)],
+      ['Followers', String(followers)],
       [''],
       ['colors'],
     ];
@@ -239,9 +253,9 @@ export default function Terminal({ github, onClose, isFloating = false }: Props)
       id: lid(),
       type: 'neofetch',
       content: (
-        <div style={{ display: 'flex', gap: '20px', fontFamily: "'JetBrains Mono', monospace", fontSize: '0.72rem', lineHeight: 1.55 }}>
-          {/* ASCII art */}
-          <div style={{ flexShrink: 0, userSelect: 'none', lineHeight: 1.28 }}>
+        <div className="neofetch-row" style={{ display: 'flex', gap: '20px', fontFamily: "'JetBrains Mono', monospace", fontSize: '0.72rem', lineHeight: 1.55 }}>
+          {/* ASCII art — hidden on narrow screens (see .neofetch-art media query) */}
+          <div className="neofetch-art" style={{ flexShrink: 0, userSelect: 'none', lineHeight: 1.28 }}>
             {archArt.map((line, i) => {
               // gradient: top rows deeper blue, bottom rows cyan/lighter
               const ratio = i / (archArt.length - 1);
@@ -258,7 +272,7 @@ export default function Terminal({ github, onClose, isFloating = false }: Props)
                 return <div key={i}>{item[0]}{item[1]}{item[2]}</div>;
               }
               if (Array.isArray(item) && item.length === 1 && String(item[0]).startsWith('──')) {
-                return <div key={i} style={{ color: '#2A5A3A' }}>{item[0]}</div>;
+                return <div key={i} style={{ color: '#3E6E4E' }}>{item[0]}</div>;
               }
               if (Array.isArray(item) && item.length === 1 && item[0] === '') {
                 return <div key={i}>&nbsp;</div>;
@@ -338,7 +352,7 @@ export default function Terminal({ github, onClose, isFloating = false }: Props)
         return <div key={i}><Colored col="#00D96D">{clean}</Colored></div>;
       }
       if (line.startsWith('- ') || line.startsWith('• ')) {
-        return <div key={i}><Colored col="#4A6A52">  › </Colored><span style={{ color: '#DFF0E3' }}>{line.slice(2)}</span></div>;
+        return <div key={i}><Colored col="#6E8C76">  › </Colored><span style={{ color: '#DFF0E3' }}>{line.slice(2)}</span></div>;
       }
       if (line.startsWith('`') && line.endsWith('`')) {
         return <div key={i}><span style={{ color: '#FEBC2E' }}>{line}</span></div>;
@@ -376,6 +390,18 @@ export default function Terminal({ github, onClose, isFloating = false }: Props)
         runNeofetch(github);
         return;
 
+      case 'snake':
+      case 'play':
+        addLines([dim('Launching snake... use arrow keys, press Q to quit.')]);
+        setGameMode('snake');
+        return;
+
+      case 'games':
+      case 'arcade':
+        addLines([success('Opening the arcade...')]);
+        setTimeout(() => { window.location.href = '/games'; }, 300);
+        return;
+
       case 'help': {
         addLines([
           blank(),
@@ -395,6 +421,8 @@ export default function Terminal({ github, onClose, isFloating = false }: Props)
             ['resume', 'Show resume summary'],
             ['contact', 'Show contact details'],
             ['open <target>', 'Open: github | linkedin | twitter | email'],
+            ['snake', 'Play snake right here in the terminal'],
+            ['games', 'Open the full games arcade'],
             ['search "<query>"', 'Web search'],
             ['ask "<question>"', 'Ask anything (AI Powered)'],
             ['history', 'Show command history'],
@@ -490,29 +518,24 @@ export default function Terminal({ github, onClose, isFloating = false }: Props)
           addLines([err(`ls: cannot access '${args[0] ?? dir}': No such file or directory`)]);
           return;
         }
-        const cols = 4;
-        const rows: Line[] = [];
-        for (let i = 0; i < entries.length; i += cols) {
-          const row = entries.slice(i, i + cols);
-          rows.push(
-            out(
-              <span>
-                {row.map((e, ri) => {
-                  const isDir = e.endsWith('/');
-                  return (
-                    <span key={ri} style={{ display: 'inline-block', minWidth: '22ch' }}>
-                      {isDir
-                        ? <Colored col="#1E90FF">{e}</Colored>
-                        : <span style={{ color: '#DFF0E3' }}>{e}</span>
-                      }
-                    </span>
-                  );
-                })}
-              </span>
-            ) as Line
-          );
-        }
-        addLines([blank(), ...rows, blank()] as Line[]);
+        // Flex-wrap grid so columns reflow on narrow screens instead of
+        // forcing a fixed 4-column width that overflows on mobile.
+        const entriesNode = out(
+          <span style={{ display: 'flex', flexWrap: 'wrap', columnGap: '20px', rowGap: '1px' }}>
+            {entries.map((e, ri) => {
+              const isDir = e.endsWith('/');
+              return (
+                <span key={ri}>
+                  {isDir
+                    ? <Colored col="#1E90FF">{e}</Colored>
+                    : <span style={{ color: '#DFF0E3' }}>{e}</span>
+                  }
+                </span>
+              );
+            })}
+          </span>
+        );
+        addLines([blank(), entriesNode, blank()]);
         return;
       }
 
@@ -573,7 +596,6 @@ export default function Terminal({ github, onClose, isFloating = false }: Props)
                 <span>
                   <Colored col="#FEBC2E">commit {hash}</Colored>
                   <Dim> ({dStr})</Dim>
-                  {'\n'}
                   <span style={{ color: '#A8C8B0', display: 'block', paddingLeft: '4px' }}>    {msg}</span>
                 </span>
               );
@@ -815,11 +837,24 @@ Be direct. Max 15 lines.`;
     }
     if (e.key === 'Tab') {
       e.preventDefault();
-      // Basic tab completion
       const all = ['help', 'whoami', 'neofetch', 'ls', 'cat', 'cd', 'pwd', 'git', 'skills', 'projects',
-        'resume', 'contact', 'open', 'search', 'ask', 'history', 'echo', 'date', 'uname', 'uptime', 'clear', 'exit'];
-      const match = all.find(c => c.startsWith(input));
-      if (match) setInput(match + ' ');
+        'resume', 'contact', 'open', 'snake', 'games', 'search', 'ask', 'history', 'echo', 'date', 'uname', 'uptime', 'clear', 'exit'];
+      const tokens = input.split(/\s+/);
+      // First token: complete the command name.
+      if (tokens.length <= 1) {
+        const match = all.find(c => c.startsWith(tokens[0] ?? ''));
+        if (match) setInput(match + ' ');
+        return;
+      }
+      // Subsequent tokens of file commands: complete a path from the
+      // current directory's entries and known files.
+      const base = tokens[0].toLowerCase();
+      if (base === 'cat' || base === 'cd' || base === 'ls') {
+        const frag = tokens[tokens.length - 1];
+        const candidates = [...(VFS[cwd] ?? []), ...Object.keys(FILE_CONTENTS)];
+        const match = candidates.find(c => c.startsWith(frag));
+        if (match) setInput([...tokens.slice(0, -1), match].join(' '));
+      }
       return;
     }
     if (e.key === 'l' && e.ctrlKey) {
@@ -836,25 +871,34 @@ Be direct. Max 15 lines.`;
     }
   }
 
+  const exitSnake = (finalScore: number) => {
+    setGameMode(null);
+    addLines([
+      out(<span><Colored col="#00D96D">snake</Colored> <Dim> final score: {finalScore}. thanks for playing.</Dim></span>),
+      blank(),
+    ]);
+    setTimeout(() => inputRef.current?.focus(), 0);
+  };
+
   const promptColor = '#00D96D';
   const cwdDisplay = cwd.replace(`/home/${USERNAME}`, '~');
   const promptUser = <span style={{ color: '#1E90FF', fontWeight: 600 }}>{USERNAME}</span>;
-  const promptAt = <span style={{ color: '#4A6A52' }}>@</span>;
+  const promptAt = <span style={{ color: '#6E8C76' }}>@</span>;
   const promptHost = <span style={{ color: '#1E90FF' }}>{HOSTNAME}</span>;
-  const promptBracketL = <span style={{ color: '#4A6A52' }}>[</span>;
-  const promptBracketR = <span style={{ color: '#4A6A52' }}>]</span>;
+  const promptBracketL = <span style={{ color: '#6E8C76' }}>[</span>;
+  const promptBracketR = <span style={{ color: '#6E8C76' }}>]</span>;
   const promptDir = <span style={{ color: promptColor }}>{cwdDisplay}</span>;
   const promptDollar = <span style={{ color: promptColor }}> $ </span>;
 
   const windowStyle: React.CSSProperties = isFullscreen ? {
     position: 'fixed',
-    inset: '16px',
-    zIndex: 500,
-    borderRadius: '10px',
+    inset: 0,
+    zIndex: 9999,
+    borderRadius: 0,
     display: 'flex',
     flexDirection: 'column',
     overflow: 'hidden',
-    boxShadow: '0 0 80px rgba(0,0,0,0.8), 0 0 0 1px #1C3024',
+    boxShadow: 'none',
   } : {
     width: '100%',
     height: '100%',
@@ -864,7 +908,7 @@ Be direct. Max 15 lines.`;
     borderRadius: isFloating ? '10px' : '8px',
   };
 
-  return (
+  const windowEl = (
     <div style={windowStyle} onClick={() => inputRef.current?.focus()}>
       {/* Window chrome */}
       <div style={{
@@ -901,7 +945,7 @@ Be direct. Max 15 lines.`;
           flex: 1, textAlign: 'center',
           fontFamily: "'JetBrains Mono', monospace",
           fontSize: '0.73rem',
-          color: '#4A6A52',
+          color: '#6E8C76',
           pointerEvents: 'none',
         }}>
           <TermIcon size={11} style={{ display: 'inline', verticalAlign: 'middle', marginRight: '5px' }} />
@@ -911,7 +955,7 @@ Be direct. Max 15 lines.`;
         {/* Fullscreen toggle */}
         <button
           onClick={(e) => { e.stopPropagation(); setIsFullscreen(v => !v); }}
-          style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#4A6A52', padding: '2px', display: 'flex' }}
+          style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#6E8C76', padding: '2px', display: 'flex' }}
         >
           {isFullscreen ? <Minimize2 size={13} /> : <Maximize2 size={13} />}
         </button>
@@ -965,35 +1009,54 @@ Be direct. Max 15 lines.`;
           </div>
         )}
 
-        {/* Input line */}
-        <div style={{ display: 'flex', alignItems: 'center', marginTop: '2px', flexWrap: 'wrap' }}>
+        {/* In-terminal snake takes over the prompt while playing. */}
+        {gameMode === 'snake' && <TerminalSnake onExit={exitSnake} />}
+
+        {/* Input line — a real <input> sits transparently on top of a
+            mirror of the typed text plus a faux block cursor, so it reads
+            like an actual terminal (solid blinking block, hollow when
+            unfocused) instead of a thin browser caret. The input's 16px
+            font also stops iOS Safari from auto-zooming on focus. */}
+        {gameMode === null && (
+        <div className="term-input-line" style={{ position: 'relative', display: 'flex', alignItems: 'center', marginTop: '2px', flexWrap: 'wrap' }}>
           <span style={{ flexShrink: 0 }}>
             {promptBracketL}{promptUser}{promptAt}{promptHost} {promptDir}{promptBracketR}{promptDollar}
+          </span>
+          <span style={{ color: '#DFF0E3', whiteSpace: 'pre-wrap', overflowWrap: 'anywhere', minWidth: 0 }}>
+            {input}
+            <span className={`term-cursor${inputFocused ? '' : ' term-cursor-idle'}`} aria-hidden="true" />
           </span>
           <input
             ref={inputRef}
             value={input}
             onChange={e => setInput(e.target.value)}
             onKeyDown={handleKey}
-            disabled={isLoading}
-            autoFocus
+            onFocus={() => setInputFocused(true)}
+            onBlur={() => setInputFocused(false)}
             autoComplete="off"
             autoCapitalize="none"
+            autoCorrect="off"
             spellCheck={false}
+            aria-label="terminal input"
             style={{
-              flex: 1,
+              position: 'absolute',
+              inset: 0,
+              width: '100%',
+              height: '100%',
               background: 'none',
               border: 'none',
               outline: 'none',
-              color: '#DFF0E3',
+              color: 'transparent',
+              caretColor: 'transparent',
               fontFamily: "'JetBrains Mono', monospace",
-              fontSize: '0.78rem',
-              caretColor: '#00D96D',
+              fontSize: '16px',
               padding: 0,
+              margin: 0,
               minWidth: 0,
             }}
           />
         </div>
+        )}
       </div>
       </div>
 
@@ -1003,9 +1066,35 @@ Be direct. Max 15 lines.`;
         .term-output::-webkit-scrollbar { width: 4px; }
         .term-output::-webkit-scrollbar-track { background: #070F09; }
         .term-output::-webkit-scrollbar-thumb { background: #1C3024; border-radius: 2px; }
-        /* smaller font on very narrow viewports */
+        /* Never scroll sideways — wrap long output instead of clipping it. */
+        .term-output { overflow-x: hidden; }
+        .term-output > div { overflow-wrap: anywhere; }
+
+        /* Faux block cursor on the input line. */
+        .term-cursor {
+          display: inline-block;
+          width: 0.55em;
+          height: 1.05em;
+          margin-left: 1px;
+          vertical-align: text-bottom;
+          background: #00D96D;
+          animation: termBlink 1.05s step-end infinite;
+        }
+        .term-cursor-idle {
+          background: transparent;
+          box-shadow: inset 0 0 0 1px #00D96D;
+          animation: none;
+        }
+        @keyframes termBlink { 0%, 49% { opacity: 1; } 50%, 100% { opacity: 0; } }
+
+        /* Hide the wide ASCII logo on phones so neofetch info stays readable. */
+        @media (max-width: 600px) {
+          .neofetch-art { display: none !important; }
+          .neofetch-row { gap: 0 !important; }
+        }
+        /* Slightly larger, legible text on narrow viewports. */
         @media (max-width: 480px) {
-          .term-output { font-size: 0.68rem !important; }
+          .term-output { font-size: 0.72rem !important; }
         }
         .term-scanline {
           position: absolute; inset: 0;
@@ -1022,4 +1111,9 @@ Be direct. Max 15 lines.`;
       `}</style>
     </div>
   );
+
+  // When fullscreen, portal to <body> so the terminal escapes the hero's
+  // stacking context (.hero-main-row has z-index:1) and actually covers the
+  // navbar and everything else, instead of rendering beneath them.
+  return isFullscreen ? createPortal(windowEl, document.body) : windowEl;
 }

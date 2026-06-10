@@ -128,8 +128,9 @@ export default function Hero({ github }: Props) {
         <div style={{ flex: '0 0 auto', maxWidth: '440px', width: '100%' }}>
           {/* Bio */}
           <p style={{ fontSize: '0.97rem', color: 'var(--text-muted)', marginBottom: '28px', lineHeight: 1.78 }}>
-            Building production AI systems at AI LifeBOT. IEEE-published researcher.
-            Python purist, systems thinker, occasional C++ masochist.
+            AI engineer at AI LifeBOT, building GenAI systems that run in production:
+            government knowledge bases, grievance platforms, automation agents.
+            IEEE-published. I care more about reliability than demos.
           </p>
 
           {/* Location */}
@@ -140,7 +141,7 @@ export default function Hero({ github }: Props) {
             fontSize: '0.75rem', color: 'var(--text-dim)',
           }}>
             <MapPin size={12} />
-            Bhopal —→ Raipur / Hyderabad
+            Bhopal → Raipur / Hyderabad
           </div>
 
           {/* CTAs */}
@@ -191,8 +192,10 @@ export default function Hero({ github }: Props) {
           <div className="hero-terminal-wrap" style={{
             flex: 1,
             minWidth: 0,
-            height: 'clamp(380px, calc(100vh - 320px), 580px)',
-            maxHeight: 'calc(100vh - 140px)',
+            // Cap to the space left under the header (badge + wordmark +
+            // typewriter ≈ 390px) so the terminal never overflows the fold.
+            height: 'clamp(340px, calc(100vh - 460px), 500px)',
+            maxHeight: 'calc(100vh - 220px)',
             borderRadius: '10px',
             border: '1px solid var(--border)',
             overflow: 'hidden',
@@ -360,20 +363,24 @@ export default function Hero({ github }: Props) {
 
         /* ── Responsive ── */
         @media (max-width: 1024px) {
-          .hero-terminal-wrap { height: clamp(340px, calc(100vh - 360px), 520px) !important; }
+          .hero-terminal-wrap { height: clamp(340px, calc(100vh - 440px), 480px) !important; }
         }
         @media (max-width: 820px) {
           .hero-main-row { flex-direction: column !important; gap: 32px !important; }
           .hero-main-row > div:first-child { max-width: 100% !important; }
           .hero-terminal-wrap {
             width: 100% !important;
-            height: clamp(320px, 50vw, 420px) !important;
-            max-height: 420px !important;
+            height: clamp(380px, 58vh, 520px) !important;
+            max-height: 70vh !important;
           }
         }
         @media (max-width: 540px) {
           #hero { padding-left: 18px !important; padding-right: 18px !important; }
-          .hero-terminal-wrap { height: 300px !important; }
+          .hero-terminal-wrap {
+            height: 62vh !important;
+            min-height: 380px !important;
+            max-height: 560px !important;
+          }
         }
       `}</style>
     </section>

@@ -168,6 +168,8 @@ export default function MarkdownRenderer({ content }: Props) {
         [data-theme="light"] .md-body .hljs-function,
         [data-theme="light"] .md-body .hljs-title { color: #005a9e; }
         [data-theme="light"] .md-body .hljs-type { color: #7a3e9d; }
+        [data-theme="light"] .md-body .hljs-attr { color: #007acc; }
+        [data-theme="light"] .md-body .hljs-built_in { color: #b35900; }
 
         /* Tables */
         .md-body table {

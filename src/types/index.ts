@@ -45,6 +45,8 @@ export interface ThemeTransitionState {
   isTransitioning: boolean;
   fromTheme: Theme;
   toTheme: Theme;
+  /** Viewport coords the toggle was clicked at — origin of the reveal wipe. */
+  origin?: { x: number; y: number };
 }
 
 export interface ExperienceItem {

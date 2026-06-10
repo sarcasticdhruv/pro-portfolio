@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
-import { Sun, Moon, Menu, X, BookOpen } from 'lucide-react';
+import { Sun, Moon, Menu, X, BookOpen, Gamepad2 } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import type { Theme } from '../types';
 
-interface Props { theme: Theme; onToggleTheme: () => void; }
+interface Props { theme: Theme; onToggleTheme: (origin?: { x: number; y: number }) => void; }
 
 const NAV_LINKS = [
   { label: 'about', href: '/#about' },
@@ -18,6 +18,7 @@ export default function Navbar({ theme, onToggleTheme }: Props) {
   const [menuOpen, setMenuOpen] = useState(false);
   const { pathname } = useLocation();
   const onBlog = pathname.startsWith('/blog');
+  const onGames = pathname.startsWith('/games');
 
   useEffect(() => {
     const handler = () => setScrolled(window.scrollY > 40);
@@ -78,6 +79,25 @@ export default function Navbar({ theme, onToggleTheme }: Props) {
             blog
           </Link>
 
+          {/* Games link */}
+          <Link
+            to="/games"
+            style={{
+              fontFamily: "'JetBrains Mono', monospace",
+              fontSize: '0.76rem',
+              letterSpacing: '0.04em',
+              display: 'flex', alignItems: 'center', gap: '5px',
+              textDecoration: 'none',
+              color: onGames ? 'var(--accent)' : 'var(--text-muted)',
+              transition: 'color 0.18s ease',
+            }}
+            onMouseEnter={e => ((e.currentTarget as HTMLElement).style.color = 'var(--accent)')}
+            onMouseLeave={e => ((e.currentTarget as HTMLElement).style.color = onGames ? 'var(--accent)' : 'var(--text-muted)')}
+          >
+            <Gamepad2 size={13} />
+            games
+          </Link>
+
           <ThemeBtn theme={theme} onToggle={onToggleTheme} />
         </div>
 
@@ -118,6 +138,18 @@ export default function Navbar({ theme, onToggleTheme }: Props) {
             <BookOpen size={13} />
             ./blog
           </Link>
+          <Link
+            to="/games"
+            onClick={() => setMenuOpen(false)}
+            style={{
+              fontFamily: "'JetBrains Mono', monospace", fontSize: '0.83rem',
+              color: onGames ? 'var(--accent)' : 'var(--text-muted)',
+              textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '6px',
+            }}
+          >
+            <Gamepad2 size={13} />
+            ./games
+          </Link>
         </div>
       )}
 
@@ -134,9 +166,14 @@ export default function Navbar({ theme, onToggleTheme }: Props) {
   );
 }
 
-function ThemeBtn({ theme, onToggle }: { theme: Theme; onToggle: () => void }) {
+function ThemeBtn({ theme, onToggle }: { theme: Theme; onToggle: (origin?: { x: number; y: number }) => void }) {
   return (
-    <button onClick={onToggle} title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
+    <button
+      onClick={e => {
+        const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
+        onToggle({ x: r.left + r.width / 2, y: r.top + r.height / 2 });
+      }}
+      title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
       style={{
         background: 'var(--surface)', border: '1px solid var(--border)',
         borderRadius: '6px', width: '34px', height: '34px',
