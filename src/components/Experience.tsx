@@ -212,7 +212,7 @@ export default function Experience() {
                   </span>
                 </div>
                 <p style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '0.72rem', color: 'var(--text-dim)', marginBottom: '5px' }}>
-                  B.Tech IT (IoT) · CGPA 8.94/10 · Oct 2022 - May 2026 · Gwalior
+                  B.Tech IT (IoT) · CGPA 8.94/10
                 </p>
                 <p style={{ color: 'var(--text-muted)', fontSize: '0.86rem' }}>
                   Google Cyber Security - 96.83% · Kaggle ML · 4+ Google Cloud Certifications
