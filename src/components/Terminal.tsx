@@ -171,10 +171,10 @@ export default function Terminal({ github, onClose, isFloating = false }: Props)
     bootedRef.current = true;
 
     const seq: Line[] = [
-      dim('Arch Linux 6.9.3-arch1-1 (tty1)'),
-      out(<span><Colored col="#1E90FF">arch</Colored> <Dim>login:</Dim> <span style={{ color: '#DFF0E3' }}>dhruv</span></span>),
-      out(<span><Dim>Password: </Dim><span style={{ color: '#070F09', userSelect: 'none' }}>••••••••</span></span>),
-      blank(),
+      // dim('Arch Linux 6.9.3-arch1-1 (tty1)'),
+      // out(<span><Colored col="#1E90FF">arch</Colored> <Dim>login:</Dim> <span style={{ color: '#DFF0E3' }}>dhruv</span></span>),
+      // out(<span><Dim>Password: </Dim><span style={{ color: '#070F09', userSelect: 'none' }}>••••••••</span></span>),
+      // blank(),
       out(<span><Dim>Last login: </Dim><span style={{ color: '#7A9E82' }}>{new Date().toDateString()} on tty1</span></span>),
       blank(),
     ];
@@ -222,16 +222,11 @@ export default function Terminal({ github, onClose, isFloating = false }: Props)
       [<Colored col="#1E90FF">{USERNAME}</Colored>, <span style={{color:'#DFF0E3'}}>@</span>, <Colored col="#1E90FF">{HOSTNAME}</Colored>],
       ['──────────────────────────────────────'],
       ['OS', 'Arch Linux x86_64'],
-      ['Host', 'ThinkPad-X1-Carbon'],
       ['Kernel', '6.9.3-arch1-1 #1 SMP'],
       ['Uptime', uptimeStr],
       ['Shell', 'zsh 5.9'],
-      ['Terminal', 'Alacritty 0.13.2'],
       ['Font', 'JetBrains Mono 11'],
       ['Resolution', res],
-      ['Repos', String(repos)],
-      ['Stars', String(stars)],
-      ['Followers', String(followers)],
     ];
 
     const neofetchLine: Line = {

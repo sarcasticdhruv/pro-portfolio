@@ -95,6 +95,17 @@ export default function MarkdownRenderer({ content }: Props) {
       header.append(langLabel, btn);
       card.append(header, pre);
     });
+
+    // Wide tables (common in AI-generated answers) overflow narrow viewports.
+    // Wrap each in a horizontally scrollable container instead of letting it
+    // clip or push the page wider. Same double-invoke guard as the <pre> pass.
+    el.querySelectorAll('table').forEach(table => {
+      if (table.parentElement?.classList.contains('table-scroll')) return;
+      const wrap = document.createElement('div');
+      wrap.className = 'table-scroll';
+      table.replaceWith(wrap);
+      wrap.append(table);
+    });
   }, [html]);
 
   return (
@@ -279,11 +290,20 @@ export default function MarkdownRenderer({ content }: Props) {
         [data-theme="light"] .md-body .hljs-attr { color: #007acc; }
         [data-theme="light"] .md-body .hljs-built_in { color: #b35900; }
 
-        /* Tables */
+        /* Tables - wrapped in a scroll container so wide tables scroll
+           horizontally on narrow viewports instead of clipping or forcing
+           the whole page wider. */
+        .md-body .table-scroll {
+          overflow-x: auto;
+          -webkit-overflow-scrolling: touch;
+          margin: 1.6em 0;
+          border-radius: 8px;
+        }
         .md-body table {
           width: 100%;
+          min-width: 480px;
           border-collapse: collapse;
-          margin: 1.6em 0;
+          margin: 0;
           font-size: 0.9rem;
         }
         .md-body th {
@@ -296,6 +316,7 @@ export default function MarkdownRenderer({ content }: Props) {
           color: var(--accent);
           text-transform: uppercase;
           letter-spacing: 0.05em;
+          white-space: nowrap;
         }
         .md-body td {
           border: 1px solid var(--border);

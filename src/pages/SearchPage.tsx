@@ -411,12 +411,16 @@ function StepTimeline({ steps, running }: { steps: AgentStep[]; running: boolean
         {running
           ? <Loader2 size={13} className="spin-slow" style={{ color: 'var(--accent)', flexShrink: 0 }} />
           : <CircleCheck size={13} style={{ color: 'var(--accent)', flexShrink: 0 }} />}
-        <span style={{ color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-          {running ? current?.label : `Done · ${doneCount} step${doneCount === 1 ? '' : 's'}`}
+        <span style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <span style={{ color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            {running ? current?.label : `Done · ${doneCount} step${doneCount === 1 ? '' : 's'}`}
+          </span>
+          {running && current?.detail && (
+            <span style={{ color: 'var(--text-dim)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              · {current.detail}
+            </span>
+          )}
         </span>
-        {running && current?.detail && (
-          <span style={{ color: 'var(--text-dim)' }}>· {current.detail}</span>
-        )}
         <span style={{
           marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '5px',
           color: 'var(--text-dim)', flexShrink: 0,
