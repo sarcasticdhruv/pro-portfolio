@@ -150,8 +150,8 @@ export default function SearchPage() {
   const idle = !running && !result;
 
   return (
-    <main style={{ minHeight: '100vh', paddingTop: '110px', paddingBottom: '80px' }}>
-      <div style={{ maxWidth: '780px', margin: '0 auto', padding: '0 24px' }}>
+    <main id="search-page" style={{ minHeight: '100vh', paddingTop: '110px', paddingBottom: '80px' }}>
+      <div style={{ maxWidth: '780px', margin: '0 auto', padding: '0 clamp(16px, 5vw, 24px)' }}>
         {/* Header */}
         <p className="label" style={{ marginBottom: '12px' }}>~/search</p>
         <h1
@@ -176,6 +176,7 @@ export default function SearchPage() {
           <Search size={16} style={{ color: 'var(--text-dim)', flexShrink: 0 }} />
           <input
             ref={inputRef}
+            className="search-input"
             value={query}
             onChange={e => setQuery(e.target.value)}
             onKeyDown={onKeyDown}
@@ -230,12 +231,12 @@ export default function SearchPage() {
 
         {/* Cache notice */}
         {result?.fromCache && (
-          <div style={{
-            marginTop: '26px', display: 'flex', alignItems: 'center', gap: '10px',
+          <div className="search-cache-notice" style={{
+            marginTop: '26px', display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '10px',
             fontFamily: "'JetBrains Mono', monospace", fontSize: '0.72rem', color: 'var(--text-dim)',
           }}>
-            <History size={12} />
-            restored from device history — no API call
+            <History size={12} style={{ flexShrink: 0 }} />
+            restored from device history, no API call
             <button onClick={() => submit(result.query, { skipCache: true })} className="search-chip" style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
               <RotateCw size={11} /> re-run
             </button>
@@ -275,7 +276,7 @@ export default function SearchPage() {
 
         {/* Answer */}
         {(showAnswer || (result?.degraded && !running)) && (
-          <div style={{
+          <div className="search-answer-box" style={{
             marginTop: '18px', padding: '22px 24px',
             background: 'var(--surface)', border: '1px solid var(--border)',
             borderRadius: '10px',
@@ -338,6 +339,7 @@ export default function SearchPage() {
                   <button
                     onClick={e => { e.stopPropagation(); setHistory(removeFromHistory(entry.id)); }}
                     title="remove"
+                    className="search-history-remove"
                     style={{
                       background: 'none', border: 'none', cursor: 'pointer', padding: '3px',
                       color: 'var(--text-dim)', display: 'flex', flexShrink: 0,
@@ -370,6 +372,18 @@ export default function SearchPage() {
         .search-answer .md-body { font-size: 0.94rem; line-height: 1.75; }
         .search-answer .md-body > *:first-child { margin-top: 0; }
         .search-answer .md-body > *:last-child { margin-bottom: 0; }
+
+        /* iOS Safari zooms the page on focus if an input's font-size is under
+           16px — keep it at 16px on touch-sized viewports to avoid that. */
+        @media (max-width: 640px) {
+          #search-page { padding-top: 88px !important; }
+          .search-input { font-size: 16px !important; }
+          .search-answer-box { padding: 16px 16px !important; }
+          .search-chip { padding: 8px 12px !important; }
+        }
+        @media (hover: none) {
+          .search-history-remove { padding: 8px !important; }
+        }
       `}</style>
     </main>
   );
@@ -420,7 +434,7 @@ function StepTimeline({ steps, running }: { steps: AgentStep[]; running: boolean
         }}>
           {steps.map(step => (
             <div key={step.id} style={{
-              display: 'flex', alignItems: 'center', gap: '10px',
+              display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '6px 10px',
               fontFamily: "'JetBrains Mono', monospace", fontSize: '0.76rem',
             }}>
               {step.status === 'running' && <Loader2 size={13} className="spin-slow" style={{ color: 'var(--accent)' }} />}

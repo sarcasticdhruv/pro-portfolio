@@ -210,26 +210,12 @@ export default function Terminal({ github, onClose, isFloating = false }: Props)
     const followers = gh.profile?.followers ?? '...';
 
     const archArt = [
-      '                   -`                 ',
-      '                  .o+`                ',
-      '                 `ooo/               ',
-      '                `+oooo:              ',
-      '               `+oooooo:             ',
-      '               -+oooooo+:            ',
-      '             `/+-:++oooo+:           ',
-      '            `/+++++/+++++++:         ',
-      '           `/++++++++++++++:         ',
-      '          `/+++ooooooooooooo/`        ',
-      '         ./ooosssso++osssssso+`       ',
-      '        .oossssso-````/ossssss+`      ',
-      '       -osssssso.      :sssss+.      ',
-      '      :osssssss/        /sss+.       ',
-      '     /ossssssss/        +ss:         ',
-      '    /ossssso+++.        +s/           ',
-      '   +ossso++.           ./+            ',
-      '  `+sso+:-`          -:/+            ',
-      '   `+/-             -/+.`            ',
-      '    `.`             `.               ',
+      '      /\\      ',
+      '     /  \\     ',
+      '    /    \\    ',
+      '   /  ,,  \\   ',
+      '  /  |  |  \\  ',
+      ' /__-\'  \'-__\\ ',
     ];
 
     const info = [
@@ -246,8 +232,6 @@ export default function Terminal({ github, onClose, isFloating = false }: Props)
       ['Repos', String(repos)],
       ['Stars', String(stars)],
       ['Followers', String(followers)],
-      [''],
-      ['colors'],
     ];
 
     const neofetchLine: Line = {

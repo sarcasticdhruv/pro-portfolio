@@ -3,7 +3,7 @@ title: "How I Actually Learned LLMs and Agentic AI (Not How I Wish I Had)"
 date: "2026-06-25"
 excerpt: "A full, practical roadmap for learning LLMs and agentic AI specifically - what to read, what to build by hand before touching a framework, and the exact project ladder I'd tell a friend to follow."
 tags: ["AI", "LLM", "agentic AI", "learning", "guide"]
-coverImage: ""
+coverImage: "https://images.unsplash.com/photo-1761322572550-967ea8c0bfd9?fm=jpg&q=80&w=1600&auto=format&fit=crop"
 published: true
 ---
 

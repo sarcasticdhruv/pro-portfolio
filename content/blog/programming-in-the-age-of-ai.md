@@ -3,7 +3,7 @@ title: "Programming in the Age of AI Is Weirder Than Anyone Admits"
 date: "2026-07-01"
 excerpt: "On hallucinated function names, the quiet death of Stack Overflow shame, and what's actually still hard about writing software now that the model can write most of the syntax for you."
 tags: ["programming", "AI", "opinion", "reflection"]
-coverImage: ""
+coverImage: "https://images.unsplash.com/photo-1754548930550-be9fa88874f4?fm=jpg&q=80&w=1600&auto=format&fit=crop"
 published: true
 ---
 
