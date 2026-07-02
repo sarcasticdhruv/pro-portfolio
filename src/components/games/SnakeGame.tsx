@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { RotateCcw, Play, Pause } from 'lucide-react';
+import { RotateCcw, Play, Pause, XCircle } from 'lucide-react';
 
-const CELLS = 17;        // grid is CELLS x CELLS
-const SPEED = 120;       // ms per step
+const CELLS = 17;
+const SPEED = 120;
 const BEST_KEY = 'dhruv_snake_best';
 
 type P = { x: number; y: number };
@@ -19,12 +19,28 @@ function randFood(snake: P[]): P {
   }
 }
 
+function useDarkMode() {
+  const [dark, setDark] = useState(
+    () => document.documentElement.getAttribute('data-theme') !== 'light'
+  );
+  useEffect(() => {
+    const obs = new MutationObserver(() =>
+      setDark(document.documentElement.getAttribute('data-theme') !== 'light')
+    );
+    obs.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+    return () => obs.disconnect();
+  }, []);
+  return dark;
+}
+
 export default function SnakeGame() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const wrapRef = useRef<HTMLDivElement>(null);
   const [score, setScore] = useState(0);
   const [best, setBest] = useState(() => Number(localStorage.getItem(BEST_KEY) || 0));
   const [running, setRunning] = useState(false);
   const [over, setOver] = useState(false);
+  const dark = useDarkMode();
 
   const snake = useRef<P[]>([{ x: 8, y: 8 }]);
   const dir = useRef<Dir>('right');
@@ -33,6 +49,7 @@ export default function SnakeGame() {
   const acc = useRef(0);
   const lastTs = useRef(0);
   const raf = useRef(0);
+  const touchStart = useRef<{ x: number; y: number } | null>(null);
 
   const reset = useCallback(() => {
     snake.current = [{ x: 8, y: 8 }];
@@ -46,8 +63,8 @@ export default function SnakeGame() {
   }, []);
 
   const turn = useCallback((d: Dir) => {
-    const lastQueued = queued.current[queued.current.length - 1] ?? dir.current;
-    if (d === lastQueued || d === OPPOSITE[lastQueued]) return;
+    const last = queued.current[queued.current.length - 1] ?? dir.current;
+    if (d === last || d === OPPOSITE[last]) return;
     queued.current.push(d);
     if (!running && !over) setRunning(true);
   }, [running, over]);
@@ -66,7 +83,6 @@ export default function SnakeGame() {
     return () => window.removeEventListener('keydown', onKey);
   }, [turn, over]);
 
-  // Game loop + render
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -82,33 +98,43 @@ export default function SnakeGame() {
       }
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       const cell = size / CELLS;
-      const accent = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#00d96d';
-      const surface2 = getComputedStyle(document.documentElement).getPropertyValue('--surface-2').trim() || '#132018';
+      const accent = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim();
+      const bg = getComputedStyle(document.documentElement).getPropertyValue('--surface').trim();
+      const gridLine = getComputedStyle(document.documentElement).getPropertyValue('--border').trim();
 
-      ctx.clearRect(0, 0, size, size);
-      // subtle grid
-      ctx.strokeStyle = surface2;
-      ctx.lineWidth = 1;
+      // Background
+      ctx.fillStyle = bg;
+      ctx.fillRect(0, 0, size, size);
+
+      // Grid lines
+      ctx.strokeStyle = gridLine;
+      ctx.lineWidth = 0.5;
+      ctx.globalAlpha = 0.6;
       for (let i = 1; i < CELLS; i++) {
         ctx.beginPath(); ctx.moveTo(i * cell, 0); ctx.lineTo(i * cell, size); ctx.stroke();
         ctx.beginPath(); ctx.moveTo(0, i * cell); ctx.lineTo(size, i * cell); ctx.stroke();
       }
-      // food
+      ctx.globalAlpha = 1;
+
+      // Food
       const f = food.current;
       ctx.fillStyle = '#f5c542';
-      ctx.shadowColor = '#f5c542'; ctx.shadowBlur = 10;
+      ctx.shadowColor = '#f5c54288'; ctx.shadowBlur = 12;
       ctx.beginPath();
-      ctx.arc(f.x * cell + cell / 2, f.y * cell + cell / 2, cell * 0.32, 0, Math.PI * 2);
+      ctx.arc(f.x * cell + cell / 2, f.y * cell + cell / 2, cell * 0.33, 0, Math.PI * 2);
       ctx.fill();
       ctx.shadowBlur = 0;
-      // snake
+
+      // Snake
       snake.current.forEach((s, i) => {
-        const head = i === snake.current.length - 1;
-        ctx.fillStyle = accent;
-        ctx.globalAlpha = head ? 1 : 0.45 + 0.5 * (i / snake.current.length);
-        const pad = cell * 0.12;
-        roundRect(ctx, s.x * cell + pad, s.y * cell + pad, cell - pad * 2, cell - pad * 2, cell * 0.22);
+        const isHead = i === snake.current.length - 1;
+        ctx.globalAlpha = isHead ? 1 : 0.35 + 0.62 * (i / snake.current.length);
+        ctx.fillStyle = isHead ? accent : accent;
+        if (isHead) { ctx.shadowColor = accent + '66'; ctx.shadowBlur = 8; }
+        const pad = cell * 0.1;
+        roundRect(ctx, s.x * cell + pad, s.y * cell + pad, cell - pad * 2, cell - pad * 2, cell * 0.28);
         ctx.fill();
+        ctx.shadowBlur = 0;
       });
       ctx.globalAlpha = 1;
     };
@@ -118,15 +144,11 @@ export default function SnakeGame() {
       const head = snake.current[snake.current.length - 1];
       const nx = head.x + DELTA[dir.current].x;
       const ny = head.y + DELTA[dir.current].y;
-      // wall or self collision
       if (nx < 0 || ny < 0 || nx >= CELLS || ny >= CELLS ||
-          snake.current.some(s => s.x === nx && s.y === ny)) {
-        setRunning(false);
-        setOver(true);
-        return;
+        snake.current.some(s => s.x === nx && s.y === ny)) {
+        setRunning(false); setOver(true); return;
       }
-      const newHead = { x: nx, y: ny };
-      snake.current.push(newHead);
+      snake.current.push({ x: nx, y: ny });
       if (nx === food.current.x && ny === food.current.y) {
         food.current = randFood(snake.current);
         setScore(s => {
@@ -154,56 +176,139 @@ export default function SnakeGame() {
     return () => cancelAnimationFrame(raf.current);
   }, [running, over]);
 
+  const overlayBg = dark ? 'rgba(7,17,10,0.86)' : 'rgba(245,244,238,0.9)';
+  const overlayText = dark ? '#DFF0E3' : '#0E1A11';
+
+  const onTouchStart = (e: React.TouchEvent) => {
+    touchStart.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+  };
+  const onTouchEnd = (e: React.TouchEvent) => {
+    if (!touchStart.current) return;
+    const dx = e.changedTouches[0].clientX - touchStart.current.x;
+    const dy = e.changedTouches[0].clientY - touchStart.current.y;
+    if (Math.max(Math.abs(dx), Math.abs(dy)) < 20) return;
+    turn(Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'right' : 'left') : (dy > 0 ? 'down' : 'up'));
+    touchStart.current = null;
+  };
+
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' }}>
-      <div style={{ display: 'flex', gap: '10px', width: '100%', maxWidth: '360px', alignItems: 'center' }}>
-        <Stat label="score" value={score} />
-        <Stat label="best" value={best} />
-        <button onClick={() => (over ? reset() : setRunning(r => !r))} className="game-btn" style={{ marginLeft: 'auto' }}>
-          {over ? <><RotateCcw size={14} /> new</> : running ? <><Pause size={14} /> pause</> : <><Play size={14} /> play</>}
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '14px', width: '100%' }}>
+      {/* Score row */}
+      <div style={{ display: 'flex', gap: '8px', width: '100%', maxWidth: '360px', alignItems: 'center' }}>
+        <GameStat label="score" value={score} accent />
+        <GameStat label="best" value={best} />
+        <button
+          onClick={() => over ? reset() : setRunning(r => !r)}
+          className="game-btn"
+          style={{ marginLeft: 'auto' }}
+        >
+          {over
+            ? <><RotateCcw size={13} /> restart</>
+            : running
+              ? <><Pause size={13} /> pause</>
+              : <><Play size={13} /> play</>}
         </button>
       </div>
 
-      <div style={{ position: 'relative', width: 'min(360px, 86vw)', aspectRatio: '1' }}>
-        <canvas ref={canvasRef} style={{
-          width: '100%', height: '100%',
-          background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '10px',
-        }} />
-        {(!running && !over) && score === 0 && (
-          <Overlay><button onClick={() => setRunning(true)} className="game-btn"><Play size={14} /> start</button></Overlay>
+      {/* Canvas */}
+      <div
+        ref={wrapRef}
+        onTouchStart={onTouchStart}
+        onTouchEnd={onTouchEnd}
+        style={{
+          position: 'relative',
+          width: 'min(340px, 84vw)',
+          aspectRatio: '1',
+          borderRadius: '12px',
+          overflow: 'hidden',
+          boxShadow: 'var(--shadow-md)',
+        }}
+      >
+        <canvas ref={canvasRef} style={{ width: '100%', height: '100%', display: 'block' }} />
+
+        {(!running && !over && score === 0) && (
+          <Overlay bg={overlayBg}>
+            <Play size={32} color="var(--accent)" strokeWidth={1.5} />
+            <button onClick={() => setRunning(true)} className="game-btn"><Play size={13} /> start game</button>
+          </Overlay>
+        )}
+        {(!running && !over && score > 0) && (
+          <Overlay bg={overlayBg}>
+            <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '0.8rem', color: overlayText, opacity: 0.7 }}>paused</span>
+            <button onClick={() => setRunning(true)} className="game-btn"><Play size={13} /> resume</button>
+          </Overlay>
         )}
         {over && (
-          <Overlay>
-            <div style={{ fontFamily: "'Syne', sans-serif", fontWeight: 800, fontSize: '1.5rem', color: '#DFF0E3' }}>Game over</div>
-            <button onClick={reset} className="game-btn">try again</button>
+          <Overlay bg={overlayBg}>
+            <XCircle size={30} color="#FF6B6B" strokeWidth={1.5} />
+            <div style={{ fontFamily: "'Syne', sans-serif", fontWeight: 800, fontSize: '1.3rem', color: overlayText }}>
+              Game Over
+            </div>
+            <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '0.75rem', color: overlayText, opacity: 0.6 }}>
+              score: {score}
+            </div>
+            <button onClick={reset} className="game-btn"><RotateCcw size={13} /> try again</button>
           </Overlay>
         )}
       </div>
-      <p style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '0.68rem', color: 'var(--text-dim)' }}>
-        arrows / WASD · space to pause
-      </p>
+
+      {/* Mobile D-pad */}
+      <div className="snake-dpad">
+        <div style={{ display: 'grid', gridTemplateColumns: '44px 44px 44px', gridTemplateRows: '44px 44px 44px', gap: '4px' }}>
+          <div /><DpadBtn onClick={() => turn('up')}>↑</DpadBtn><div />
+          <DpadBtn onClick={() => turn('left')}>←</DpadBtn>
+          <div style={{ background: 'var(--surface-2)', borderRadius: '8px', border: '1px solid var(--border)' }} />
+          <DpadBtn onClick={() => turn('right')}>→</DpadBtn>
+          <div /><DpadBtn onClick={() => turn('down')}>↓</DpadBtn><div />
+        </div>
+      </div>
+
+      <style>{`
+        .snake-dpad { display: none; }
+        @media (hover: none) { .snake-dpad { display: flex; } }
+      `}</style>
     </div>
   );
 }
 
-function Overlay({ children }: { children: React.ReactNode }) {
+function DpadBtn({ onClick, children }: { onClick: () => void; children: React.ReactNode }) {
+  return (
+    <button
+      className="dpad-btn"
+      onClick={onClick}
+      onTouchStart={e => e.stopPropagation()}
+    >{children}</button>
+  );
+}
+
+function Overlay({ bg, children }: { bg: string; children: React.ReactNode }) {
   return (
     <div style={{
-      position: 'absolute', inset: 0, borderRadius: '10px',
-      background: 'rgba(7,17,10,0.72)', backdropFilter: 'blur(2px)',
-      display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '12px',
+      position: 'absolute', inset: 0,
+      background: bg,
+      backdropFilter: 'blur(3px)',
+      display: 'flex', flexDirection: 'column',
+      alignItems: 'center', justifyContent: 'center', gap: '10px',
     }}>{children}</div>
   );
 }
 
-function Stat({ label, value }: { label: string; value: number }) {
+function GameStat({ label, value, accent }: { label: string; value: number; accent?: boolean }) {
   return (
     <div style={{
-      background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: '8px',
-      padding: '6px 14px', textAlign: 'center', minWidth: '74px',
+      background: accent ? 'var(--accent-glow)' : 'var(--surface-2)',
+      border: `1px solid ${accent ? 'var(--tag-border)' : 'var(--border)'}`,
+      borderRadius: '10px', padding: '8px 16px', textAlign: 'center', minWidth: '72px',
     }}>
-      <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '0.58rem', color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>{label}</div>
-      <div style={{ fontFamily: "'Syne', sans-serif", fontWeight: 700, fontSize: '1.15rem', color: 'var(--text)' }}>{value}</div>
+      <div style={{
+        fontFamily: "'JetBrains Mono', monospace", fontSize: '0.56rem',
+        color: accent ? 'var(--accent)' : 'var(--text-dim)',
+        textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '2px',
+      }}>{label}</div>
+      <div style={{
+        fontFamily: "'Syne', sans-serif", fontWeight: 800, fontSize: '1.3rem',
+        color: accent ? 'var(--accent)' : 'var(--text)', lineHeight: 1,
+      }}>{value}</div>
     </div>
   );
 }

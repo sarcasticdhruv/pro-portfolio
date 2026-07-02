@@ -59,8 +59,10 @@ export default function Hero({ github }: Props) {
         justifyContent: 'center',
         padding: '88px 32px 40px',
         maxWidth: '1200px',
+        width: '100%',
         margin: '0 auto',
         position: 'relative',
+        overflow: 'hidden',
       }}
     >
       {/* Grid bg */}
@@ -74,7 +76,7 @@ export default function Hero({ github }: Props) {
       }} />
 
       {/* TOP: Status badge + Name + Typewriter - full width */}
-      <div style={{ position: 'relative', zIndex: 1, marginBottom: '28px' }}>
+      <div style={{ position: 'relative', zIndex: 1, marginBottom: '24px', maxWidth: '100%', overflow: 'hidden' }}>
         {/* Status */}
         <div style={{
           display: 'inline-flex', alignItems: 'center', gap: '8px',
@@ -94,7 +96,7 @@ export default function Hero({ github }: Props) {
           title="Click me 👀"
           style={{
             fontFamily: "'Syne', sans-serif",
-            fontSize: 'clamp(2.8rem, 7vw, 5.5rem)',
+            fontSize: 'clamp(1.9rem, 9vw, 5.5rem)',
             fontWeight: 800, lineHeight: 1.02,
             letterSpacing: '-0.03em',
             color: 'var(--text)', marginBottom: '14px',
@@ -111,9 +113,10 @@ export default function Hero({ github }: Props) {
         {/* Typewriter */}
         <div style={{
           fontFamily: "'JetBrains Mono', monospace",
-          fontSize: 'clamp(0.85rem, 2vw, 1.1rem)',
+          fontSize: 'clamp(0.75rem, 3.5vw, 1.1rem)',
           color: 'var(--text-muted)',
           display: 'flex', alignItems: 'center', gap: '2px',
+          overflow: 'hidden', maxWidth: '100%',
         }}>
           <span style={{ color: 'var(--text-dim)' }}>$ role=</span>
           <span style={{ color: 'var(--text)' }}>{displayed}</span>
@@ -125,7 +128,7 @@ export default function Hero({ github }: Props) {
       <div className="hero-main-row" style={{ display: 'flex', gap: '48px', alignItems: 'flex-start', position: 'relative', zIndex: 1 }}>
 
         {/* Left: bio, location, CTAs, stats */}
-        <div style={{ flex: '0 0 auto', maxWidth: '440px', width: '100%' }}>
+        <div style={{ flex: '0 0 auto', maxWidth: '440px', width: '100%', minWidth: 0, overflow: 'hidden' }}>
           {/* Bio */}
           <p style={{ fontSize: '0.97rem', color: 'var(--text-muted)', marginBottom: '28px', lineHeight: 1.78 }}>
             AI engineer at AI LifeBOT, building GenAI systems that run in production:
@@ -366,20 +369,31 @@ export default function Hero({ github }: Props) {
           .hero-terminal-wrap { height: clamp(340px, calc(100vh - 440px), 480px) !important; }
         }
         @media (max-width: 820px) {
-          .hero-main-row { flex-direction: column !important; gap: 32px !important; }
+          .hero-main-row { flex-direction: column !important; gap: 24px !important; }
           .hero-main-row > div:first-child { max-width: 100% !important; }
           .hero-terminal-wrap {
             width: 100% !important;
-            height: clamp(380px, 58vh, 520px) !important;
-            max-height: 70vh !important;
+            height: clamp(320px, 50vh, 460px) !important;
+            max-height: 60vh !important;
           }
         }
         @media (max-width: 540px) {
-          #hero { padding-left: 18px !important; padding-right: 18px !important; }
+          #hero {
+            padding-left: 16px !important;
+            padding-right: 16px !important;
+            padding-top: 70px !important;
+          }
           .hero-terminal-wrap {
-            height: 62vh !important;
-            min-height: 380px !important;
-            max-height: 560px !important;
+            height: 44vh !important;
+            min-height: 280px !important;
+            max-height: 380px !important;
+          }
+        }
+        @media (max-width: 400px) {
+          .hero-terminal-wrap {
+            height: 40vh !important;
+            min-height: 260px !important;
+            max-height: 340px !important;
           }
         }
       `}</style>

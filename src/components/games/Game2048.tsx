@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { RotateCcw } from 'lucide-react';
+import { RotateCcw, Trophy, XCircle } from 'lucide-react';
 
 type Grid = number[][];
 const SIZE = 4;
@@ -34,40 +34,65 @@ function slideLeft(g: Grid): { grid: Grid; gained: number; moved: boolean } {
   return { grid: ng, gained, moved };
 }
 
-function moveGrid(g: Grid, dir: 'left' | 'right' | 'up' | 'down') {
-  if (dir === 'left') return slideLeft(g);
-  if (dir === 'right') {
-    const r = slideLeft(reverseRows(g));
-    return { ...r, grid: reverseRows(r.grid) };
-  }
-  if (dir === 'up') {
-    const r = slideLeft(transpose(g));
-    return { ...r, grid: transpose(r.grid) };
-  }
+function moveGrid(g: Grid, d: 'left' | 'right' | 'up' | 'down') {
+  if (d === 'left') return slideLeft(g);
+  if (d === 'right') { const r = slideLeft(reverseRows(g)); return { ...r, grid: reverseRows(r.grid) }; }
+  if (d === 'up') { const r = slideLeft(transpose(g)); return { ...r, grid: transpose(r.grid) }; }
   const r = slideLeft(reverseRows(transpose(g)));
   return { ...r, grid: transpose(reverseRows(r.grid)) };
 }
 
-function isGameOver(g: Grid): boolean {
+function isGameOver(g: Grid) {
   return (['left', 'right', 'up', 'down'] as const).every(d => !moveGrid(g, d).moved);
 }
 
-const TILE: Record<number, { bg: string; fg: string }> = {
-  0: { bg: 'var(--surface-2)', fg: 'transparent' },
-  2: { bg: '#1d3a28', fg: '#DFF0E3' },
-  4: { bg: '#244a32', fg: '#DFF0E3' },
-  8: { bg: '#2f6b41', fg: '#fff' },
-  16: { bg: '#2f8a50', fg: '#fff' },
-  32: { bg: '#1fae5e', fg: '#06140c' },
-  64: { bg: '#00d96d', fg: '#06140c' },
-  128: { bg: '#f5c542', fg: '#06140c' },
-  256: { bg: '#f4b73a', fg: '#06140c' },
-  512: { bg: '#f0a92e', fg: '#06140c' },
-  1024: { bg: '#ee9b1f', fg: '#06140c' },
-  2048: { bg: '#ff8c1a', fg: '#06140c' },
+// Dark-mode palette (current)
+const TILE_DARK: Record<number, { bg: string; fg: string }> = {
+  0:    { bg: 'rgba(0,0,0,0)',    fg: 'transparent' },
+  2:    { bg: '#1d3a28',          fg: '#a8d8b4' },
+  4:    { bg: '#244a32',          fg: '#b8e0c2' },
+  8:    { bg: '#2f6b41',          fg: '#d4f0dc' },
+  16:   { bg: '#2f8a50',          fg: '#e0f5e8' },
+  32:   { bg: '#1fae5e',          fg: '#05110a' },
+  64:   { bg: '#00d96d',          fg: '#03100a' },
+  128:  { bg: '#f5c542',          fg: '#06140c' },
+  256:  { bg: '#f4b73a',          fg: '#06140c' },
+  512:  { bg: '#f0a92e',          fg: '#06140c' },
+  1024: { bg: '#ee9b1f',          fg: '#06140c' },
+  2048: { bg: '#ff8c1a',          fg: '#06140c' },
 };
 
-function init(): Grid { return spawn(spawn(emptyGrid())); }
+// Light-mode palette
+const TILE_LIGHT: Record<number, { bg: string; fg: string }> = {
+  0:    { bg: '#e8e6df',          fg: 'transparent' },
+  2:    { bg: '#d4edda',          fg: '#1e4530' },
+  4:    { bg: '#bde2c6',          fg: '#163827' },
+  8:    { bg: '#8ecf9e',          fg: '#0d2c1c' },
+  16:   { bg: '#55b872',          fg: '#06140c' },
+  32:   { bg: '#1ea84e',          fg: '#ffffff' },
+  64:   { bg: '#007a3d',          fg: '#ffffff' },
+  128:  { bg: '#c8960c',          fg: '#ffffff' },
+  256:  { bg: '#b57e00',          fg: '#ffffff' },
+  512:  { bg: '#9e6700',          fg: '#ffffff' },
+  1024: { bg: '#8a5200',          fg: '#ffffff' },
+  2048: { bg: '#e05a00',          fg: '#ffffff' },
+};
+
+function useDarkMode() {
+  const [dark, setDark] = useState(
+    () => document.documentElement.getAttribute('data-theme') !== 'light'
+  );
+  useEffect(() => {
+    const obs = new MutationObserver(() =>
+      setDark(document.documentElement.getAttribute('data-theme') !== 'light')
+    );
+    obs.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+    return () => obs.disconnect();
+  }, []);
+  return dark;
+}
+
+const init = (): Grid => spawn(spawn(emptyGrid()));
 
 export default function Game2048() {
   const [grid, setGrid] = useState<Grid>(init);
@@ -76,21 +101,23 @@ export default function Game2048() {
   const [over, setOver] = useState(false);
   const [won, setWon] = useState(false);
   const touch = useRef<{ x: number; y: number } | null>(null);
+  const dark = useDarkMode();
+  const TILE = dark ? TILE_DARK : TILE_LIGHT;
 
-  const doMove = useCallback((dir: 'left' | 'right' | 'up' | 'down') => {
+  const doMove = useCallback((d: 'left' | 'right' | 'up' | 'down') => {
     if (over) return;
     setGrid(prev => {
-      const { grid: ng, gained, moved } = moveGrid(prev, dir);
+      const { grid: ng, gained, moved } = moveGrid(prev, d);
       if (!moved) return prev;
-      const withTile = spawn(ng);
+      const next = spawn(ng);
       setScore(s => {
         const ns = s + gained;
         setBest(b => { const nb = Math.max(b, ns); localStorage.setItem(BEST_KEY, String(nb)); return nb; });
         return ns;
       });
-      if (!won && withTile.some(r => r.includes(2048))) setWon(true);
-      if (isGameOver(withTile)) setOver(true);
-      return withTile;
+      if (!won && next.some(r => r.includes(2048))) setWon(true);
+      if (isGameOver(next)) setOver(true);
+      return next;
     });
   }, [over, won]);
 
@@ -100,15 +127,14 @@ export default function Game2048() {
         ArrowLeft: 'left', ArrowRight: 'right', ArrowUp: 'up', ArrowDown: 'down',
         a: 'left', d: 'right', w: 'up', s: 'down',
       };
-      const dir = map[e.key];
-      if (dir) { e.preventDefault(); doMove(dir); }
+      const d = map[e.key];
+      if (d) { e.preventDefault(); doMove(d); }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [doMove]);
 
   const restart = () => { setGrid(init()); setScore(0); setOver(false); setWon(false); };
-
   const onTouchStart = (e: React.TouchEvent) => { touch.current = { x: e.touches[0].clientX, y: e.touches[0].clientY }; };
   const onTouchEnd = (e: React.TouchEvent) => {
     if (!touch.current) return;
@@ -119,49 +145,75 @@ export default function Game2048() {
     touch.current = null;
   };
 
+  const overlayBg = dark ? 'rgba(7,17,10,0.88)' : 'rgba(245,244,238,0.92)';
+  const overlayText = dark ? '#DFF0E3' : '#0E1A11';
+  const boardBg = dark ? '#0D1A10' : '#E8E6DF';
+
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' }}>
-      <div style={{ display: 'flex', gap: '10px', width: '100%', maxWidth: '360px', alignItems: 'center' }}>
-        <Stat label="score" value={score} />
-        <Stat label="best" value={best} />
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '14px', width: '100%' }}>
+      {/* Score row */}
+      <div style={{ display: 'flex', gap: '8px', width: '100%', maxWidth: '360px', alignItems: 'center' }}>
+        <GameStat label="score" value={score} accent />
+        <GameStat label="best" value={best} />
         <button onClick={restart} className="game-btn" style={{ marginLeft: 'auto' }}>
-          <RotateCcw size={14} /> new
+          <RotateCcw size={13} /> new game
         </button>
       </div>
 
+      {/* Board */}
       <div
         onTouchStart={onTouchStart}
         onTouchEnd={onTouchEnd}
         style={{
           position: 'relative',
-          width: 'min(360px, 86vw)', aspectRatio: '1',
-          background: 'var(--surface)', border: '1px solid var(--border)',
-          borderRadius: '10px', padding: '10px',
-          display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '10px',
-          touchAction: 'none', userSelect: 'none',
+          width: 'min(340px, 84vw)',
+          aspectRatio: '1',
+          background: boardBg,
+          borderRadius: '14px',
+          padding: '10px',
+          display: 'grid',
+          gridTemplateColumns: 'repeat(4, 1fr)',
+          gap: '8px',
+          touchAction: 'none',
+          userSelect: 'none',
+          boxShadow: 'var(--shadow-md)',
         }}
       >
         {grid.flat().map((v, i) => {
           const t = TILE[v] ?? TILE[2048];
           return (
-            <div key={i} style={{
-              background: t.bg, color: t.fg, borderRadius: '7px',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontFamily: "'Syne', sans-serif", fontWeight: 800,
-              fontSize: v >= 1024 ? '1.15rem' : v >= 128 ? '1.4rem' : '1.7rem',
-              transition: 'background 0.12s ease',
-            }}>{v || ''}</div>
+            <div
+              key={i}
+              style={{
+                background: t.bg,
+                color: t.fg,
+                borderRadius: '8px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontFamily: "'Syne', sans-serif",
+                fontWeight: 800,
+                fontSize: v >= 1024 ? 'clamp(0.85rem, 3.5vw, 1.1rem)' : v >= 128 ? 'clamp(1rem, 4vw, 1.35rem)' : 'clamp(1.1rem, 4.5vw, 1.6rem)',
+                transition: 'background 0.12s ease',
+                boxShadow: v >= 64 ? `0 2px 8px ${t.bg}66` : 'none',
+              }}
+            >{v || ''}</div>
           );
         })}
 
         {(over || won) && (
           <div style={{
-            position: 'absolute', inset: 0, borderRadius: '10px',
-            background: 'rgba(7,17,10,0.78)', backdropFilter: 'blur(2px)',
-            display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '12px',
+            position: 'absolute', inset: 0, borderRadius: '14px',
+            background: overlayBg,
+            backdropFilter: 'blur(4px)',
+            display: 'flex', flexDirection: 'column',
+            alignItems: 'center', justifyContent: 'center', gap: '12px',
           }}>
-            <div style={{ fontFamily: "'Syne', sans-serif", fontWeight: 800, fontSize: '1.6rem', color: won && !over ? 'var(--accent)' : '#DFF0E3' }}>
-              {won && !over ? 'You hit 2048!' : 'Game over'}
+            {won && !over
+              ? <Trophy size={30} color="var(--accent)" strokeWidth={1.5} />
+              : <XCircle size={30} color="#FF6B6B" strokeWidth={1.5} />}
+            <div style={{ fontFamily: "'Syne', sans-serif", fontWeight: 800, fontSize: '1.4rem', color: won && !over ? 'var(--accent)' : overlayText }}>
+              {won && !over ? 'You hit 2048!' : 'Game Over'}
             </div>
             <button onClick={won && !over ? () => setWon(false) : restart} className="game-btn">
               {won && !over ? 'keep going' : 'try again'}
@@ -169,21 +221,26 @@ export default function Game2048() {
           </div>
         )}
       </div>
-      <p style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '0.68rem', color: 'var(--text-dim)' }}>
-        arrow keys / WASD / swipe
-      </p>
     </div>
   );
 }
 
-function Stat({ label, value }: { label: string; value: number }) {
+function GameStat({ label, value, accent }: { label: string; value: number; accent?: boolean }) {
   return (
     <div style={{
-      background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: '8px',
-      padding: '6px 14px', textAlign: 'center', minWidth: '74px',
+      background: accent ? 'var(--accent-glow)' : 'var(--surface-2)',
+      border: `1px solid ${accent ? 'var(--tag-border)' : 'var(--border)'}`,
+      borderRadius: '10px', padding: '8px 16px', textAlign: 'center', minWidth: '72px',
     }}>
-      <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '0.58rem', color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>{label}</div>
-      <div style={{ fontFamily: "'Syne', sans-serif", fontWeight: 700, fontSize: '1.15rem', color: 'var(--text)' }}>{value}</div>
+      <div style={{
+        fontFamily: "'JetBrains Mono', monospace", fontSize: '0.56rem',
+        color: accent ? 'var(--accent)' : 'var(--text-dim)',
+        textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '2px',
+      }}>{label}</div>
+      <div style={{
+        fontFamily: "'Syne', sans-serif", fontWeight: 800, fontSize: '1.3rem',
+        color: accent ? 'var(--accent)' : 'var(--text)', lineHeight: 1,
+      }}>{value}</div>
     </div>
   );
 }
