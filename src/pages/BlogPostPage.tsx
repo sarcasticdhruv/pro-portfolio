@@ -4,6 +4,7 @@ import { getPost, formatDate } from '../lib/blog';
 import MarkdownRenderer from '../components/blog/MarkdownRenderer';
 import ReadingProgress from '../components/blog/ReadingProgress';
 import TagPill from '../components/blog/TagPill';
+import { useSEO } from '../hooks/useSEO';
 import { ArrowLeft, Clock, CalendarDays, Twitter, Link2 } from 'lucide-react';
 
 export default function BlogPostPage() {
@@ -12,24 +13,11 @@ export default function BlogPostPage() {
   const post = slug ? getPost(slug) : undefined;
 
   useEffect(() => {
-    if (!post) { navigate('/blog', { replace: true }); return; }
-    document.title = `${post.title} - Dhruv Choudhary`;
-    // OG + description meta
-    const setMeta = (sel: string, val: string) => {
-      const el = document.querySelector<HTMLMetaElement>(sel);
-      if (el) el.content = val;
-    };
-    setMeta('meta[name="description"]', post.excerpt);
-    setMeta('meta[property="og:title"]', `${post.title} - Dhruv Choudhary`);
-    setMeta('meta[property="og:description"]', post.excerpt);
-    window.scrollTo(0, 0);
-    return () => {
-      document.title = 'Dhruv Choudhary - AI Engineer';
-      setMeta('meta[name="description"]', 'Dhruv Choudhary - AI Engineer & Software Developer. Building scalable AI systems, GenAI solutions, and full-stack applications.');
-      setMeta('meta[property="og:title"]', 'Dhruv Choudhary - AI Engineer');
-      setMeta('meta[property="og:description"]', 'Building scalable AI systems and GenAI solutions.');
-    };
-  }, [post]);
+    if (!post) navigate('/blog', { replace: true });
+    else window.scrollTo(0, 0);
+  }, [post, navigate]);
+
+  useSEO({ title: post?.title, description: post?.excerpt });
 
   if (!post) return null;
 

@@ -10,6 +10,7 @@ import {
   type HistoryEntry,
 } from '../lib/searchHistory';
 import MarkdownRenderer from '../components/blog/MarkdownRenderer';
+import { useSEO } from '../hooks/useSEO';
 
 // Pools rotate on every page load: 2 random about-me + 2 random trending
 const ABOUT_POOL = [
@@ -61,8 +62,13 @@ export default function SearchPage() {
   const [trending, setTrending] = useState<string[]>(() => pickRandom(TRENDING_FALLBACK, 2));
   const inputRef = useRef<HTMLInputElement>(null);
 
+  useSEO({
+    title: 'Search',
+    description: 'Ask anything about Dhruv Choudhary\'s projects, experience, and writing.',
+    noindex: true,
+  });
+
   useEffect(() => {
-    document.title = 'search · dhruv';
     inputRef.current?.focus();
   }, []);
 

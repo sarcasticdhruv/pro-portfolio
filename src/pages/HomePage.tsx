@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useGitHub } from '../hooks/useGitHub';
+import { useSEO } from '../hooks/useSEO';
 import Hero from '../components/Hero';
 import About from '../components/About';
 import Experience from '../components/Experience';
@@ -10,6 +11,7 @@ import Contact from '../components/Contact';
 
 export default function HomePage() {
   const github = useGitHub();
+  useSEO({});
 
   return (
     <>

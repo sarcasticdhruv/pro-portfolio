@@ -1,10 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Zap, LayoutGrid, Hash } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import Game2048 from '../components/games/Game2048';
 import SnakeGame from '../components/games/SnakeGame';
 import TicTacToe from '../components/games/TicTacToe';
+import { useSEO } from '../hooks/useSEO';
 
 type GameKey = 'snake' | '2048' | 'ttt';
 
@@ -23,10 +24,10 @@ export default function GamesPage() {
   const [active, setActive] = useState<GameKey>('snake');
   const current = GAMES.find(g => g.key === active)!;
 
-  useEffect(() => {
-    document.title = 'Arcade · Dhruv Choudhary';
-    return () => { document.title = 'Dhruv Choudhary · AI Engineer'; };
-  }, []);
+  useSEO({
+    title: 'Arcade',
+    description: 'Snake, 2048, and Tic-Tac-Toe. Three small games built from scratch, no libraries.',
+  });
 
   return (
     <main style={{

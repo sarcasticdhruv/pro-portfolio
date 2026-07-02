@@ -1,15 +1,14 @@
-import { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { ALL_POSTS } from '../lib/blog';
 import BlogCard from '../components/blog/BlogCard';
+import { useSEO } from '../hooks/useSEO';
 import { PenLine } from 'lucide-react';
 
 export default function BlogListPage() {
-  // Update page title
-  useEffect(() => {
-    document.title = 'Blog - Dhruv Choudhary';
-    return () => { document.title = 'Dhruv Choudhary - AI Engineer'; };
-  }, []);
+  useSEO({
+    title: 'Blog',
+    description: 'Writing on AI engineering, RAG systems, and shipping production ML by Dhruv Choudhary.',
+  });
 
   return (
     <main style={{

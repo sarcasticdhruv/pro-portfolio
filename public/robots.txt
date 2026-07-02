@@ -1,0 +1,6 @@
+User-agent: *
+Allow: /
+Disallow: /search
+Disallow: /admin
+
+Sitemap: https://dhruv-choudhary.tech/sitemap.xml
