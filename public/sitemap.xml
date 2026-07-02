@@ -22,6 +22,12 @@
     <priority>0.7</priority>
   </url>
   <url>
+    <loc>https://dhruv-choudhary.tech/blog/barry-lyndon</loc>
+    <lastmod>2026-05-16</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
     <loc>https://dhruv-choudhary.tech/blog/boardbrief-engineering</loc>
     <lastmod>2025-11-28</lastmod>
     <changefreq>monthly</changefreq>
@@ -30,6 +36,30 @@
   <url>
     <loc>https://dhruv-choudhary.tech/blog/brain-tumor-detection</loc>
     <lastmod>2025-09-20</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://dhruv-choudhary.tech/blog/how-i-actually-learned-llms-and-agentic-ai</loc>
+    <lastmod>2026-06-25</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://dhruv-choudhary.tech/blog/is-the-claude-mythos-real</loc>
+    <lastmod>2026-04-14</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://dhruv-choudhary.tech/blog/last-months-watchlist</loc>
+    <lastmod>2026-06-05</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://dhruv-choudhary.tech/blog/microsofts-quantum-chip-hype-and-reality</loc>
+    <lastmod>2026-05-02</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
@@ -58,8 +88,38 @@
     <priority>0.7</priority>
   </url>
   <url>
+    <loc>https://dhruv-choudhary.tech/blog/programming-in-the-age-of-ai</loc>
+    <lastmod>2026-07-01</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://dhruv-choudhary.tech/blog/the-deepseek-moment</loc>
+    <lastmod>2026-06-18</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://dhruv-choudhary.tech/blog/the-xz-backdoor-nobody-saw-coming</loc>
+    <lastmod>2026-03-27</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://dhruv-choudhary.tech/blog/vibe-coding-is-a-starting-point-not-a-strategy</loc>
+    <lastmod>2026-05-30</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
     <loc>https://dhruv-choudhary.tech/blog/what-rag-gets-wrong</loc>
     <lastmod>2026-02-05</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://dhruv-choudhary.tech/blog/why-i-built-helix</loc>
+    <lastmod>2026-03-09</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>

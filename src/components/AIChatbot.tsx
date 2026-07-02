@@ -34,16 +34,25 @@ CGPA: 8.94 | Dept Rank #2 | Graduating May 2026
 
 === CURRENT ROLE ===
 AI Engineer (GenAI Solutions) @ AI LifeBOT - Ignited Wings Technology Pvt. Ltd.
-Nov 2025 - Present
-- Built GPT-based enterprise knowledge base on AWS for CHMSCL
-- AI Grievance Management System for DPDMIS on OCI
-- .NET contributions to EMIS live production system
+Nov 2025 - Present, Raipur (Promoted)
+- Franke Faber: led a team of 4, built a warehouse automation platform with an AI defective-returns classifier processing 2,000+ units across 8,000+ SKUs
+- Bajrang Ispat / Goel Pipes: NLP quotation engine with NER + WhatsApp Business API for a steel distributor's 4,000+ SKUs
+- KISAAN KIOSK: 10+ language voice-first farming platform with a live AI avatar, satellite crop monitoring, CNN disease detection - shown to the Madhya Pradesh Government and Gujarat CM
+- CRIME INTEL: law enforcement intelligence platform for Telangana Police - speech-to-text, semantic FIR search, NL case retrieval
+- CGMSCL: RAG enterprise knowledge system on AWS Lambda for Chhattisgarh Medical Services Corporation Limited
+- MIRA: real-time face recognition AI receptionist, 18 simultaneous faces against a 10,000-face database (NASCOM)
+- Conversational AI backends for OKAYA, Pure Chemicals, and NSL
 
-=== INTERNSHIP ===
-AI Engineer Intern @ AI LifeBOT - Oct 2024 - Oct 2025
-- SEO Automation Agent: +35% lead coverage
-- OCR Invoice Validator: -60% manual effort
-- No-code omnichannel chatbot builder platform
+=== PRIOR ROLE ===
+AI Engineer @ AI LifeBOT - Oct 2024 - Oct 2025, Noida
+- Legal Assist Agent backend: RAG pipeline over legal documents
+- AI Presenter frontend: conversational slide deck generation, built in React
+- AI SDR frontend: outbound sales outreach UI
+- Request for Action Agent: workflow automation and routing
+- Chatbot Agent framework: modular omnichannel conversational agent
+- AI SEO Automation Agent: +35% lead coverage using Playwright/Puppeteer
+- EIE Instruments data pipelines + lead automation agent
+- OCR Invoice Validator Agent: -60% manual verification effort
 
 === PROJECTS ===
 1. Helix Framework - Production-grade AI agent framework on PyPI (pip install helix-framework). Like CrewAI/LangGraph but with the production layer built in: hard budget limits, semantic caching (cuts API costs 40-70%), persistent memory, multi-agent teams, YAML pipelines, 5-scorer eval suite. Supports OpenAI, Anthropic, Gemini, Groq, Mistral + more. GitHub: github.com/sarcasticdhruv/helix-agent

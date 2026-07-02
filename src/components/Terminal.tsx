@@ -55,15 +55,16 @@ Location: Bhopal/Raipur/Hyderabad
 
 EXPERIENCE
 ----------
-AI Engineer (GenAI Solutions) · AI LifeBOT · Nov 2025–Present
-  > GPT-based enterprise knowledge on AWS for CHMSCL
-  > AI Grievance Management System for DPDMIS (OCI)
-  > .NET contributions to EMIS live production
+AI Engineer (GenAI Solutions) · AI LifeBOT · Nov 2025–Present · Raipur
+  > Led 4-engineer team, warehouse automation platform (Franke Faber)
+  > KISAAN KIOSK: voice-first farming AI, shown to MP Govt + Gujarat CM
+  > CRIME INTEL: law enforcement platform for Telangana Police
+  > CGMSCL: RAG enterprise knowledge system on AWS Lambda
 
-AI Engineer Intern · AI LifeBOT · Oct 2024–Oct 2025
+AI Engineer · AI LifeBOT · Oct 2024–Oct 2025 · Noida
+  > Legal Assist Agent backend: RAG over legal documents
   > SEO Automation Agent: +35% lead coverage
   > OCR Invoice Validator: -60% manual effort
-  > No-code chatbot builder platform (omnichannel)
 
 EDUCATION
 ---------

@@ -47,6 +47,10 @@ export default function MarkdownRenderer({ content }: Props) {
       '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>';
 
     el.querySelectorAll('pre').forEach(pre => {
+      // Guard against StrictMode's double effect invocation in dev: once a
+      // <pre> is wrapped in a .code-card, skip it on the re-run instead of
+      // wrapping it again and leaving an empty shell card behind.
+      if (pre.parentElement?.classList.contains('code-card')) return;
       const code = pre.querySelector('code');
       if (!code) return;
       const lang = (code.className.match(/language-([\w+-]+)/)?.[1] ?? 'code')
@@ -307,6 +311,64 @@ export default function MarkdownRenderer({ content }: Props) {
           display: block;
           margin: 1.8em auto;
           border: 1px solid var(--border);
+        }
+
+        /* Resource link cards - used for curated "further reading" lists */
+        .md-body .resource-list {
+          display: grid;
+          grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+          gap: 12px;
+          margin: 1.6em 0;
+        }
+        .md-body .resource-card {
+          position: relative;
+          display: flex;
+          flex-direction: column;
+          gap: 5px;
+          padding: 14px 32px 14px 16px;
+          border: 1px solid var(--border);
+          border-radius: 10px;
+          background: var(--surface-2);
+          text-decoration: none;
+          transition: border-color 0.15s ease, transform 0.15s ease, background 0.15s ease;
+        }
+        .md-body .resource-card:hover {
+          border-color: var(--accent);
+          background: var(--accent-glow);
+          transform: translateY(-2px);
+        }
+        .md-body .resource-card::after {
+          content: '\\2197';
+          position: absolute;
+          top: 12px;
+          right: 12px;
+          font-size: 0.9rem;
+          color: var(--text-dim);
+          transition: color 0.15s ease, transform 0.15s ease;
+        }
+        .md-body .resource-card:hover::after {
+          color: var(--accent);
+          transform: translate(2px, -2px);
+        }
+        .md-body .resource-kind {
+          font-family: 'JetBrains Mono', monospace;
+          font-size: 0.62rem;
+          text-transform: uppercase;
+          letter-spacing: 0.08em;
+          color: var(--accent);
+        }
+        .md-body .resource-title {
+          font-family: 'Syne', sans-serif;
+          font-weight: 700;
+          font-size: 0.92rem;
+          color: var(--text);
+          line-height: 1.3;
+        }
+        .md-body .resource-desc {
+          font-family: 'DM Sans', sans-serif;
+          font-size: 0.8rem;
+          line-height: 1.55;
+          color: var(--text-muted);
         }
 
         /* YouTube / video embeds */

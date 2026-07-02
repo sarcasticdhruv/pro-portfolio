@@ -34,23 +34,34 @@ LinkedIn linkedin.com/in/dhruv-choudhary-india, Twitter @SarcasticDhruv.`,
   {
     id: 'exp-ai-lifebot',
     kind: 'experience',
-    title: 'AI Engineer @ AI LifeBOT (Nov 2025-Present)',
+    title: 'AI Engineer - GenAI Solutions @ AI LifeBOT (Nov 2025-Present)',
     url: '/#experience',
     tags: ['experience', 'work', 'job', 'genai'],
-    text: `AI Engineer (GenAI Solutions) at AI LifeBOT, Ignited Wings Technology, Nov 2025 to
-present. Built a GPT-based enterprise knowledge base on AWS for CHMSCL. Built an AI Grievance
-Management System for DPDMIS on Oracle Cloud (OCI). Contributed .NET code to the EMIS live
-production system.`,
+    text: `AI Engineer, GenAI Solutions, at AI LifeBOT, Ignited Wings Technology, Nov 2025 to
+present, based in Raipur, promoted into this role. Led a team of 4 engineers building a warehouse
+automation platform with an AI defective-returns classifier for Franke Faber, processing 2,000+
+return units across an 8,000+ SKU catalogue. Built an NLP quotation engine with NER and WhatsApp
+Business API for Bajrang Ispat / Goel Pipes. Architected KISAAN KIOSK, a 10+ language voice-first
+farming platform with a live AI avatar, satellite crop monitoring, and CNN disease detection,
+shown to the Madhya Pradesh Government and the Gujarat Chief Minister. Led CRIME INTEL, a law
+enforcement intelligence platform for Telangana Police with speech-to-text and semantic case
+search. Deployed CGMSCL, a RAG enterprise knowledge system on AWS Lambda for Chhattisgarh Medical
+Services Corporation Limited. Built MIRA, a real-time face recognition AI receptionist for NASCOM.
+Shipped conversational AI backends for OKAYA, Pure Chemicals, and NSL.`,
   },
   {
     id: 'exp-intern',
     kind: 'experience',
-    title: 'AI Engineer Intern @ AI LifeBOT (Oct 2024-Oct 2025)',
+    title: 'AI Engineer @ AI LifeBOT (Oct 2024-Oct 2025)',
     url: '/#experience',
     tags: ['experience', 'internship', 'intern'],
-    text: `AI Engineer Intern at AI LifeBOT, Oct 2024 to Oct 2025. Built an SEO Automation Agent
-that increased lead coverage 35 percent. Built an OCR Invoice Validator that cut manual effort
-60 percent. Worked on a no-code omnichannel chatbot builder platform.`,
+    text: `AI Engineer at AI LifeBOT, Oct 2024 to Oct 2025, based in Noida. Built the backend for
+a Legal Assist Agent on a RAG pipeline over legal documents. Built the frontend for AI Presenter,
+a conversational slide-deck generator, in React. Worked on the frontend for AI SDR, an outbound
+sales outreach tool. Built a Request for Action Agent for workflow automation and a modular
+Chatbot Agent framework. Built an SEO Automation Agent that increased lead coverage 35 percent
+using Playwright and Puppeteer. Built data pipelines for EIE Instruments. Built an OCR Invoice
+Validator that cut manual verification effort 60 percent.`,
   },
   {
     id: 'proj-helix',
