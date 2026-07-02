@@ -32,7 +32,7 @@ const lid = () => String(lineId++);
 // Virtual filesystem
 const VFS: Record<string, string[]> = {
   '~': ['README.md', 'resume.txt', 'projects/', 'about/', 'skills/'],
-  '~/projects': ['ai-kisaan-sahayak/', 'brain-tumor-detection/', 'boardbrief/', 'fire-notes/', 'ipl-analysis/', 'vaccine-mgmt/'],
+  '~/projects': ['helix-framework/', 'ai-kisaan-sahayak/', 'brain-tumor-detection/', 'boardbrief/', 'fire-notes/', 'ipl-analysis/', 'vaccine-mgmt/'],
   '~/about': ['bio.txt', 'contact.txt'],
   '~/skills': ['stack.txt', 'certifications.txt'],
 };
@@ -642,6 +642,7 @@ export default function Terminal({ github, onClose, isFloating = false }: Props)
 
       case 'projects': {
         const featured = [
+          ['Helix Framework', 'Production AI agent framework · PyPI · budgets + caching + evals'],
           ['AI Kisaan Sahayak', 'Voice AI for farmers · 10 languages · Langgraph + YOLO'],
           ['Brain Tumor Detection', 'CNN + ResNet-18 · IEEE MPCON-2025 published'],
           ['BoardBrief', 'AI meeting summarizer · CRM integration'],

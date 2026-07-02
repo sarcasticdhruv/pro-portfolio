@@ -8,6 +8,15 @@ interface Props { github: GitHubStats; }
 
 const FEATURED = [
   {
+    name: 'helix-agent',
+    displayName: 'Helix Framework',
+    tagline: 'Production AI agent framework · live on PyPI',
+    description: 'Python framework for building production AI agents, in the space of CrewAI and LangGraph. Hard budget limits, semantic caching that cuts API costs 40-70%, persistent memory, multi-agent teams, YAML task pipelines and a 5-scorer eval suite. Works with OpenAI, Anthropic, Gemini, Groq, Mistral and more. pip install helix-framework.',
+    tags: ['Python', 'AI Agents', 'LLM', 'Framework', 'PyPI'],
+    github: 'https://github.com/sarcasticdhruv/helix-agent',
+    highlight: true,
+  },
+  {
     name: 'ai-kisaan-sahayak',
     displayName: 'AI Kisaan Sahayak',
     tagline: 'Voice-first agricultural AI · 10+ languages',

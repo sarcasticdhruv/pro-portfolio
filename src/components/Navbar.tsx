@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Sun, Moon, Menu, X, BookOpen, Gamepad2 } from 'lucide-react';
+import { Sun, Moon, Menu, X, BookOpen, Gamepad2, Search } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import type { Theme } from '../types';
 
@@ -19,6 +19,7 @@ export default function Navbar({ theme, onToggleTheme }: Props) {
   const { pathname } = useLocation();
   const onBlog = pathname.startsWith('/blog');
   const onGames = pathname.startsWith('/games');
+  const onSearch = pathname.startsWith('/search');
 
   useEffect(() => {
     const handler = () => setScrolled(window.scrollY > 40);
@@ -98,6 +99,25 @@ export default function Navbar({ theme, onToggleTheme }: Props) {
             games
           </Link>
 
+          {/* Search link */}
+          <Link
+            to="/search"
+            style={{
+              fontFamily: "'JetBrains Mono', monospace",
+              fontSize: '0.76rem',
+              letterSpacing: '0.04em',
+              display: 'flex', alignItems: 'center', gap: '5px',
+              textDecoration: 'none',
+              color: onSearch ? 'var(--accent)' : 'var(--text-muted)',
+              transition: 'color 0.18s ease',
+            }}
+            onMouseEnter={e => ((e.currentTarget as HTMLElement).style.color = 'var(--accent)')}
+            onMouseLeave={e => ((e.currentTarget as HTMLElement).style.color = onSearch ? 'var(--accent)' : 'var(--text-muted)')}
+          >
+            <Search size={13} />
+            search
+          </Link>
+
           <ThemeBtn theme={theme} onToggle={onToggleTheme} />
         </div>
 
@@ -149,6 +169,18 @@ export default function Navbar({ theme, onToggleTheme }: Props) {
           >
             <Gamepad2 size={13} />
             ./games
+          </Link>
+          <Link
+            to="/search"
+            onClick={() => setMenuOpen(false)}
+            style={{
+              fontFamily: "'JetBrains Mono', monospace", fontSize: '0.83rem',
+              color: onSearch ? 'var(--accent)' : 'var(--text-muted)',
+              textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '6px',
+            }}
+          >
+            <Search size={13} />
+            ./search
           </Link>
         </div>
       )}

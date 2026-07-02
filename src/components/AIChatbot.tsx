@@ -46,12 +46,13 @@ AI Engineer Intern @ AI LifeBOT - Oct 2024 - Oct 2025
 - No-code omnichannel chatbot builder platform
 
 === PROJECTS ===
-1. AI Kisaan Sahayak - Multilingual agri AI assistant for farmers (voice + LLM + RAG)
-2. Brain Tumor Detection - Deep learning classification, IEEE MPCON-2025 published paper
-3. BoardBrief - AI board meeting summariser with action-item extraction
-4. Fire Notes - Smart note-taking app with AI tagging and search
-5. IPL Analysis - Data visualization dashboard for IPL stats
-6. Vaccine Management System - Full-stack healthcare records platform
+1. Helix Framework - Production-grade AI agent framework on PyPI (pip install helix-framework). Like CrewAI/LangGraph but with the production layer built in: hard budget limits, semantic caching (cuts API costs 40-70%), persistent memory, multi-agent teams, YAML pipelines, 5-scorer eval suite. Supports OpenAI, Anthropic, Gemini, Groq, Mistral + more. GitHub: github.com/sarcasticdhruv/helix-agent
+2. AI Kisaan Sahayak - Multilingual agri AI assistant for farmers (voice + LLM + RAG)
+3. Brain Tumor Detection - Deep learning classification, IEEE MPCON-2025 published paper
+4. BoardBrief - AI board meeting summariser with action-item extraction
+5. Fire Notes - Smart note-taking app with AI tagging and search
+6. IPL Analysis - Data visualization dashboard for IPL stats
+7. Vaccine Management System - Full-stack healthcare records platform
 
 === SKILLS ===
 Languages: Python, C/C++, TypeScript, JavaScript, SQL

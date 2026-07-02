@@ -28,13 +28,68 @@ export default function MarkdownRenderer({ content }: Props) {
 
   const html = useMemo(() => marked.parse(content) as string, [content]);
 
-  // Add target="_blank" to all external links after render
+  // Post-render DOM decoration: external links open in new tabs, and code
+  // blocks get a header card (language label + copy button). Runs after
+  // every html change; wrappers live inside the innerHTML so they are wiped
+  // and rebuilt on re-render - no double wrapping.
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
+
     el.querySelectorAll<HTMLAnchorElement>('a[href^="http"]').forEach(a => {
       a.target = '_blank';
       a.rel = 'noopener noreferrer';
+    });
+
+    const COPY_ICON =
+      '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>';
+    const CHECK_ICON =
+      '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>';
+
+    el.querySelectorAll('pre').forEach(pre => {
+      const code = pre.querySelector('code');
+      if (!code) return;
+      const lang = (code.className.match(/language-([\w+-]+)/)?.[1] ?? 'code')
+        .replace('plaintext', 'text');
+
+      const card = document.createElement('div');
+      card.className = 'code-card';
+      pre.replaceWith(card);
+
+      const header = document.createElement('div');
+      header.className = 'code-card-header';
+
+      const langLabel = document.createElement('span');
+      langLabel.className = 'code-card-lang';
+      langLabel.textContent = lang;
+
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'code-copy-btn';
+      btn.innerHTML = `${COPY_ICON}<span>copy</span>`;
+      btn.addEventListener('click', async () => {
+        const text = code.innerText;
+        try {
+          await navigator.clipboard.writeText(text);
+        } catch {
+          // Clipboard API can be unavailable (http, old browsers)
+          const ta = document.createElement('textarea');
+          ta.value = text;
+          document.body.appendChild(ta);
+          ta.select();
+          document.execCommand('copy');
+          ta.remove();
+        }
+        btn.classList.add('copied');
+        btn.innerHTML = `${CHECK_ICON}<span>copied</span>`;
+        setTimeout(() => {
+          btn.classList.remove('copied');
+          btn.innerHTML = `${COPY_ICON}<span>copy</span>`;
+        }, 1600);
+      });
+
+      header.append(langLabel, btn);
+      card.append(header, pre);
     });
   }, [html]);
 
@@ -128,7 +183,51 @@ export default function MarkdownRenderer({ content }: Props) {
           color: var(--accent);
         }
 
-        /* Code blocks */
+        /* Code cards (header with language + copy button, body with code) */
+        .md-body .code-card {
+          margin: 1.6em 0;
+          border: 1px solid var(--border);
+          border-radius: 10px;
+          overflow: hidden;
+          background: var(--surface-2);
+        }
+        .md-body .code-card-header {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: 6px 8px 6px 14px;
+          background: var(--surface);
+          border-bottom: 1px solid var(--border);
+        }
+        .md-body .code-card-lang {
+          font-family: 'JetBrains Mono', monospace;
+          font-size: 0.68rem;
+          color: var(--text-dim);
+          letter-spacing: 0.06em;
+          text-transform: lowercase;
+        }
+        .md-body .code-copy-btn {
+          display: flex;
+          align-items: center;
+          gap: 5px;
+          background: transparent;
+          border: 1px solid transparent;
+          border-radius: 6px;
+          padding: 4px 9px;
+          font-family: 'JetBrains Mono', monospace;
+          font-size: 0.68rem;
+          color: var(--text-dim);
+          cursor: pointer;
+          transition: all 0.15s ease;
+        }
+        .md-body .code-copy-btn:hover {
+          color: var(--accent);
+          border-color: var(--border);
+          background: var(--surface-2);
+        }
+        .md-body .code-copy-btn.copied {
+          color: var(--accent);
+        }
         .md-body pre {
           margin: 1.6em 0;
           padding: 0;
@@ -136,6 +235,11 @@ export default function MarkdownRenderer({ content }: Props) {
           overflow: hidden;
           border: 1px solid var(--border);
           background: var(--surface-2);
+        }
+        .md-body .code-card pre {
+          margin: 0;
+          border: none;
+          border-radius: 0;
         }
         .md-body pre code {
           font-family: 'JetBrains Mono', monospace;
