@@ -1,21 +1,17 @@
-// Provider pool for the search page. All endpoints are OpenAI-compatible
-// chat completions called straight from the browser (this site has no
-// backend). Groq works out of the box with the existing key; Cerebras,
-// Gemini and OpenRouter join the pool when their keys exist in .env.
-// Each call declares a tier and we try providers in that tier's preference
-// order, falling through on failure or 429.
+// Thin client for the server-side LLM proxy (/api/llm). Provider keys and
+// model selection now live in the Vercel Edge Function, not the browser, so
+// nothing sensitive ships in the bundle. This module just forwards a tier +
+// messages and parses the streamed (or buffered) OpenAI-style response.
 //
-// Tiers:
-//   fast  - small/fast model for worker agents (drafting, analysis)
-//   synth - strongest model for the final synthesized answer
-//   web   - model with real built-in web search (Groq compound-mini only)
+// The exported surface (streamChat / chat / hasAnyProvider / hasWebSearch and
+// the types) is unchanged, so searchAgent.ts and other callers are untouched.
 
 export interface ChatMessage {
   role: 'system' | 'user' | 'assistant';
   content: string;
 }
 
-export type ModelTier = 'fast' | 'synth' | 'web';
+export type ModelTier = 'fast' | 'synth' | 'web' | 'chat';
 
 export interface StreamOptions {
   messages: ChatMessage[];
@@ -23,7 +19,7 @@ export interface StreamOptions {
   maxTokens?: number;
   temperature?: number;
   onToken?: (text: string) => void;
-  // Fired when a (re)attempt starts so the UI can reset partial output
+  // Fired when the request starts so the UI can reset any partial output.
   onAttempt?: () => void;
 }
 
@@ -31,127 +27,44 @@ export interface StreamResult {
   text: string;
 }
 
-interface Provider {
-  name: string;
-  url: string;
-  // Multiple keys per provider = quota rotation: on failure with key 1 we
-  // retry the same provider with key 2 before falling to the next provider.
-  keys: string[];
-  // Missing tier = provider skipped for that tier. An array means try the
-  // models in order (e.g. compound -> compound-mini when rate-limited).
-  models: Partial<Record<ModelTier, string | string[]>>;
-  extraHeaders?: Record<string, string>;
-}
+const ENDPOINT = '/api/llm';
 
-const env = (import.meta as any).env ?? {};
-
-// Collect a provider's keys: dedicated search key first, then the main key,
-// then any `_`-suffixed spares. Empty placeholders are dropped.
-function keysFor(...names: string[]): string[] {
-  return names.map(n => env[n]).filter((k): k is string => !!k && k.trim().length > 0);
-}
-
-function buildPool(): Provider[] {
-  const pool: Provider[] = [];
-  const groqKeys = keysFor('VITE_GROQ_SEARCH_API_KEY', 'VITE_GROQ_API_KEY', 'VITE_GROQ_API_KEY_');
-  if (groqKeys.length > 0) {
-    pool.push({
-      name: 'groq',
-      url: 'https://api.groq.com/openai/v1/chat/completions',
-      keys: groqKeys,
-      models: {
-        fast: 'llama-3.1-8b-instant',
-        synth: 'llama-3.3-70b-versatile',
-        // Full compound first (better search + reasoning); mini has its own
-        // separate rate-limit bucket, so it covers compound's low daily cap
-        web: ['groq/compound', 'groq/compound-mini'],
-      },
-    });
-  }
-  const cerebrasKeys = keysFor('VITE_CEREBRAS_API_KEY', 'VITE_CEREBRAS_API_KEY_');
-  if (cerebrasKeys.length > 0) {
-    pool.push({
-      name: 'cerebras',
-      url: 'https://api.cerebras.ai/v1/chat/completions',
-      keys: cerebrasKeys,
-      models: { fast: 'gemma-4-31b', synth: 'gpt-oss-120b' },
-    });
-  }
-  const geminiKeys = keysFor('VITE_GEMINI_API_KEY', 'VITE_GEMINI_API_KEY_');
-  if (geminiKeys.length > 0) {
-    pool.push({
-      name: 'gemini',
-      url: 'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions',
-      keys: geminiKeys,
-      models: { fast: 'gemini-2.5-flash-lite', synth: 'gemini-2.5-flash' },
-    });
-  }
-  const openrouterKeys = keysFor('VITE_OPENROUTER_API_KEY', 'VITE_OPENROUTER_API_KEY_');
-  if (openrouterKeys.length > 0) {
-    pool.push({
-      name: 'openrouter',
-      url: 'https://openrouter.ai/api/v1/chat/completions',
-      keys: openrouterKeys,
-      models: {
-        fast: 'meta-llama/llama-3.3-70b-instruct:free',
-        synth: 'meta-llama/llama-3.3-70b-instruct:free',
-      },
-      extraHeaders: { 'X-Title': 'Dhruv Portfolio Search' },
-    });
-  }
-  return pool;
-}
-
-const POOL: Provider[] = buildPool();
-
-// Preference order per tier. Worker agents lean on the fastest/cheapest
-// providers first so the strongest quota is saved for synthesis.
-const TIER_ORDER: Record<ModelTier, string[]> = {
-  fast: ['cerebras', 'gemini', 'groq', 'openrouter'],
-  synth: ['groq', 'cerebras', 'gemini', 'openrouter'],
-  web: ['groq'],
-};
-
-function chainFor(tier: ModelTier): Provider[] {
-  const order = TIER_ORDER[tier];
-  return order
-    .map(name => POOL.find(p => p.name === name))
-    .filter((p): p is Provider => !!p && !!p.models[tier]);
-}
-
+// The proxy owns which providers/keys are configured, so the client can't know
+// for certain. Stay optimistic and always attempt: the proxy fails cleanly and
+// callers already degrade gracefully when a synth call throws.
 export function hasAnyProvider(): boolean {
-  return POOL.length > 0;
+  return true;
 }
 
 export function hasWebSearch(): boolean {
-  return chainFor('web').length > 0;
+  return true;
 }
 
-async function streamFrom(provider: Provider, key: string, model: string, opts: StreamOptions): Promise<StreamResult> {
-  const res = await fetch(provider.url, {
+async function proxyError(res: Response): Promise<never> {
+  const err = await res.json().catch(() => ({} as { error?: string }));
+  throw new Error(err?.error ?? `search error ${res.status}`);
+}
+
+// Streamed call. The proxy has already picked a working provider before it
+// starts streaming, so there is a single clean stream (no mid-answer retry).
+export async function streamChat(opts: StreamOptions): Promise<StreamResult> {
+  opts.onAttempt?.();
+
+  const res = await fetch(ENDPOINT, {
     method: 'POST',
-    headers: {
-      Authorization: `Bearer ${key}`,
-      'Content-Type': 'application/json',
-      ...provider.extraHeaders,
-    },
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      model,
-      max_tokens: opts.maxTokens ?? 900,
-      temperature: opts.temperature ?? 0.4,
-      stream: true,
+      tier: opts.tier,
       messages: opts.messages,
+      maxTokens: opts.maxTokens,
+      temperature: opts.temperature,
+      stream: true,
     }),
   });
 
-  if (!res.ok || !res.body) {
-    const errData = await res.json().catch(() => ({} as any));
-    const msg = errData?.error?.message ?? `upstream error ${res.status}`;
-    throw new Error(msg);
-  }
+  if (!res.ok || !res.body) await proxyError(res);
 
-  // Parse the SSE stream: lines of `data: {json}` ending with `data: [DONE]`
-  const reader = res.body.getReader();
+  const reader = res.body!.getReader();
   const decoder = new TextDecoder();
   let buffer = '';
   let full = '';
@@ -168,8 +81,8 @@ async function streamFrom(provider: Provider, key: string, model: string, opts: 
       const payload = trimmed.slice(5).trim();
       if (payload === '[DONE]') continue;
       try {
-        const json = JSON.parse(payload);
-        const delta: string = json?.choices?.[0]?.delta?.content ?? '';
+        const chunk = JSON.parse(payload);
+        const delta: string = chunk?.choices?.[0]?.delta?.content ?? '';
         if (delta) {
           full += delta;
           opts.onToken?.(delta);
@@ -184,36 +97,24 @@ async function streamFrom(provider: Provider, key: string, model: string, opts: 
   return { text: full };
 }
 
-// Streamed call with automatic fallback through the tier's provider chain.
-export async function streamChat(opts: StreamOptions): Promise<StreamResult> {
-  const chain = chainFor(opts.tier);
-  if (chain.length === 0) {
-    throw new Error(
-      opts.tier === 'web' ? 'no web-capable provider' : 'no AI provider configured',
-    );
-  }
-  let lastError: Error | null = null;
-  for (const provider of chain) {
-    const models = provider.models[opts.tier]!;
-    for (const model of Array.isArray(models) ? models : [models]) {
-      for (const key of provider.keys) {
-        try {
-          opts.onAttempt?.();
-          return await streamFrom(provider, key, model, opts);
-        } catch (e) {
-          lastError = e instanceof Error ? e : new Error(String(e));
-          // Fall through: next key, then next model, then next provider
-        }
-      }
-    }
-  }
-  throw lastError ?? new Error('all providers failed');
-}
+// Non-streamed convenience for worker agents and one-shot chat calls.
+export async function chat(opts: Omit<StreamOptions, 'onToken' | 'onAttempt'>): Promise<string> {
+  const res = await fetch(ENDPOINT, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      tier: opts.tier,
+      messages: opts.messages,
+      maxTokens: opts.maxTokens,
+      temperature: opts.temperature,
+      stream: false,
+    }),
+  });
 
-// Non-streamed convenience for worker agents.
-export async function chat(
-  opts: Omit<StreamOptions, 'onToken' | 'onAttempt'>,
-): Promise<string> {
-  const res = await streamChat(opts);
-  return res.text;
+  if (!res.ok) await proxyError(res);
+
+  const data = await res.json();
+  const text: string = data?.text ?? '';
+  if (!text.trim()) throw new Error('empty answer');
+  return text;
 }

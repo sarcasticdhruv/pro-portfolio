@@ -142,6 +142,56 @@ async function openverseImages(query: string, count: number): Promise<WebRefs> {
   return { snippets: [], images };
 }
 
+// Wikimedia Commons media search - keyless, CORS *, searches actual media
+// files directly (not just one article's infobox thumbnail like wikiRefs),
+// so results track the query itself rather than whichever Wikipedia article
+// ranked first. Usually the most on-topic real-photo source available.
+async function commonsImages(query: string, count: number): Promise<WebRefs> {
+  const topic = distillImageQuery(query);
+  const res = await fetch(
+    `https://commons.wikimedia.org/w/api.php?action=query&generator=search&gsrsearch=${encodeURIComponent(topic)}&gsrnamespace=6&gsrlimit=${count + 6}&prop=imageinfo&iiprop=url&iiurlwidth=500&format=json&origin=*`,
+  );
+  if (!res.ok) throw new Error(`commons ${res.status}`);
+  const d = await res.json();
+  const pages: any[] = Object.values(d?.query?.pages ?? {});
+
+  const images: WebImage[] = pages
+    .filter((p: any) => {
+      const url: string = p?.imageinfo?.[0]?.thumburl ?? '';
+      return url && /\.(jpe?g|png|webp|gif)(\?|$)/i.test(url);
+    })
+    .map((p: any) => {
+      const info = p.imageinfo[0];
+      const title = String(p.title || '')
+        .replace(/^File:/, '')
+        .replace(/\.(jpe?g|png|webp|gif)$/i, '')
+        .replace(/[_-]+/g, ' ')
+        .trim();
+      return { url: info.thumburl, title: title || topic, link: info.descriptionurl || info.thumburl };
+    })
+    .slice(0, count);
+
+  return { snippets: [], images };
+}
+
+// Score how well an image's title actually matches the query, so loosely (or
+// wrongly) tagged results from CC/wiki corpora can be filtered instead of
+// blindly trusted just because a source returned them. Raw token overlap
+// alone still lets same-word-wrong-meaning hits through (a query for "swan"
+// matching "Kristen Stewart (Bella Swan)"), so the match is weighted by how
+// much of the title it actually accounts for - a title that's essentially
+// just the query ("Mute Swan") scores far higher than one where the token is
+// a small fragment of an unrelated title.
+function imageRelevance(title: string, tokens: string[]): number {
+  if (tokens.length === 0) return 0;
+  const hay = title.toLowerCase();
+  const titleWords = hay.split(/[^a-z0-9]+/).filter(Boolean);
+  const matched = tokens.filter(tok => hay.includes(tok)).length;
+  if (matched === 0) return 0;
+  const density = matched / Math.max(titleWords.length, 1);
+  return matched * (0.4 + 0.6 * density);
+}
+
 // Hacker News search via Algolia - CORS-open, keyless, great for tech topics
 async function hnRefs(query: string): Promise<WebRefs> {
   const res = await fetch(
@@ -165,13 +215,14 @@ async function hnRefs(query: string): Promise<WebRefs> {
 // the others. Deduped by URL, capped small.
 export async function fetchWebRefs(query: string, opts?: { imageCount?: number }): Promise<WebRefs> {
   const imageCount = opts?.imageCount ?? 6;
-  // Openverse first in the image ordering: its results match the query,
-  // while wiki/ddg images are just article thumbnails (fallback only).
-  // Wiki/ddg also search the distilled topic so "show images of lion"
-  // resolves to the lion article, not a search-phrase miss.
+  // Commons + Openverse search the topic directly and rank best; wiki/ddg
+  // images are just article/infobox thumbnails (weaker signal, fallback
+  // only). Wiki/ddg also search the distilled topic so "show images of
+  // lion" resolves to the lion article, not a search-phrase miss.
   const topic = distillImageQuery(query);
   const refQuery = hasImageIntent(query) ? topic : query;
-  const [ov, wiki, ddg, hn] = await Promise.allSettled([
+  const [commons, ov, wiki, ddg, hn] = await Promise.allSettled([
+    withTimeout(commonsImages(query, imageCount), 7000),
     withTimeout(openverseImages(query, imageCount), 7000),
     withTimeout(wikiRefs(refQuery), 6000),
     withTimeout(ddgRefs(refQuery), 6000),
@@ -179,11 +230,14 @@ export async function fetchWebRefs(query: string, opts?: { imageCount?: number }
   ]);
 
   const snippets: WebSnippet[] = [];
-  const images: WebImage[] = [];
+  const rawImages: WebImage[] = [];
   const seenUrl = new Set<string>();
   const seenImg = new Set<string>();
 
-  for (const r of [ov, wiki, ddg, hn]) {
+  // Commons and Openverse lead the priority order (they search the topic
+  // directly); wiki/ddg trail as weaker fallback signal. Order matters for
+  // the stable sort below when relevance scores tie.
+  for (const r of [commons, ov, wiki, ddg, hn]) {
     if (r.status !== 'fulfilled') continue;
     for (const s of r.value.snippets) {
       if (seenUrl.has(s.url)) continue;
@@ -193,8 +247,23 @@ export async function fetchWebRefs(query: string, opts?: { imageCount?: number }
     for (const img of r.value.images) {
       if (seenImg.has(img.url)) continue;
       seenImg.add(img.url);
-      images.push(img);
+      rawImages.push(img);
     }
   }
-  return { snippets: snippets.slice(0, 4), images: images.slice(0, imageCount) };
+
+  // Rank by title/query token overlap so off-topic results (a generic DDG
+  // infobox icon, a loosely-tagged Openverse hit) sink instead of showing up
+  // "just because a source returned them". Ties keep source priority order.
+  const tokens = topic.toLowerCase().split(/\s+/).filter(Boolean);
+  const ranked = rawImages
+    .map(img => ({ img, score: imageRelevance(img.title, tokens) }))
+    .sort((a, b) => b.score - a.score);
+  // Only keep on-topic hits, but never return fewer than half the request
+  // just because scoring was strict - fall back to the next-best matches.
+  const relevant = ranked.filter(r => r.score > 0);
+  const images = (relevant.length >= Math.min(3, imageCount) ? relevant : ranked)
+    .slice(0, imageCount)
+    .map(r => r.img);
+
+  return { snippets: snippets.slice(0, 4), images };
 }

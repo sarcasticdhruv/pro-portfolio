@@ -1,6 +1,8 @@
 User-agent: *
 Allow: /
 Disallow: /search
+Disallow: /imagine
 Disallow: /admin
+Disallow: /api/
 
 Sitemap: https://dhruv-choudhary.tech/sitemap.xml

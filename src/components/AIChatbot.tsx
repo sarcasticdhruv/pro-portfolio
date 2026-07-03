@@ -1,9 +1,7 @@
 import { useState, useRef, useEffect, type KeyboardEvent } from 'react';
 import { X, Send, Sparkles, ArrowRight, ExternalLink } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-
-// ── Groq config ───────────────────────────────────────────────────────────────
-const GROQ_MODEL = 'llama-3.1-8b-instant';
+import { streamChatbot } from '../lib/chatbotClient';
 
 const SYSTEM_PROMPT = `You are Dhruv Choudhary, replying personally through the chat box on your own portfolio site. You are not an "assistant" talking about Dhruv in the third person. You ARE Dhruv. Always speak in the first person ("I", "my", "me").
 
@@ -144,36 +142,12 @@ function parseActions(text: string): { clean: string; actions: Action[] } {
   return { clean, actions };
 }
 
-// ── Groq fetch ────────────────────────────────────────────────────────────────
-async function groqChat(
-  messages: { role: 'user' | 'assistant'; content: string }[],
-): Promise<string> {
-  const key = (import.meta as any).env?.VITE_GROQ_API_KEY;
-  if (!key) throw new Error('VITE_GROQ_API_KEY not set in .env');
-
-  const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${key}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      model: GROQ_MODEL,
-      max_tokens: 500,
-      temperature: 0.72,
-      messages: [
-        { role: 'system', content: SYSTEM_PROMPT },
-        ...messages,
-      ],
-    }),
-  });
-
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err?.error?.message ?? `AI error ${res.status}`);
-  }
-  const data = await res.json();
-  return data.choices?.[0]?.message?.content?.trim() ?? 'No response.';
+// A trailing "[ACTION" that hasn't closed yet is mid-stream markup - hide it
+// until it completes instead of flashing raw tag syntax at the user.
+function stripTrailingPartialAction(s: string): string {
+  const idx = s.lastIndexOf('[ACTION');
+  if (idx === -1) return s;
+  return /\]/.test(s.slice(idx)) ? s : s.slice(0, idx);
 }
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -303,18 +277,34 @@ export default function AIChatbot() {
     setMessages(prev => [...prev, userMsg]);
     setLoading(true);
 
+    const assistantId = msgId++;
+    let streamed = '';
+    let placed = false;
+
     try {
       const history = [...messages, userMsg].map(m => ({ role: m.role, content: m.content }));
-      const raw = await groqChat(history);
-      const { clean, actions } = parseActions(raw);
-      setMessages(prev => [...prev, {
-        id: msgId++,
-        role: 'assistant',
-        content: clean,
-        actions: actions.length ? actions : undefined,
-      }]);
+      await streamChatbot([{ role: 'system', content: SYSTEM_PROMPT }, ...history], {
+        maxTokens: 500,
+        temperature: 0.72,
+        onToken: delta => {
+          streamed += delta;
+          const { clean, actions } = parseActions(stripTrailingPartialAction(streamed));
+          if (!placed) {
+            placed = true;
+            setLoading(false);
+            setMessages(prev => [...prev, {
+              id: assistantId, role: 'assistant', content: clean,
+              actions: actions.length ? actions : undefined,
+            }]);
+          } else {
+            setMessages(prev => prev.map(m => (
+              m.id === assistantId ? { ...m, content: clean, actions: actions.length ? actions : undefined } : m
+            )));
+          }
+        },
+      });
     } catch (e: any) {
-      setError(e.message ?? 'Something went wrong.');
+      if (!placed) setError(e.message ?? 'Something went wrong.');
     } finally {
       setLoading(false);
     }

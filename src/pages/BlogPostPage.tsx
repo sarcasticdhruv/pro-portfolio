@@ -85,10 +85,10 @@ export default function BlogPostPage() {
           {/* ── Title ── */}
           <h1 style={{
             fontFamily: "'Syne', sans-serif",
-            fontWeight: 800,
-            fontSize: 'clamp(1.9rem, 5.5vw, 2.8rem)',
-            lineHeight: 1.14,
-            letterSpacing: '-0.03em',
+            fontWeight: 700,
+            fontSize: 'clamp(1.7rem, 4.5vw, 2.4rem)',
+            lineHeight: 1.24,
+            letterSpacing: '-0.02em',
             color: 'var(--text)',
             marginBottom: '20px',
           }}>

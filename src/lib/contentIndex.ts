@@ -176,15 +176,17 @@ function buildIndex(): ContentRecord[] {
 // Built once at module load - all content is bundled, nothing async.
 export const CONTENT_INDEX: ContentRecord[] = buildIndex();
 
-// Generic words that would otherwise match half the index
+// Generic words that would otherwise match half the index. Deliberately does
+// NOT include "built"/"build"/"work"/"make" etc - those are the exact signal
+// words a query like "what has he built" needs, and stripping them left
+// nothing but a name and a stray noun to score against.
 const STOPWORDS = new Set([
   'the', 'and', 'for', 'with', 'from', 'this', 'that', 'these', 'those', 'what',
   'when', 'where', 'which', 'who', 'why', 'how', 'about', 'tell', 'does', 'has',
   'have', 'had', 'was', 'were', 'are', 'can', 'could', 'would', 'should', 'his',
   'her', 'him', 'you', 'your', 'their', 'they', 'them', 'its', 'it', 'is', 'me',
   'more', 'most', 'some', 'any', 'all', 'into', 'out', 'over', 'under', 'used',
-  'use', 'uses', 'using', 'made', 'make', 'makes', 'built', 'build', 'builds',
-  'work', 'works', 'working', 'like', 'also', 'been', 'being', 'will', 'other',
+  'use', 'uses', 'using', 'like', 'also', 'been', 'being', 'will', 'other',
 ]);
 
 function tokenize(q: string): string[] {
@@ -192,6 +194,13 @@ function tokenize(q: string): string[] {
     .toLowerCase()
     .split(/[^a-z0-9+#.]+/)
     .filter(t => t.length > 2 && !STOPWORDS.has(t));
+}
+
+// Crude singularizer so "projects" (query) matches a "project" tag/body word
+// and vice versa - the substring check below can't bridge that gap on its own
+// since a shorter string can never contain a longer one.
+function singular(t: string): string {
+  return t.length > 3 && t.endsWith('s') ? t.slice(0, -1) : t;
 }
 
 function makeSnippet(text: string, tokens: string[]): string {
@@ -207,9 +216,16 @@ function makeSnippet(text: string, tokens: string[]): string {
   return `${start > 0 ? '…' : ''}${slice}…`;
 }
 
-export function searchContent(query: string, limit = 4): ScoredMatch[] {
+export function searchContent(query: string, limit = 6): ScoredMatch[] {
   const tokens = tokenize(query);
   if (tokens.length === 0) return [];
+
+  // A query that says "project(s)" wants the full list of things he's
+  // built, not whichever ones happen to share incidental keywords - keyword
+  // overlap alone was letting weakly-worded projects (no repeated "built" or
+  // "Dhruv" in their own body text) get crowded out by the about/contact
+  // records, which mention his name constantly.
+  const wantsProjects = /project/i.test(query);
 
   const scored: ScoredMatch[] = CONTENT_INDEX.map(record => {
     const title = record.title.toLowerCase();
@@ -217,17 +233,21 @@ export function searchContent(query: string, limit = 4): ScoredMatch[] {
     const text = record.text.toLowerCase();
     let score = 0;
     for (const t of tokens) {
-      if (title.includes(t)) score += 4;
-      if (tags.includes(t)) score += 3;
+      const alt = singular(t);
+      if (title.includes(t) || title.includes(alt)) score += 4;
+      if (tags.includes(t) || tags.includes(alt)) score += 3;
       // Count body occurrences, capped so one long doc doesn't dominate
-      let idx = text.indexOf(t);
-      let hits = 0;
-      while (idx !== -1 && hits < 5) {
-        hits++;
-        idx = text.indexOf(t, idx + t.length);
+      for (const form of new Set([t, alt])) {
+        let idx = text.indexOf(form);
+        let hits = 0;
+        while (idx !== -1 && hits < 5) {
+          hits++;
+          idx = text.indexOf(form, idx + form.length);
+        }
+        score += hits;
       }
-      score += hits;
     }
+    if (wantsProjects && record.kind === 'project') score += 6;
     return { record, score, snippet: '' };
   })
     .filter(m => m.score > 0)

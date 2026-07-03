@@ -32,41 +32,34 @@ export default function GamesPage() {
   return (
     <main style={{
       minHeight: '100vh',
-      paddingTop: '80px',
+      paddingTop: '110px',
       paddingBottom: '80px',
       animation: 'gamesFadeIn 0.35s ease both',
     }}>
       <div style={{ maxWidth: '660px', margin: '0 auto', padding: '0 clamp(16px, 5vw, 24px)' }}>
 
-        {/* Breadcrumb */}
+        {/* Header */}
         <div style={{
-          fontFamily: "'JetBrains Mono', monospace", fontSize: '0.67rem',
-          color: 'var(--text-dim)', letterSpacing: '0.05em',
-          marginBottom: '30px',
+          fontFamily: "'JetBrains Mono', monospace",
+          fontSize: '0.8rem',
+          color: 'var(--text-dim)',
+          letterSpacing: '0.05em',
+          marginBottom: '24px',
           display: 'flex', alignItems: 'center', gap: '6px',
         }}>
           <Link to="/" style={{ color: 'var(--accent)', textDecoration: 'none' }}>~/dhruv</Link>
           <span>/</span>
           <span>arcade</span>
         </div>
-
-        {/* Header */}
-        <div style={{ marginBottom: '36px' }}>
-          <h1 style={{
-            fontFamily: "'Syne', sans-serif", fontWeight: 800,
-            fontSize: 'clamp(1.9rem, 6vw, 2.8rem)',
-            letterSpacing: '-0.03em', color: 'var(--text)', lineHeight: 1.05,
-            marginBottom: '10px',
-          }}>
-            Arcade<span style={{ color: 'var(--accent)' }}>.</span>
-          </h1>
-          <p style={{
-            fontFamily: "'DM Sans', sans-serif", fontSize: '0.88rem',
-            color: 'var(--text-muted)', lineHeight: 1.65,
-          }}>
-            Three small games. Built from scratch, no libraries.
-          </p>
-        </div>
+        <h1
+          className="font-display"
+          style={{ fontSize: 'clamp(1.6rem, 4vw, 2.4rem)', fontWeight: 700, marginBottom: '6px' }}
+        >
+          Arcade<span style={{ color: 'var(--accent)' }}>.</span>
+        </h1>
+        <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginBottom: '28px' }}>
+          Three small games. Built from scratch, no libraries.
+        </p>
 
         {/* Tab bar */}
         <div style={{

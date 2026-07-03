@@ -4,6 +4,7 @@ import { createPortal } from 'react-dom';
 import { Maximize2, Minimize2, X, Terminal as TermIcon } from 'lucide-react';
 import type { GitHubStats } from '../types';
 import TerminalSnake from './games/TerminalSnake';
+import { chat } from '../lib/providers';
 
 interface Props {
   github: GitHubStats;
@@ -21,7 +22,6 @@ interface Line {
   cmdText?: string;
 }
 
-const GROQ_MODEL = 'llama-3.1-8b-instant';
 const USERNAME = 'dhruv';
 const HOSTNAME = 'arch';
 const PAGE_LOAD_TIME = Date.now();
@@ -295,34 +295,17 @@ export default function Terminal({ github, onClose, isFloating = false }: Props)
   }
 
   async function runGroq(prompt: string, systemPrompt: string): Promise<string> {
-    // import.meta is not typed by default in TS; cast to any to access env vars
-    const key = (import.meta as any).env?.VITE_GROQ_API_KEY;
-    if (!key) throw new Error('VITE_GROQ_API_KEY not set in .env');
-
-    const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${key}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: GROQ_MODEL,
-        max_tokens: 600,
-        temperature: 0.7,
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: prompt },
-        ],
-      }),
+    // Routed through the server-side proxy so provider keys never ship to the
+    // browser. Uses the sharp conversational 'chat' tier.
+    return chat({
+      tier: 'chat',
+      maxTokens: 600,
+      temperature: 0.7,
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: prompt },
+      ],
     });
-
-    if (!res.ok) {
-      const errData = await res.json().catch(() => ({}));
-      throw new Error(errData?.error?.message ?? `API error ${res.status}`);
-    }
-
-    const data = await res.json();
-    return data.choices?.[0]?.message?.content?.trim() ?? 'No response.';
   }
 
   function formatGroqOutput(text: string): React.ReactNode[] {

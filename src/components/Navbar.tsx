@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Sun, Moon, Menu, X, BookOpen, Gamepad2, Search } from 'lucide-react';
+import { Sun, Moon, Menu, X, BookOpen, Gamepad2, Search, Aperture } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import type { Theme } from '../types';
 
@@ -20,6 +20,7 @@ export default function Navbar({ theme, onToggleTheme }: Props) {
   const onBlog = pathname.startsWith('/blog');
   const onGames = pathname.startsWith('/games');
   const onSearch = pathname.startsWith('/search');
+  const onImagine = pathname.startsWith('/imagine');
 
   useEffect(() => {
     const handler = () => setScrolled(window.scrollY > 40);
@@ -118,6 +119,25 @@ export default function Navbar({ theme, onToggleTheme }: Props) {
             search
           </Link>
 
+          {/* Imagine link */}
+          <Link
+            to="/imagine"
+            style={{
+              fontFamily: "'JetBrains Mono', monospace",
+              fontSize: '0.76rem',
+              letterSpacing: '0.04em',
+              display: 'flex', alignItems: 'center', gap: '5px',
+              textDecoration: 'none',
+              color: onImagine ? 'var(--accent)' : 'var(--text-muted)',
+              transition: 'color 0.18s ease',
+            }}
+            onMouseEnter={e => ((e.currentTarget as HTMLElement).style.color = 'var(--accent)')}
+            onMouseLeave={e => ((e.currentTarget as HTMLElement).style.color = onImagine ? 'var(--accent)' : 'var(--text-muted)')}
+          >
+            <Aperture size={13} />
+            imagine
+          </Link>
+
           <ThemeBtn theme={theme} onToggle={onToggleTheme} />
         </div>
 
@@ -181,6 +201,18 @@ export default function Navbar({ theme, onToggleTheme }: Props) {
           >
             <Search size={13} />
             ./search
+          </Link>
+          <Link
+            to="/imagine"
+            onClick={() => setMenuOpen(false)}
+            style={{
+              fontFamily: "'JetBrains Mono', monospace", fontSize: '0.83rem',
+              color: onImagine ? 'var(--accent)' : 'var(--text-muted)',
+              textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '6px',
+            }}
+          >
+            <Aperture size={13} />
+            ./imagine
           </Link>
         </div>
       )}

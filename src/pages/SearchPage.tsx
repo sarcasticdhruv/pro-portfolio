@@ -2,8 +2,10 @@ import { useEffect, useRef, useState, type KeyboardEvent } from 'react';
 import { Link } from 'react-router-dom';
 import {
   Search, CircleCheck, CircleX, Loader2, History, ChevronDown, ChevronUp, TrendingUp,
-  Trash2, X, ArrowUpRight, RotateCw, FileText, FolderGit2, Briefcase, Award, Wrench, User, Globe,
+  Trash2, X, ArrowUpRight, RotateCw, FileText, FolderGit2, Briefcase, Award, Wrench, User, Globe, FileDown,
+  Download, Aperture,
 } from 'lucide-react';
+import { downloadPdf, downloadDocx, downloadHtml, detectDocIntent, hasImageGenIntent, type DocFormat } from '../lib/exportAnswer';
 import { runSearch, type AgentStep, type SearchResult } from '../lib/searchAgent';
 import {
   loadHistory, saveToHistory, findCached, removeFromHistory, clearHistory,
@@ -57,6 +59,10 @@ export default function SearchPage() {
   const [steps, setSteps] = useState<AgentStep[]>([]);
   const [liveAnswer, setLiveAnswer] = useState('');
   const [result, setResult] = useState<SearchResult | null>(null);
+  // Set immediately on submit (not gated on the search pipeline finishing) so
+  // the generated-image panel starts fetching in parallel with the answer,
+  // instead of waiting for the whole multi-agent run to complete first.
+  const [imageGenQuery, setImageGenQuery] = useState<string | null>(null);
   const [history, setHistory] = useState<HistoryEntry[]>(() => loadHistory());
   const [aboutChips] = useState<string[]>(() => pickRandom(ABOUT_POOL, 2));
   const [trending, setTrending] = useState<string[]>(() => pickRandom(TRENDING_FALLBACK, 2));
@@ -110,6 +116,7 @@ export default function SearchPage() {
     const q = raw.trim();
     if (!q || running) return;
     setQuery(q);
+    setImageGenQuery(hasImageGenIntent(q) ? q : null);
     if (!opts?.skipCache) {
       const cached = findCached(q);
       if (cached) {
@@ -127,6 +134,7 @@ export default function SearchPage() {
     setQuery(entry.query);
     setSteps([]);
     setLiveAnswer('');
+    setImageGenQuery(hasImageGenIntent(entry.query) ? entry.query : null);
     setResult({ ...entry, fromCache: true });
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
@@ -142,18 +150,32 @@ export default function SearchPage() {
     setSteps([]);
     setLiveAnswer('');
     setResult(null);
+    setImageGenQuery(null);
     inputRef.current?.focus();
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
   const showAnswer = running ? liveAnswer : result?.answer ?? '';
   const idle = !running && !result;
+  // If the query asked for the answer as a document, this is the format wanted.
+  const docFmt: DocFormat | null = result ? detectDocIntent(result.query) : null;
 
   return (
     <main id="search-page" style={{ minHeight: '100vh', paddingTop: '110px', paddingBottom: '80px' }}>
       <div style={{ maxWidth: '780px', margin: '0 auto', padding: '0 clamp(16px, 5vw, 24px)' }}>
         {/* Header */}
-        <p className="label" style={{ marginBottom: '12px' }}>~/search</p>
+        <div style={{
+          fontFamily: "'JetBrains Mono', monospace",
+          fontSize: '0.8rem',
+          color: 'var(--text-dim)',
+          letterSpacing: '0.05em',
+          marginBottom: '24px',
+          display: 'flex', alignItems: 'center', gap: '6px',
+        }}>
+          <Link to="/" style={{ color: 'var(--accent)', textDecoration: 'none' }}>~/dhruv</Link>
+          <span>/</span>
+          <span>search</span>
+        </div>
         <h1
           className="font-display"
           onClick={newSession}
@@ -229,6 +251,13 @@ export default function SearchPage() {
           <StepTimeline steps={steps} running={running} />
         )}
 
+        {/* Generated image (for "generate an image of X" queries) - starts
+            fetching as soon as the query is submitted, in parallel with the
+            rest of the search, instead of waiting for the full pipeline. */}
+        {imageGenQuery && (
+          <GeneratedImagePanel key={imageGenQuery} prompt={imageGenQuery} />
+        )}
+
         {/* Cache notice */}
         {result?.fromCache && (
           <div className="search-cache-notice" style={{
@@ -243,8 +272,9 @@ export default function SearchPage() {
           </div>
         )}
 
-        {/* Image grid (Perplexity-style, above the answer) */}
-        {result && !running && (result.images?.length ?? 0) > 0 && (
+        {/* Image grid (Perplexity-style, above the answer) - hidden for
+            generated-image queries, where the panel below covers it */}
+        {result && !running && !hasImageGenIntent(result.query) && (result.images?.length ?? 0) > 0 && (
           <div className="search-img-grid" style={{
             display: 'grid',
             gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))',
@@ -291,13 +321,23 @@ export default function SearchPage() {
                 <MarkdownRenderer content={showAnswer} />
               </div>
             )}
-            {result && !running && !result.degraded && (
-              <p style={{
+
+            {/* Intent-driven download: the user asked for the answer AS a
+                pdf/word/html, ChatGPT/Claude style — offer it prominently. */}
+            {result && !running && !result.degraded && result.answer && docFmt && (
+              <ExportCallout query={result.query} answer={result.answer} sources={result.sources} format={docFmt} />
+            )}
+
+            {result && !running && !result.degraded && result.answer && (
+              <div style={{
                 marginTop: '14px', paddingTop: '12px', borderTop: '1px solid var(--border)',
-                fontFamily: "'JetBrains Mono', monospace", fontSize: '0.68rem', color: 'var(--text-dim)',
               }}>
-                lane: {result.lane}{result.agentsUsed ? ` · ${result.agentsUsed} agents` : ''}{result.fromCache ? ' · cached' : ''}
-              </p>
+                <span style={{
+                  fontFamily: "'JetBrains Mono', monospace", fontSize: '0.68rem', color: 'var(--text-dim)',
+                }}>
+                  lane: {result.lane}{result.agentsUsed ? ` · ${result.agentsUsed} agents` : ''}{result.fromCache ? ' · cached' : ''}
+                </span>
+              </div>
             )}
           </div>
         )}
@@ -388,6 +428,151 @@ export default function SearchPage() {
     </main>
   );
 }
+
+// Auto-generates an image for a "generate an image of X" query and shows it
+// above the answer, with regenerate / download / open-in-Imagine actions.
+function GeneratedImagePanel({ prompt }: { prompt: string }) {
+  const [status, setStatus] = useState<'loading' | 'done' | 'error'>('loading');
+  const [src, setSrc] = useState('');
+  const urlRef = useRef('');
+
+  useEffect(() => {
+    let cancelled = false;
+    setStatus('loading');
+    (async () => {
+      try {
+        const res = await fetch('/api/image', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ prompt }),
+        });
+        if (!res.ok) throw new Error('gen failed');
+        const blob = await res.blob();
+        if (cancelled) return;
+        const url = URL.createObjectURL(blob);
+        if (urlRef.current) URL.revokeObjectURL(urlRef.current);
+        urlRef.current = url;
+        setSrc(url);
+        setStatus('done');
+      } catch {
+        if (!cancelled) setStatus('error');
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // regenerate when the prompt (query) changes
+  }, [prompt]);
+
+  return (
+    <div style={{
+      marginTop: '18px', background: 'var(--surface)', border: '1px solid var(--border)',
+      borderRadius: '12px', overflow: 'hidden', boxShadow: 'var(--shadow-sm)',
+    }}>
+      <div style={{
+        display: 'flex', alignItems: 'center', gap: '8px', padding: '11px 14px',
+        borderBottom: '1px solid var(--border)',
+        fontFamily: "'JetBrains Mono', monospace", fontSize: '0.72rem', color: 'var(--text-dim)',
+      }}>
+        <Aperture size={13} style={{ color: 'var(--accent)' }} />
+        generated image
+      </div>
+      <div style={{
+        width: '100%', aspectRatio: '1', maxHeight: '460px',
+        display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--surface-2)',
+      }}>
+        {status === 'loading' && (
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px', color: 'var(--text-dim)' }}>
+            <Loader2 size={24} className="spin-slow" style={{ color: 'var(--accent)' }} />
+            <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '0.7rem' }}>painting...</span>
+          </div>
+        )}
+        {status === 'error' && (
+          <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '0.72rem', color: 'var(--text-dim)', padding: '20px', textAlign: 'center' }}>
+            image generation failed, the model may be warming up.
+          </span>
+        )}
+        {status === 'done' && src && (
+          <img src={src} alt={prompt} style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }} />
+        )}
+      </div>
+      {status === 'done' && (
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '6px', padding: '10px 12px', borderTop: '1px solid var(--border)' }}>
+          <Link to="/imagine" className="search-chip" style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', textDecoration: 'none' }}>
+            <Aperture size={11} /> open in Imagine
+          </Link>
+          <a href={src} download="generated.png" className="search-chip" style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', textDecoration: 'none' }}>
+            <Download size={11} /> download
+          </a>
+        </div>
+      )}
+    </div>
+  );
+}
+
+const FMT_LABEL: Record<DocFormat, string> = { pdf: 'PDF', docx: 'Word', html: 'HTML' };
+
+function runDownload(format: DocFormat, query: string, answer: string, sources: { title: string; url: string }[]): void | Promise<void> {
+  if (format === 'pdf') return downloadPdf(query, answer, sources);
+  if (format === 'docx') return downloadDocx(query, answer, sources);
+  return downloadHtml(query, answer, sources);
+}
+
+// Prominent, intent-driven download (the user asked "make a pdf of X"). The
+// requested format is the primary action; the other two are quiet fallbacks.
+function ExportCallout({ query, answer, sources, format }: { query: string; answer: string; sources: { title: string; url: string }[]; format: DocFormat }) {
+  const [busy, setBusy] = useState<string | null>(null);
+  const srcs = sources.map(s => ({ title: s.title, url: s.url }));
+  const others = (['pdf', 'docx', 'html'] as DocFormat[]).filter(f => f !== format);
+
+  const run = async (f: DocFormat) => {
+    if (busy) return;
+    setBusy(f);
+    try {
+      await runDownload(f, query, answer, srcs);
+    } catch (e) {
+      console.error('export failed', e);
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  return (
+    <div style={{
+      marginTop: '16px', padding: '13px 15px', display: 'flex', alignItems: 'center',
+      gap: '12px', flexWrap: 'wrap',
+      background: 'var(--accent-glow)', border: '1px solid var(--tag-border)', borderRadius: '10px',
+    }}>
+      <FileDown size={16} style={{ color: 'var(--accent)', flexShrink: 0 }} />
+      <span style={{ fontFamily: "'DM Sans', sans-serif", fontSize: '0.86rem', color: 'var(--text)', flex: 1, minWidth: '110px' }}>
+        Your answer is ready as a {FMT_LABEL[format]} document.
+      </span>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+        <button
+          onClick={() => run(format)}
+          disabled={!!busy}
+          style={{
+            display: 'inline-flex', alignItems: 'center', gap: '6px',
+            background: 'var(--accent)', color: 'var(--chat-user-text)',
+            border: 'none', borderRadius: '7px', padding: '8px 14px',
+            fontFamily: "'JetBrains Mono', monospace", fontSize: '0.74rem', fontWeight: 600,
+            cursor: busy ? 'default' : 'pointer',
+          }}
+        >
+          {busy === format ? <Loader2 size={12} className="spin-slow" /> : <Download size={13} />}
+          Download {FMT_LABEL[format]}
+        </button>
+        {others.map(f => (
+          <button key={f} onClick={() => run(f)} disabled={!!busy} className="search-chip"
+            style={{ opacity: busy && busy !== f ? 0.5 : 1 }}>
+            {busy === f ? <Loader2 size={11} className="spin-slow" /> : FMT_LABEL[f]}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 
 function StepTimeline({ steps, running }: { steps: AgentStep[]; running: boolean }) {
   const [open, setOpen] = useState(false);

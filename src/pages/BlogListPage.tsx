@@ -27,7 +27,7 @@ export default function BlogListPage() {
           {/* Breadcrumb */}
           <div style={{
             fontFamily: "'JetBrains Mono', monospace",
-            fontSize: '0.7rem',
+            fontSize: '0.8rem',
             color: 'var(--text-dim)',
             letterSpacing: '0.05em',
             marginBottom: '24px',
@@ -49,7 +49,7 @@ export default function BlogListPage() {
               color: 'var(--text)',
               lineHeight: 1.1,
             }}>
-              Writing
+              Writing<span style={{ color: 'var(--accent)' }}>.</span>
             </h1>
           </div>
 

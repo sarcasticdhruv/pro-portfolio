@@ -4,7 +4,7 @@ date: "2026-01-28"
 excerpt: "On the specific kind of competence that exams measure and the different kind of competence that production systems require."
 tags: ["reflection", "engineering", "growth"]
 coverImage: ""
-published: true
+published: false
 ---
 
 I am, by the metric of my department's grade point system, the second most academically capable student in my graduating class. I tell people this when it seems relevant. I believe it reflects genuine work and not nothing.

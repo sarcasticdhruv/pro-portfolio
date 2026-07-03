@@ -12,6 +12,7 @@
 import { searchContent, type ScoredMatch } from './contentIndex';
 import { streamChat, chat, hasAnyProvider, hasWebSearch } from './providers';
 import { fetchWebRefs, hasImageIntent, type WebRefs, type WebImage } from './webTools';
+import { detectDocIntent, detectDocKind, hasImageGenIntent, extractTopic } from './exportAnswer';
 
 export type Lane = 'site' | 'web' | 'both';
 
@@ -81,6 +82,18 @@ function siteContext(matches: ScoredMatch[]): string {
 }
 
 export async function runSearch(query: string, handlers: SearchHandlers): Promise<SearchResult> {
+  // If the query asks for the answer AS a document ("make a pdf of the eiffel
+  // tower") or as a generated image ("make an image of a swan"), search the
+  // underlying topic so the model answers about the subject instead of
+  // explaining how to make a file/image. The original query is kept as
+  // result.query for display, the format callout, and the document title.
+  const effectiveQuery =
+    detectDocIntent(query) || hasImageGenIntent(query) ? extractTopic(query) : query;
+  // When exporting as a document, shape the answer itself like the real
+  // thing (a resume, a project brief, actual code) instead of a generic
+  // researched answer that then gets wrapped in a document template.
+  const docKind = detectDocIntent(query) ? detectDocKind(query) : null;
+
   const steps: AgentStep[] = [];
   const emit = () => handlers.onSteps([...steps]);
   const startStep = (id: string, label: string) => {
@@ -98,12 +111,29 @@ export async function runSearch(query: string, handlers: SearchHandlers): Promis
 
   // ── Agent 1: router (local, instant) ──────────────────────────────────────
   startStep('classify', 'Understanding query');
-  const matches = searchContent(query, 4);
-  const lane = classify(query, matches[0]);
+  const matches = searchContent(effectiveQuery, 6);
+  const lane = classify(effectiveQuery, matches[0]);
   endStep(
     'classify',
     lane === 'site' ? 'about Dhruv / this site' : lane === 'web' ? 'general question' : 'mixed',
   );
+
+  // A pure "generate an image of X" request doesn't need site/web retrieval,
+  // an analyst pass or a full synthesized essay - the answer image panel
+  // already renders in parallel with this step. Short-circuit straight to a
+  // caption so the pipeline finishes fast and the visible steps accurately
+  // reflect what's happening (no LLM call needed at all).
+  if (hasImageGenIntent(query)) {
+    startStep('image', 'Generating image');
+    endStep('image', `rendering "${effectiveQuery}"`);
+    const result: SearchResult = {
+      query, lane, sources: [],
+      answer: `Here's your generated image of **${effectiveQuery}**.`,
+      agentsUsed: 2,
+    };
+    handlers.onToken(result.answer);
+    return result;
+  }
 
   // ── Agent 2: site retrieval (local, instant) ──────────────────────────────
   // Unless the query is explicitly about Dhruv/the site, only genuinely
@@ -145,7 +175,7 @@ export async function runSearch(query: string, handlers: SearchHandlers): Promis
             content:
               'You are a web research agent. Search the web and report the most relevant, current facts for the query as tight bullet points with concrete details (names, numbers, dates). No preamble, no conclusions.',
           },
-          { role: 'user', content: query },
+          { role: 'user', content: effectiveQuery },
         ],
       });
       endStep('web', 'findings collected');
@@ -156,7 +186,7 @@ export async function runSearch(query: string, handlers: SearchHandlers): Promis
     }
   })();
 
-  const imageIntent = hasImageIntent(query);
+  const imageIntent = hasImageIntent(effectiveQuery);
 
   // References agent: Openverse + Wikipedia + DuckDuckGo + HN (free, keyless)
   const refsTask: Promise<WebRefs | null> = (async () => {
@@ -164,7 +194,7 @@ export async function runSearch(query: string, handlers: SearchHandlers): Promis
     agentsUsed++;
     startStep('refs', 'Gathering references');
     try {
-      const refs = await fetchWebRefs(query, { imageCount: imageIntent ? 9 : 6 });
+      const refs = await fetchWebRefs(effectiveQuery, { imageCount: imageIntent ? 9 : 6 });
       endStep(
         'refs',
         `${refs.snippets.length} snippet${refs.snippets.length === 1 ? '' : 's'} · ${refs.images.length} image${refs.images.length === 1 ? '' : 's'}`,
@@ -191,7 +221,7 @@ export async function runSearch(query: string, handlers: SearchHandlers): Promis
             content:
               'You are an analyst agent. Draft the key facts, angles and reasoning needed to answer the query well, as tight bullet points. Flag anything uncertain. No preamble.' + ctx,
           },
-          { role: 'user', content: query },
+          { role: 'user', content: effectiveQuery },
         ],
       });
       endStep('analyst', 'notes ready');
@@ -229,7 +259,7 @@ export async function runSearch(query: string, handlers: SearchHandlers): Promis
   if (webFindings) materials.push(`WEB RESEARCH FINDINGS (primary - from a live web search):\n${webFindings}`);
   // Encyclopedic references only make the cut when they clearly overlap the
   // query - tangential snippets dilute the synthesis and hurt answer quality.
-  const queryTokens = query.toLowerCase().split(/\W+/).filter(t => t.length > 3);
+  const queryTokens = effectiveQuery.toLowerCase().split(/\W+/).filter(t => t.length > 3);
   const usefulRefs = (refs?.snippets ?? []).filter(s => {
     if (s.text.startsWith('Hacker News discussion')) return false; // titles only, no substance
     const hay = `${s.title} ${s.text}`.toLowerCase();
@@ -247,12 +277,22 @@ export async function runSearch(query: string, handlers: SearchHandlers): Promis
       ? ` The interface is already displaying ${result.images!.length} relevant images above your answer - never say you cannot show images, and do not describe or guess what the images contain (you cannot see them). Give a short, informative answer about the subject itself.`
       : '';
 
-  const citeRule =
-    relevant.length > 0
+  const citeRule = docKind && docKind !== 'article'
+    ? 'Do not use bracket citations, footnotes or any other citation markers - just write the content directly.'
+    : relevant.length > 0
       ? 'Cite SITE CONTENT items inline with bracket numbers like [1]. That is the only citation format allowed - never emit any other marker (no 【】, no [WEB], no footnotes).'
       : 'Do not use bracket citations or any citation markers at all - just state the facts.';
 
-  const system = `You are the search engine on Dhruv Choudhary's portfolio website. Give the visitor a genuinely better answer than a generic search engine: lead with the direct answer, then the important details.${imageNote} ${VOICE} ${citeRule}
+  const docKindNote =
+    docKind === 'resume'
+      ? ' The visitor wants this exported as a resume/CV document: structure it as a real resume using the site content below - a one-line headline, then Experience (role, company, dates, terse bullet highlights), then Projects, then Skills, then Education. Use clipped resume bullet fragments, not narrated sentences. Start directly with the content - never a preamble like "Here is a summary" or "Sure, here is the resume:".'
+    : docKind === 'project'
+      ? ' The visitor wants this exported as a project brief/README: structure it as a one-line description, then Problem, What it does, Tech stack, Key features, Outcome - based on the site content for that specific project. Start directly with the content, no preamble.'
+    : docKind === 'code'
+      ? ' The visitor wants actual working code, not an explanation. Give the real code in a single fenced code block with the correct language tag, then at most 2-3 lines on how to use it. No preamble before the code, no lengthy explanation after.'
+      : '';
+
+  const system = `You are the search engine on Dhruv Choudhary's portfolio website. Give the visitor a genuinely better answer than a generic search engine: lead with the direct answer, then the important details.${imageNote}${docKindNote} ${VOICE} ${citeRule}
 ${lane === 'site' ? 'Answer using ONLY the site content below. If it does not contain the answer, say so plainly instead of inventing anything.' : 'Ground the answer in the material below. Trust WEB RESEARCH FINDINGS first for anything current. Ignore any material that is not directly relevant to the query - do not let background references water down the answer. Note real uncertainty honestly, but do not hedge when the findings are clear.'}
 
 ${materials.join('\n\n---\n\n')}`;
@@ -264,7 +304,7 @@ ${materials.join('\n\n---\n\n')}`;
       maxTokens: 900,
       messages: [
         { role: 'system', content: system },
-        { role: 'user', content: query },
+        { role: 'user', content: effectiveQuery },
       ],
       onAttempt: () => {
         // A retry on the next provider restarts the answer
