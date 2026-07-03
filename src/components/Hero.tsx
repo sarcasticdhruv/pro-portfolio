@@ -18,7 +18,9 @@ export default function Hero({ github }: Props) {
   const [displayed, setDisplayed] = useState('');
   const [typing, setTyping] = useState(true);
   const [charIndex, setCharIndex] = useState(0);
-  const [showTerminal, setShowTerminal] = useState(true);
+  // Collapsed by default on mobile - the terminal panel eats up to 44vh
+  // there, pushing the bio/CTAs down. Desktop keeps it open.
+  const [showTerminal, setShowTerminal] = useState(() => window.innerWidth > 820);
   const [showPopup, setShowPopup] = useState(false);
   const [showBoot, setShowBoot] = useState(false);
 
@@ -148,17 +150,17 @@ export default function Hero({ github }: Props) {
           </div>
 
           {/* CTAs */}
-          <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginBottom: '36px' }}>
+          <div className="hero-cta-row" style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginBottom: '36px' }}>
             <a href="#projects" className="btn btn-primary">
               <ArrowRight size={14} /> view projects
             </a>
             <a href="https://github.com/sarcasticdhruv" target="_blank" rel="noopener noreferrer" className="btn btn-outline">
               <Github size={14} /> GitHub
             </a>
-            <a href="https://linkedin.com/in/dhruv-choudhary-india" target="_blank" rel="noopener noreferrer" className="btn btn-outline">
+            <a href="https://linkedin.com/in/dhruv-choudhary-india" target="_blank" rel="noopener noreferrer" className="btn btn-outline btn-icon">
               <Linkedin size={14} />
             </a>
-            <a href="mailto:nrdhruv654@gmail.com" className="btn btn-outline">
+            <a href="mailto:nrdhruv654@gmail.com" className="btn btn-outline btn-icon">
               <Mail size={14} />
             </a>
           </div>
@@ -388,12 +390,35 @@ export default function Hero({ github }: Props) {
             min-height: 280px !important;
             max-height: 380px !important;
           }
+          /* Keep all 4 CTAs on one row instead of wrapping to a second line. */
+          .hero-cta-row {
+            flex-wrap: nowrap !important;
+            gap: 7px !important;
+          }
+          .hero-cta-row .btn {
+            padding: 9px 12px !important;
+            font-size: 0.72rem !important;
+            white-space: nowrap;
+          }
+          .hero-cta-row .btn-icon {
+            padding: 9px 10px !important;
+          }
         }
         @media (max-width: 400px) {
           .hero-terminal-wrap {
             height: 40vh !important;
             min-height: 260px !important;
             max-height: 340px !important;
+          }
+          .hero-cta-row {
+            gap: 5px !important;
+          }
+          .hero-cta-row .btn {
+            padding: 8px 10px !important;
+            font-size: 0.68rem !important;
+          }
+          .hero-cta-row .btn-icon {
+            padding: 8px 9px !important;
           }
         }
       `}</style>

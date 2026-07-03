@@ -934,10 +934,18 @@ Be direct. Max 15 lines.`;
         style={{
           height: '100%',
           overflowY: 'auto',
+          // Overrides the global `html { scroll-behavior: smooth }` (see
+          // index.css) which was animating every auto-scroll-to-bottom,
+          // making new output/typing feel laggy. This element snaps instead.
+          scrollBehavior: 'auto',
           padding: '12px 16px 10px',
           fontFamily: "'JetBrains Mono', monospace",
           fontSize: '0.78rem',
           lineHeight: 1.62,
+          // Explicit base color - without it, Lines rendered via plain out()
+          // (pwd, date, echo, uname, uptime, ping...) inherit body's --text,
+          // which is near-black in light mode and invisible on this dark bg.
+          color: '#DFF0E3',
           background: 'transparent',
           cursor: 'text',
           position: 'relative',

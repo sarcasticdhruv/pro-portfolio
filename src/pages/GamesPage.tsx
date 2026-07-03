@@ -39,7 +39,7 @@ export default function GamesPage() {
       <div style={{ maxWidth: '660px', margin: '0 auto', padding: '0 clamp(16px, 5vw, 24px)' }}>
 
         {/* Header */}
-        <div style={{
+        <div className="page-breadcrumb" style={{
           fontFamily: "'JetBrains Mono', monospace",
           fontSize: '0.8rem',
           color: 'var(--text-dim)',

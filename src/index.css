@@ -406,6 +406,14 @@ a:hover {
   }
 }
 
+/* ~/dhruv / <page> breadcrumb on Search/Imagine/Arcade/Blog - drop it on
+   mobile, the h1 right below already says which page this is. */
+@media (max-width: 640px) {
+  .page-breadcrumb {
+    display: none !important;
+  }
+}
+
 /* ── Touch target helpers ── */
 @media (hover: none) {
   .btn {

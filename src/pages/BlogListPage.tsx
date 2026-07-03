@@ -25,7 +25,7 @@ export default function BlogListPage() {
         {/* Header */}
         <div style={{ marginBottom: '56px' }}>
           {/* Breadcrumb */}
-          <div style={{
+          <div className="page-breadcrumb" style={{
             fontFamily: "'JetBrains Mono', monospace",
             fontSize: '0.8rem',
             color: 'var(--text-dim)',
