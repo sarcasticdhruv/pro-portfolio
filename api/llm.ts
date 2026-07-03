@@ -96,14 +96,12 @@ function buildPool(): Provider[] {
 
 const POOL = buildPool();
 
-// Preference order per tier. HF's big models lead the quality-critical tiers;
-// the fast free providers (cerebras/groq) backstop them on rate-limit or outage.
+// Preference order per tier. Groq leads streaming tiers (synth, chat) for speed;
+// HF backs them up and covers other tiers. Groq's LPU hardware emits real
+// content immediately, while HF models (even non-reasoning) can stall on first token.
 const TIER_ORDER: Record<Tier, string[]> = {
-  synth: ['huggingface', 'groq', 'cerebras', 'gemini'],
+  synth: ['groq', 'huggingface', 'cerebras', 'gemini'],
   fast: ['huggingface', 'cerebras', 'groq', 'gemini'],
-  // Chat leads with Groq: its LPU hardware and non-reasoning llama model
-  // start emitting real content immediately, unlike gpt-oss-120b's hidden
-  // "thinking" tokens on HF, which stalls streaming even though it's live.
   chat: ['groq', 'huggingface', 'cerebras', 'gemini'],
   web: ['groq'],
 };
