@@ -50,9 +50,11 @@ function buildPool(): Provider[] {
         fast: 'llama-3.1-8b-instant',
         synth: 'llama-3.3-70b-versatile',
         chat: 'llama-3.3-70b-versatile',
-        // compound first (better search+reasoning); mini has its own separate
-        // rate-limit bucket, so it covers compound's low daily cap
-        web: ['groq/compound', 'groq/compound-mini'],
+        // Full `compound` 413s on every key on our plan (Request Entity Too
+        // Large, i.e. plan-tier restriction, not transient) - verified live,
+        // so trying it first just burns 2 guaranteed-dead attempts on every
+        // search. `compound-mini` is the one that actually answers.
+        web: 'groq/compound-mini',
       },
     });
   }
@@ -96,14 +98,16 @@ function buildPool(): Provider[] {
 
 const POOL = buildPool();
 
-// Preference order per tier. HF's big models lead the quality-critical tiers;
-// the fast free providers (cerebras/groq) backstop them on rate-limit or outage.
+// Preference order per tier, used whenever the caller doesn't force a
+// specific provider (see `provider` override below, used by the search
+// page's Photon/Core/Pro model toggle). Groq/Cerebras lead by default so
+// every ambient call site (chatbot, imagine suggestions, etc.) stays fast;
+// HF is reserved for whoever explicitly opts into it via the override,
+// since its answers are genuinely better reasoned but its throughput is
+// slower and less consistent (measured live: 7-26s full streams).
 const TIER_ORDER: Record<Tier, string[]> = {
-  synth: ['huggingface', 'groq', 'cerebras', 'gemini'],
-  fast: ['huggingface', 'cerebras', 'groq', 'gemini'],
-  // Chat leads with Groq: its LPU hardware and non-reasoning llama model
-  // start emitting real content immediately, unlike gpt-oss-120b's hidden
-  // "thinking" tokens on HF, which stalls streaming even though it's live.
+  synth: ['groq', 'cerebras', 'huggingface', 'gemini'],
+  fast: ['cerebras', 'groq', 'huggingface', 'gemini'],
   chat: ['groq', 'huggingface', 'cerebras', 'gemini'],
   web: ['groq'],
 };
@@ -132,8 +136,29 @@ interface UpstreamBody {
   stream: boolean;
 }
 
-function callUpstream(provider: Provider, key: string, model: string, body: UpstreamBody): Promise<Response> {
-  return fetch(provider.url, {
+// Bounds only the "is this provider even responding" phase. Without it, a
+// single slow/hung attempt (HF queueing behind shared GPU capacity, a dead
+// key, a network stall) blocks the whole fallback chain - with 4 keys x 2
+// models per tier that is how a search balloons to 30s+. The timer is
+// cleared as soon as a response comes back ok (see call sites below), so it
+// never cuts off a legitimately-streaming or still-generating response -
+// only attempts that never even connect in time.
+const UPSTREAM_CONNECT_TIMEOUT_MS = 8000;
+
+// Max time to wait, after a successful connect, for the first chunk with
+// real delta.content - bounds how long a reasoning model can stay silent
+// before we give up on it and fall through to the next candidate.
+const FIRST_TOKEN_TIMEOUT_MS = 4000;
+
+function callUpstream(
+  provider: Provider,
+  key: string,
+  model: string,
+  body: UpstreamBody,
+): { response: Promise<Response>; clearTimeout: () => void } {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), UPSTREAM_CONNECT_TIMEOUT_MS);
+  const response = fetch(provider.url, {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${key}`,
@@ -147,13 +172,94 @@ function callUpstream(provider: Provider, key: string, model: string, body: Upst
       stream: body.stream,
       messages: body.messages,
     }),
+    signal: controller.signal,
+  });
+  return { response, clearTimeout: () => clearTimeout(timer) };
+}
+
+// HF's reasoning models (gpt-oss-120b, DeepSeek-V3) can connect fast (200 +
+// body) but then emit a stretch of hidden "thinking" chunks with empty
+// delta.content before the real answer starts - the connect succeeds
+// instantly while the user-visible stream stays blank for many seconds.
+// This peeks the stream for the first chunk with real content and only
+// commits to this provider once that arrives; if it takes too long, the
+// attempt is cancelled so the chain can fall through to the next candidate
+// instead of leaving the client staring at nothing.
+async function commitOnFirstToken(
+  body: ReadableStream<Uint8Array>,
+  timeoutMs: number,
+): Promise<ReadableStream<Uint8Array> | null> {
+  const reader = body.getReader();
+  const decoder = new TextDecoder();
+  const buffered: Uint8Array[] = [];
+  let textBuffer = '';
+  let sawContent = false;
+  let streamEnded = false;
+
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    const remaining = deadline - Date.now();
+    const timedOut = Symbol('timeout');
+    const result = await Promise.race([
+      reader.read(),
+      new Promise<typeof timedOut>(resolve => setTimeout(() => resolve(timedOut), remaining)),
+    ]);
+    if (result === timedOut) break;
+
+    const { done, value } = result as ReadableStreamReadResult<Uint8Array>;
+    if (done) { streamEnded = true; break; }
+    buffered.push(value);
+    textBuffer += decoder.decode(value, { stream: true });
+    const lines = textBuffer.split('\n');
+    textBuffer = lines.pop() ?? '';
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (!trimmed.startsWith('data:')) continue;
+      const payload = trimmed.slice(5).trim();
+      if (payload === '[DONE]') continue;
+      try {
+        const chunk = JSON.parse(payload);
+        if (chunk?.choices?.[0]?.delta?.content) { sawContent = true; break; }
+      } catch {
+        // ignore malformed keep-alive chunks
+      }
+    }
+    if (sawContent) break;
+  }
+
+  if (!sawContent && !streamEnded) {
+    reader.cancel().catch(() => {});
+    return null;
+  }
+  if (!sawContent && streamEnded) return null; // finished with no real content at all
+
+  // Replay what was already buffered while peeking, then keep piping the
+  // rest of the live stream through untouched.
+  return new ReadableStream<Uint8Array>({
+    start(controller) {
+      for (const chunk of buffered) controller.enqueue(chunk);
+    },
+    async pull(controller) {
+      const { done, value } = await reader.read();
+      if (done) { controller.close(); return; }
+      controller.enqueue(value);
+    },
+    cancel() {
+      reader.cancel().catch(() => {});
+    },
   });
 }
 
 export default async function handler(req: Request): Promise<Response> {
   if (req.method !== 'POST') return json({ error: 'method not allowed' }, 405);
 
-  let body: { tier?: Tier; messages?: unknown; maxTokens?: number; temperature?: number; stream?: boolean };
+  let body: {
+    tier?: Tier; messages?: unknown; maxTokens?: number; temperature?: number; stream?: boolean;
+    // Forces a single named provider instead of the tier's default fallback
+    // order - used by the search page's Photon/Core/Pro model toggle so the
+    // visitor can explicitly pick speed vs HF's deeper reasoning.
+    provider?: string;
+  };
   try {
     body = await req.json();
   } catch {
@@ -164,7 +270,9 @@ export default async function handler(req: Request): Promise<Response> {
   const messages = body.messages;
   if (!tier || !Array.isArray(messages)) return json({ error: 'missing tier or messages' }, 400);
 
-  const chain = chainFor(tier);
+  const chain = body.provider
+    ? POOL.filter(p => p.name === body.provider && !!p.models[tier])
+    : chainFor(tier);
   if (!chain.length) return json({ error: `no provider configured for tier ${tier}` }, 503);
 
   const wantStream = body.stream !== false; // default to streaming
@@ -175,6 +283,15 @@ export default async function handler(req: Request): Promise<Response> {
     stream: wantStream,
   };
 
+  // Hard ceiling on total time spent falling through key/model/provider
+  // combinations before giving up. Individual connect attempts are already
+  // bounded (UPSTREAM_CONNECT_TIMEOUT_MS), but a chain that keeps getting
+  // fast real responses that are just all 429/413 (seen in practice on
+  // Groq's compound model once its daily cap is hit) can still rack up
+  // 20s+ across 8 sequential attempts. This bounds the whole search.
+  const CHAIN_DEADLINE_MS = 15000;
+  const chainStartedAt = Date.now();
+
   if (wantStream) {
     // Pick the first provider/key that returns a 200 stream and pipe its SSE
     // through untouched (all providers are OpenAI-compatible, so the browser
@@ -182,20 +299,36 @@ export default async function handler(req: Request): Promise<Response> {
     for (const provider of chain) {
       for (const model of asArray(provider.models[tier]!)) {
         for (const key of provider.keys) {
+          if (Date.now() - chainStartedAt > CHAIN_DEADLINE_MS) {
+            return json({ error: 'all providers failed (deadline exceeded)' }, 502);
+          }
+          const { response, clearTimeout: clear } = callUpstream(provider, key, model, upstream);
           try {
-            const up = await callUpstream(provider, key, model, upstream);
+            const up = await response;
             if (up.ok && up.body) {
-              return new Response(up.body, {
-                headers: {
-                  'Content-Type': 'text/event-stream; charset=utf-8',
-                  'Cache-Control': 'no-cache, no-transform',
-                  'X-Accel-Buffering': 'no',
-                  'X-LLM-Provider': provider.name,
-                },
-              });
+              clear();
+              // Confirm real content actually starts flowing before
+              // committing to this provider - a fast connect can still sit
+              // silent for many seconds behind hidden reasoning tokens.
+              const live = await commitOnFirstToken(up.body, FIRST_TOKEN_TIMEOUT_MS);
+              if (live) {
+                return new Response(live, {
+                  headers: {
+                    'Content-Type': 'text/event-stream; charset=utf-8',
+                    'Cache-Control': 'no-cache, no-transform',
+                    'X-Accel-Buffering': 'no',
+                    'X-LLM-Provider': provider.name,
+                  },
+                });
+              }
+              // Went quiet past the deadline (or ended with no content) -
+              // fall through to the next key/model/provider.
+              continue;
             }
+            clear();
           } catch {
-            // network error - try the next key/model/provider
+            clear();
+            // network error or connect timeout - try the next key/model/provider
           }
         }
       }
@@ -208,17 +341,26 @@ export default async function handler(req: Request): Promise<Response> {
   for (const provider of chain) {
     for (const model of asArray(provider.models[tier]!)) {
       for (const key of provider.keys) {
+        if (Date.now() - chainStartedAt > CHAIN_DEADLINE_MS) {
+          return json({ error: `${lastError} (deadline exceeded)` }, 502);
+        }
+        const { response, clearTimeout: clear } = callUpstream(provider, key, model, upstream);
         try {
-          const up = await callUpstream(provider, key, model, upstream);
+          const up = await response;
           if (!up.ok) {
+            clear();
             lastError = `${provider.name} ${up.status}`;
             continue;
           }
+          // Connected - let the full (non-streamed) generation finish
+          // instead of aborting mid-completion.
+          clear();
           const data = await up.json();
           const text: string | undefined = data?.choices?.[0]?.message?.content?.trim();
           if (text) return json({ text, provider: provider.name });
           lastError = `${provider.name} empty`;
         } catch (e) {
+          clear();
           lastError = e instanceof Error ? e.message : String(e);
         }
       }

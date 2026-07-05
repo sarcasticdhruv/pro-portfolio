@@ -216,7 +216,7 @@ export default function ImaginePage() {
                   color: 'var(--text-dim)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                   maxWidth: '55%',
                 }}>
-                  {source === 'hf-flux' ? 'FLUX' : source === 'pollinations' ? 'Pollinations' : 'generated'} · {submitted}
+                  {source === 'hf-flux' ? 'Core' : source === 'pollinations' ? 'Lite' : 'generated'} · {submitted}
                 </span>
                 <div style={{ display: 'flex', gap: '6px' }}>
                   <button onClick={() => generate(submitted)} className="search-chip" style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>

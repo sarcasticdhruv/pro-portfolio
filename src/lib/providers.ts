@@ -13,11 +13,16 @@ export interface ChatMessage {
 
 export type ModelTier = 'fast' | 'synth' | 'web' | 'chat';
 
+// Forces a single named provider instead of the tier's default fallback
+// chain - powers the search page's Photon/Core/Pro model toggle.
+export type ProviderOverride = 'groq' | 'cerebras' | 'huggingface';
+
 export interface StreamOptions {
   messages: ChatMessage[];
   tier: ModelTier;
   maxTokens?: number;
   temperature?: number;
+  provider?: ProviderOverride;
   onToken?: (text: string) => void;
   // Fired when the request starts so the UI can reset any partial output.
   onAttempt?: () => void;
@@ -58,6 +63,7 @@ export async function streamChat(opts: StreamOptions): Promise<StreamResult> {
       messages: opts.messages,
       maxTokens: opts.maxTokens,
       temperature: opts.temperature,
+      provider: opts.provider,
       stream: true,
     }),
   });
@@ -107,6 +113,7 @@ export async function chat(opts: Omit<StreamOptions, 'onToken' | 'onAttempt'>): 
       messages: opts.messages,
       maxTokens: opts.maxTokens,
       temperature: opts.temperature,
+      provider: opts.provider,
       stream: false,
     }),
   });

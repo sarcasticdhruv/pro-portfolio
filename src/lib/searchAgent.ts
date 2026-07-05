@@ -10,11 +10,22 @@
 // both settle. Any worker may fail without killing the search - the
 // synthesizer works with whatever material survived.
 import { searchContent, type ScoredMatch } from './contentIndex';
-import { streamChat, chat, hasAnyProvider, hasWebSearch } from './providers';
-import { fetchWebRefs, hasImageIntent, type WebRefs, type WebImage } from './webTools';
+import { streamChat, chat, hasAnyProvider, hasWebSearch, type ProviderOverride } from './providers';
+import { fetchWebRefs, hasImageIntent, withTimeout, type WebRefs, type WebImage } from './webTools';
 import { detectDocIntent, detectDocKind, hasImageGenIntent, extractTopic } from './exportAnswer';
 
 export type Lane = 'site' | 'web' | 'both';
+
+// The search page's model toggle. Only changes which provider answers the
+// final synthesis - photon/core stay on the fast dedicated-silicon providers,
+// pro opts into HF's slower but more thoughtfully-reasoned models.
+export type ModelChoice = 'photon' | 'core' | 'pro';
+
+const MODEL_CHOICE_PROVIDER: Record<ModelChoice, ProviderOverride> = {
+  photon: 'groq',
+  core: 'cerebras',
+  pro: 'huggingface',
+};
 
 export interface AgentStep {
   id: string;
@@ -81,7 +92,12 @@ function siteContext(matches: ScoredMatch[]): string {
     .join('\n\n');
 }
 
-export async function runSearch(query: string, handlers: SearchHandlers): Promise<SearchResult> {
+export async function runSearch(
+  query: string,
+  handlers: SearchHandlers,
+  modelChoice: ModelChoice = 'photon',
+): Promise<SearchResult> {
+  const provider = MODEL_CHOICE_PROVIDER[modelChoice];
   // If the query asks for the answer AS a document ("make a pdf of the eiffel
   // tower") or as a generated image ("make an image of a swan"), search the
   // underlying topic so the model answers about the subject instead of
@@ -165,9 +181,16 @@ export async function runSearch(query: string, handlers: SearchHandlers): Promis
     agentsUsed++;
     startStep('web', 'Searching the web');
     try {
-      const text = await chat({
+      // groq/compound-mini is the only working web-search model on our plan
+      // (see api/llm.ts) and has a tight 8000 TPM-per-key budget, so keep
+      // this call lean to lower the odds of tripping that cap. This is a
+      // ping, not a wait: give it 1.5s to answer - if it's slow or
+      // rate-limited, stop immediately and let the synthesizer proceed with
+      // whatever refs/analyst/site content is already available rather than
+      // eating into the search's overall response-time budget.
+      const text = await withTimeout(chat({
         tier: 'web',
-        maxTokens: 600,
+        maxTokens: 400,
         temperature: 0.3,
         messages: [
           {
@@ -177,7 +200,7 @@ export async function runSearch(query: string, handlers: SearchHandlers): Promis
           },
           { role: 'user', content: effectiveQuery },
         ],
-      });
+      }), 1500);
       endStep('web', 'findings collected');
       return text;
     } catch {
@@ -302,6 +325,7 @@ ${materials.join('\n\n---\n\n')}`;
     const res = await streamChat({
       tier: 'synth',
       maxTokens: 900,
+      provider,
       messages: [
         { role: 'system', content: system },
         { role: 'user', content: effectiveQuery },

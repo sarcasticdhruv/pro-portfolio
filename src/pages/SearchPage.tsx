@@ -3,10 +3,10 @@ import { Link } from 'react-router-dom';
 import {
   Search, CircleCheck, CircleX, Loader2, History, ChevronDown, ChevronUp, TrendingUp,
   Trash2, X, ArrowUpRight, RotateCw, FileText, FolderGit2, Briefcase, Award, Wrench, User, Globe, FileDown,
-  Download, Aperture,
+  Download, Aperture, Atom, Cpu, BrainCircuit,
 } from 'lucide-react';
 import { downloadPdf, downloadDocx, downloadHtml, detectDocIntent, hasImageGenIntent, type DocFormat } from '../lib/exportAnswer';
-import { runSearch, type AgentStep, type SearchResult } from '../lib/searchAgent';
+import { runSearch, type AgentStep, type SearchResult, type ModelChoice } from '../lib/searchAgent';
 import {
   loadHistory, saveToHistory, findCached, removeFromHistory, clearHistory,
   type HistoryEntry,
@@ -32,6 +32,16 @@ const TRENDING_FALLBACK = [
   'Biggest AI announcements this week',
   'Explain agentic AI in simple terms',
   'What is semantic caching for LLMs?',
+];
+
+// Search page's model toggle: Photon/Core stay on fast dedicated-silicon
+// providers; Pro opts into a slower but more thoughtfully-reasoned model.
+// See MODEL_CHOICE_PROVIDER in searchAgent.ts for the underlying mapping -
+// provider names never surface in the UI.
+const MODEL_OPTIONS: { key: ModelChoice; label: string; sublabel?: string; hint: string; Icon: typeof Atom }[] = [
+  { key: 'photon', label: 'Photon', sublabel: 'Flash Lite', hint: 'Fastest - sub-second answers', Icon: Atom },
+  { key: 'core', label: 'Core', hint: 'Fast, strong general answers', Icon: Cpu },
+  { key: 'pro', label: 'Pro', hint: 'Deeper reasoning - slower, more thorough', Icon: BrainCircuit },
 ];
 
 function pickRandom<T>(arr: T[], n: number): T[] {
@@ -64,6 +74,7 @@ export default function SearchPage() {
   // instead of waiting for the whole multi-agent run to complete first.
   const [imageGenQuery, setImageGenQuery] = useState<string | null>(null);
   const [history, setHistory] = useState<HistoryEntry[]>(() => loadHistory());
+  const [modelChoice, setModelChoice] = useState<ModelChoice>('pro');
   const [aboutChips] = useState<string[]>(() => pickRandom(ABOUT_POOL, 2));
   const [trending, setTrending] = useState<string[]>(() => pickRandom(TRENDING_FALLBACK, 2));
   const inputRef = useRef<HTMLInputElement>(null);
@@ -104,7 +115,7 @@ export default function SearchPage() {
     const res = await runSearch(q, {
       onSteps: setSteps,
       onToken: setLiveAnswer,
-    });
+    }, modelChoice);
     setResult(res);
     setRunning(false);
     if (res.answer || res.sources.length > 0) {
@@ -210,6 +221,7 @@ export default function SearchPage() {
               fontSize: '0.88rem', padding: '10px 0', minWidth: 0,
             }}
           />
+          <ModelPicker value={modelChoice} onChange={setModelChoice} disabled={running} />
           <button
             onClick={() => submit(query)}
             disabled={running || !query.trim()}
@@ -420,12 +432,121 @@ export default function SearchPage() {
           .search-input { font-size: 16px !important; }
           .search-answer-box { padding: 16px 16px !important; }
           .search-chip { padding: 8px 12px !important; }
+          .model-picker-chip { padding: 7px 8px !important; }
+        }
+        @media (max-width: 420px) {
+          /* Icon + chevron only - keeps the search bar from crowding the
+             input on narrow phones. Full name still shows in the menu. */
+          .model-picker-label { display: none !important; }
+          .model-picker-chip { padding: 7px 7px !important; gap: 3px !important; }
+        }
+        @keyframes modelPickerIn {
+          from { opacity: 0; transform: translateY(-4px) scale(0.98); }
+          to   { opacity: 1; transform: translateY(0)    scale(1);    }
         }
         @media (hover: none) {
           .search-history-remove { padding: 8px !important; }
         }
       `}</style>
     </main>
+  );
+}
+
+// Compact model-selector chip that lives inside the search bar, right before
+// the search button - same spot as ChatGPT/Perplexity's own model pickers.
+// A row of 3 always-visible buttons would crowd the input on mobile; a
+// single chip that opens a small menu stays out of the way until touched.
+function ModelPicker({
+  value, onChange, disabled,
+}: {
+  value: ModelChoice;
+  onChange: (v: ModelChoice) => void;
+  disabled: boolean;
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  const current = MODEL_OPTIONS.find(o => o.key === value) ?? MODEL_OPTIONS[0];
+
+  useEffect(() => {
+    if (!open) return;
+    const onClick = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    const onKey = (e: globalThis.KeyboardEvent) => { if (e.key === 'Escape') setOpen(false); };
+    document.addEventListener('mousedown', onClick);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('mousedown', onClick);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [open]);
+
+  return (
+    <div ref={ref} style={{ position: 'relative', flexShrink: 0 }}>
+      <button
+        onClick={() => setOpen(v => !v)}
+        disabled={disabled}
+        title={current.hint}
+        className="model-picker-chip"
+        style={{
+          display: 'flex', alignItems: 'center', gap: '5px',
+          background: 'var(--surface-2)', border: '1px solid var(--border)',
+          borderRadius: '7px', padding: '7px 10px',
+          fontFamily: "'JetBrains Mono', monospace", fontSize: '0.72rem', fontWeight: 600,
+          color: 'var(--text-muted)', cursor: disabled ? 'default' : 'pointer',
+          transition: 'border-color 0.15s, color 0.15s',
+        }}
+      >
+        <current.Icon size={12} style={{ color: 'var(--accent)', flexShrink: 0 }} />
+        <span className="model-picker-label">{current.label}</span>
+        <ChevronDown size={11} style={{ opacity: 0.6, flexShrink: 0 }} />
+      </button>
+
+      {open && (
+        <div style={{
+          position: 'absolute', top: 'calc(100% + 8px)', right: 0, zIndex: 20,
+          width: '230px', maxWidth: 'calc(100vw - 32px)',
+          background: 'var(--surface)', border: '1px solid var(--border-2)',
+          borderRadius: '11px', boxShadow: 'var(--shadow-md)', overflow: 'hidden',
+          animation: 'modelPickerIn 0.14s ease',
+        }}>
+          {MODEL_OPTIONS.map(opt => {
+            const active = opt.key === value;
+            return (
+              <button
+                key={opt.key}
+                onClick={() => { onChange(opt.key); setOpen(false); }}
+                style={{
+                  display: 'flex', alignItems: 'flex-start', gap: '9px', width: '100%',
+                  padding: '10px 12px', border: 'none', textAlign: 'left',
+                  background: active ? 'var(--accent-glow)' : 'transparent',
+                  cursor: 'pointer', transition: 'background 0.12s',
+                }}
+                onMouseEnter={e => { if (!active) (e.currentTarget as HTMLElement).style.background = 'var(--surface-2)'; }}
+                onMouseLeave={e => { if (!active) (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
+              >
+                <opt.Icon size={14} style={{ color: active ? 'var(--accent)' : 'var(--text-dim)', flexShrink: 0, marginTop: '1px' }} />
+                <span style={{ minWidth: 0 }}>
+                  <span style={{
+                    display: 'block', fontFamily: "'JetBrains Mono', monospace", fontSize: '0.76rem',
+                    fontWeight: 700, color: active ? 'var(--accent)' : 'var(--text)',
+                  }}>
+                    {opt.label}
+                    {opt.sublabel && (
+                      <span style={{ fontWeight: 500, color: 'var(--text-dim)' }}> ({opt.sublabel})</span>
+                    )}
+                  </span>
+                  <span style={{
+                    display: 'block', fontSize: '0.68rem', color: 'var(--text-dim)',
+                    marginTop: '2px', lineHeight: 1.35,
+                  }}>{opt.hint}</span>
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
   );
 }
 
