@@ -153,16 +153,20 @@ export default function Terminal({ github, onClose, isFloating = false }: Props)
   const success = (msg: React.ReactNode): Line => out(<Colored col="#00D96D">{msg}</Colored>);
   const dim = (msg: React.ReactNode): Line => out(<Dim>{msg}</Dim>);
 
-  // Auto-scroll to the bottom only when the user is already near it, so
-  // scrolling up to read earlier output isn't yanked back down. We do NOT
-  // force focus here — on mobile that pops the soft keyboard open on load
-  // and after every command.
+  // Every `lines` update here is a direct result of the user's own command
+  // (or the one-time boot sequence) - never a passive background stream -
+  // so always follow to the bottom, exactly like a real terminal does after
+  // Enter. The old "only if already near bottom" gate meant a long-output
+  // command (e.g. `help`) run right after boot - when scrollTop was still
+  // ~0 from the short neofetch content - would fail that check and never
+  // scroll down to reveal its own output or the prompt below it. Also keyed
+  // on `input`, so a long command that wraps to multiple lines while typing
+  // keeps following instead of leaving the growing input stuck off-screen.
   useEffect(() => {
     const el = outputRef.current;
     if (!el) return;
-    const nearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 120;
-    if (nearBottom) el.scrollTop = el.scrollHeight;
-  }, [lines]);
+    el.scrollTop = el.scrollHeight;
+  }, [lines, input]);
 
   // Boot sequence — print login lines progressively, then neofetch.
   // Guarded by a ref so React 18 StrictMode's double-invoke can't boot twice.
@@ -873,7 +877,7 @@ Be direct. Max 15 lines.`;
   };
 
   const windowEl = (
-    <div style={windowStyle} onClick={() => inputRef.current?.focus()}>
+    <div style={windowStyle}>
       {/* Window chrome */}
       <div style={{
         height: '36px',
@@ -925,8 +929,12 @@ Be direct. Max 15 lines.`;
         </button>
       </div>
 
-      {/* Output area */}
-      <div style={{ flex: 1, position: 'relative', overflow: 'hidden', background: '#050D08' }}>
+      {/* Output area - click anywhere here (not the title bar/traffic
+          lights above) to focus the input, like a real terminal. */}
+      <div
+        onClick={() => inputRef.current?.focus()}
+        style={{ flex: 1, position: 'relative', overflow: 'hidden', background: '#050D08' }}
+      >
         <div className="term-scanline" />
       <div
         ref={outputRef}
