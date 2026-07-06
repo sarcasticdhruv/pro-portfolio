@@ -12,6 +12,8 @@ import path from 'node:path';
 const ROUTES: Record<string, string> = {
   '/api/llm': 'api/llm.ts',
   '/api/image': 'api/image.ts',
+  '/api/track': 'api/track.ts',
+  '/api/visits': 'api/visits.ts',
 };
 
 function readBody(req: import('node:http').IncomingMessage): Promise<Buffer> {
