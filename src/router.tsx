@@ -6,6 +6,7 @@ import BlogPostPage from './pages/BlogPostPage';
 import GamesPage from './pages/GamesPage';
 import SearchPage from './pages/SearchPage';
 import ImaginePage from './pages/ImaginePage';
+import AdminPage from './pages/AdminPage';
 import NotFoundPage from './pages/NotFoundPage';
 
 const router = createBrowserRouter([
@@ -20,6 +21,7 @@ const router = createBrowserRouter([
       { path: 'games', element: <GamesPage /> },
       { path: 'search', element: <SearchPage /> },
       { path: 'imagine', element: <ImaginePage /> },
+      { path: 'admin', element: <AdminPage /> },
       { path: '*', element: <NotFoundPage /> },
     ],
   },
