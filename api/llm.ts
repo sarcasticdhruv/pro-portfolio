@@ -83,7 +83,7 @@ function buildPool(): Provider[] {
     });
   }
 
-  const gemini = envKeys('GEMINI_API_KEY', 'GEMINI_API_KEY_2');
+  const gemini = envKeys('GEMINI_API_KEY', 'GEMINI_API_KEY_2', 'GEMINI_API_KEY_3', 'GEMINI_API_KEY_4');
   if (gemini.length) {
     pool.push({
       name: 'gemini',

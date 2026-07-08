@@ -15,6 +15,7 @@ const ROUTES: Record<string, string> = {
   '/api/track': 'api/track.ts',
   '/api/visits': 'api/visits.ts',
   '/api/transcribe': 'api/transcribe.ts',
+  '/api/gemini-live-token': 'api/gemini-live-token.ts',
 };
 
 function readBody(req: import('node:http').IncomingMessage): Promise<Buffer> {

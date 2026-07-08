@@ -1,10 +1,10 @@
 // Vercel Edge Function: speech-to-text via Groq's free Whisper API.
 //
 // Receives a recorded audio blob (multipart/form-data, field "audio") from
-// the chatbot's mic button, forwards it to Groq's OpenAI-compatible Whisper
-// endpoint, and returns the transcript. Reuses the same GROQ_API_KEY pool as
-// /api/llm, tried in order so an exhausted/invalid key falls through to the
-// next instead of failing outright.
+// the chatbot's dictate mic button, forwards it to Groq's OpenAI-compatible
+// Whisper endpoint, and returns the transcript. Reuses the same GROQ_API_KEY
+// pool as /api/llm, tried in order so an exhausted/invalid key falls through
+// to the next instead of failing outright.
 
 export const config = { runtime: 'edge' };
 

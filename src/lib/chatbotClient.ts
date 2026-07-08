@@ -25,10 +25,15 @@ export interface ChatbotStreamOptions {
   maxTokens?: number;
   temperature?: number;
   onToken?: (delta: string) => void;
+  // True when the latest user message carries an image part. Groq's direct
+  // fast path is a text-only model, so this skips it and routes through the
+  // secure proxy to Gemini instead - the only provider here that understands
+  // vision input.
+  hasImage?: boolean;
 }
 
 export async function streamChatbot(messages: ChatMessage[], opts: ChatbotStreamOptions = {}): Promise<string> {
-  if (GROQ_KEY) {
+  if (GROQ_KEY && !opts.hasImage) {
     try {
       return await streamGroqDirect(messages, opts);
     } catch {
@@ -38,6 +43,7 @@ export async function streamChatbot(messages: ChatMessage[], opts: ChatbotStream
   }
   const res = await streamChat({
     tier: 'chat',
+    provider: opts.hasImage ? 'gemini' : undefined,
     messages,
     maxTokens: opts.maxTokens,
     temperature: opts.temperature,

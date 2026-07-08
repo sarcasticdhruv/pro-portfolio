@@ -1,7 +1,9 @@
-import { useState, useRef, useEffect, type KeyboardEvent } from 'react';
-import { X, Send, Sparkles, ArrowRight, ExternalLink, Mic, Square, Loader2 } from 'lucide-react';
+import { useState, useRef, useEffect, type KeyboardEvent, type ChangeEvent } from 'react';
+import { X, Send, Sparkles, ArrowRight, ExternalLink, Mic, Square, Loader2, Plus, AudioWaveform } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { streamChatbot } from '../lib/chatbotClient';
+import { connectLiveVoice, type LiveVoiceController } from '../lib/liveVoice';
+import type { ChatMessage } from '../lib/providers';
 
 const SYSTEM_PROMPT = `You are Dhruv Choudhary, replying personally through the chat box on your own portfolio site. You are not an "assistant" talking about Dhruv in the third person. You ARE Dhruv. Always speak in the first person ("I", "my", "me").
 
@@ -155,6 +157,7 @@ interface Msg {
   role: 'user' | 'assistant';
   content: string;
   actions?: Action[];
+  imageUrl?: string;
   id: number;
 }
 
@@ -202,11 +205,17 @@ export default function AIChatbot() {
   const [teaserVisible, setTeaserVisible] = useState(true);
   const [recording, setRecording] = useState(false);
   const [transcribing, setTranscribing] = useState(false);
+  const [liveState, setLiveState] = useState<'idle' | 'connecting' | 'live'>('idle');
+  const [attachedImage, setAttachedImage] = useState<string | null>(null);
 
   const bodyRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const imageInputRef = useRef<HTMLInputElement>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
+  const liveControllerRef = useRef<LiveVoiceController | null>(null);
+  const liveUserMsgIdRef = useRef<number | null>(null);
+  const liveAssistantMsgIdRef = useRef<number | null>(null);
 
   useEffect(() => {
     if (bodyRef.current) {
@@ -272,12 +281,14 @@ export default function AIChatbot() {
 
   async function send(text?: string) {
     const content = (text ?? input).trim();
-    if (!content || loading) return;
+    const image = attachedImage;
+    if ((!content && !image) || loading) return;
     setInput('');
+    setAttachedImage(null);
     setError('');
     setTimeout(() => inputRef.current?.focus(), 0);
 
-    const userMsg: Msg = { id: msgId++, role: 'user', content };
+    const userMsg: Msg = { id: msgId++, role: 'user', content: content || 'What is this?', imageUrl: image ?? undefined };
     setMessages(prev => [...prev, userMsg]);
     setLoading(true);
 
@@ -286,10 +297,15 @@ export default function AIChatbot() {
     let placed = false;
 
     try {
-      const history = [...messages, userMsg].map(m => ({ role: m.role, content: m.content }));
+      const priorHistory: ChatMessage[] = messages.map(m => ({ role: m.role, content: m.content }));
+      const latestContent: ChatMessage['content'] = image
+        ? [{ type: 'text', text: userMsg.content }, { type: 'image_url', image_url: { url: image } }]
+        : userMsg.content;
+      const history: ChatMessage[] = [...priorHistory, { role: 'user', content: latestContent }];
       await streamChatbot([{ role: 'system', content: SYSTEM_PROMPT }, ...history], {
         maxTokens: 500,
         temperature: 0.72,
+        hasImage: !!image,
         onToken: delta => {
           streamed += delta;
           const { clean, actions } = parseActions(stripTrailingPartialAction(streamed));
@@ -319,6 +335,18 @@ export default function AIChatbot() {
       e.preventDefault();
       send();
     }
+  }
+
+  function onPickImage(e: ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    if (!file.type.startsWith('image/')) { setError('Please choose an image file.'); return; }
+    if (file.size > 4 * 1024 * 1024) { setError('Image is too large (max 4MB).'); return; }
+    setError('');
+    const reader = new FileReader();
+    reader.onload = () => setAttachedImage(reader.result as string);
+    reader.readAsDataURL(file);
   }
 
   async function transcribe(blob: Blob) {
@@ -371,6 +399,82 @@ export default function AIChatbot() {
     if (recording) stopRecording();
     else void startRecording();
   }
+
+  // Live voice: tapping the new live-call button starts a real spoken
+  // conversation (audio in, audio out over one WebSocket), separate from the
+  // dictate mic above. Transcripts from both sides land as regular chat
+  // bubbles so the call reads like the rest of the conversation.
+  function startLiveVoice() {
+    setError('');
+    setLiveState('connecting');
+    liveUserMsgIdRef.current = null;
+    liveAssistantMsgIdRef.current = null;
+
+    connectLiveVoice({
+      onStateChange: s => {
+        if (s === 'live') setLiveState('live');
+        if (s === 'closed') {
+          setLiveState('idle');
+          liveControllerRef.current = null;
+        }
+      },
+      onInputTranscript: delta => {
+        setMessages(prev => {
+          if (liveUserMsgIdRef.current == null) {
+            const id = msgId++;
+            liveUserMsgIdRef.current = id;
+            return [...prev, { id, role: 'user', content: delta }];
+          }
+          return prev.map(m => (m.id === liveUserMsgIdRef.current ? { ...m, content: m.content + delta } : m));
+        });
+      },
+      onOutputTranscript: delta => {
+        // The visitor's turn is implicitly done once Dhruv starts replying.
+        liveUserMsgIdRef.current = null;
+        setMessages(prev => {
+          if (liveAssistantMsgIdRef.current == null) {
+            const id = msgId++;
+            liveAssistantMsgIdRef.current = id;
+            return [...prev, { id, role: 'assistant', content: delta }];
+          }
+          return prev.map(m => (m.id === liveAssistantMsgIdRef.current ? { ...m, content: m.content + delta } : m));
+        });
+      },
+      onTurnComplete: () => {
+        liveAssistantMsgIdRef.current = null;
+      },
+      onInterrupted: () => {
+        liveAssistantMsgIdRef.current = null;
+      },
+      onError: msg => {
+        setError(msg);
+        setLiveState('idle');
+        liveControllerRef.current = null;
+      },
+    })
+      .then(controller => { liveControllerRef.current = controller; })
+      .catch(e => {
+        setError(e instanceof Error ? e.message : 'Could not start live voice.');
+        setLiveState('idle');
+      });
+  }
+
+  function stopLiveVoice() {
+    liveControllerRef.current?.hangUp();
+    liveControllerRef.current = null;
+    setLiveState('idle');
+  }
+
+  function toggleLiveVoice() {
+    if (liveState === 'idle') startLiveVoice();
+    else if (liveState === 'live') stopLiveVoice();
+  }
+
+  // Text input, image attach, dictate mic and send all share one lockout:
+  // busy sending, mid-dictation, or on a live call.
+  const inputLocked = loading || transcribing || liveState !== 'idle';
+
+  useEffect(() => () => { liveControllerRef.current?.hangUp(); }, []);
 
   return (
     <>
@@ -467,6 +571,13 @@ export default function AIChatbot() {
 
           {messages.map(m => (
             <div key={m.id} style={{ display: 'flex', flexDirection: 'column', alignItems: m.role === 'user' ? 'flex-end' : 'flex-start', gap: '6px' }}>
+              {m.imageUrl && (
+                <img
+                  src={m.imageUrl}
+                  alt="Attached"
+                  style={{ maxWidth: '60%', maxHeight: '140px', borderRadius: '12px', border: '1px solid var(--border)', objectFit: 'cover', display: 'block' }}
+                />
+              )}
               <div style={{
                 maxWidth: '85%',
                 padding: '9px 13px',
@@ -602,6 +713,39 @@ export default function AIChatbot() {
           </div>
         )}
 
+        {/* Attached image preview */}
+        {attachedImage && (
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: '8px',
+            padding: '8px 12px 0',
+            background: 'var(--surface)',
+          }}>
+            <div style={{ position: 'relative' }}>
+              <img
+                src={attachedImage} alt="Attachment preview"
+                style={{ width: '40px', height: '40px', borderRadius: '8px', objectFit: 'cover', border: '1px solid var(--border)', display: 'block' }}
+              />
+              <button
+                onClick={() => setAttachedImage(null)}
+                aria-label="Remove image"
+                title="Remove image"
+                style={{
+                  position: 'absolute', top: '-6px', right: '-6px',
+                  width: '18px', height: '18px', borderRadius: '50%',
+                  background: 'var(--surface-2)', border: '1px solid var(--border)',
+                  color: 'var(--text-muted)', cursor: 'pointer', padding: 0,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}
+              >
+                <X size={11} />
+              </button>
+            </div>
+            <span style={{ fontSize: '0.7rem', fontFamily: "'JetBrains Mono', monospace", color: 'var(--text-dim)' }}>
+              Image attached
+            </span>
+          </div>
+        )}
+
         {/* Input */}
         <div style={{
           display: 'flex', gap: '8px',
@@ -611,69 +755,126 @@ export default function AIChatbot() {
           flexShrink: 0,
         }}>
           <input
-            ref={inputRef}
-            value={input}
-            onChange={e => setInput(e.target.value)}
-            onKeyDown={onKeyDown}
-            placeholder={recording ? 'Listening…' : transcribing ? 'Transcribing…' : 'Ask anything about Dhruv…'}
-            disabled={loading || transcribing}
-            style={{
-              flex: 1,
-              background: 'var(--surface-2)',
-              border: '1px solid var(--border)',
-              borderRadius: '10px',
-              padding: '9px 13px',
-              color: 'var(--text)',
-              fontFamily: "'DM Sans', sans-serif",
-              fontSize: '16px',
-              outline: 'none',
-              transition: 'border-color 0.15s, box-shadow 0.15s',
-            }}
-            onFocus={e => {
-              e.target.style.borderColor = 'var(--accent-dim)';
-              e.target.style.boxShadow = '0 0 0 3px var(--accent-glow)';
-            }}
-            onBlur={e => {
-              e.target.style.borderColor = 'var(--border)';
-              e.target.style.boxShadow = 'none';
-            }}
+            ref={imageInputRef}
+            type="file"
+            accept="image/*"
+            onChange={onPickImage}
+            style={{ display: 'none' }}
           />
           <button
-            onClick={toggleMic}
-            disabled={loading || transcribing}
-            aria-label={recording ? 'Stop recording' : 'Ask by voice'}
-            title={recording ? 'Stop recording' : 'Ask by voice'}
+            onClick={() => imageInputRef.current?.click()}
+            disabled={inputLocked}
+            aria-label="Attach an image"
+            title="Attach an image"
             style={{
-              background: recording ? '#FF6B6B' : 'var(--surface-2)',
-              border: `1px solid ${recording ? '#FF6B6B' : 'var(--border)'}`,
+              background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: '10px',
+              width: '34px', height: '34px',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              cursor: inputLocked ? 'not-allowed' : 'pointer',
+              opacity: inputLocked ? 0.45 : 1,
+              transition: 'background 0.15s, border-color 0.15s, transform 0.1s',
+              flexShrink: 0, color: 'var(--text-muted)', alignSelf: 'center',
+            }}
+            onMouseEnter={e => { if (!inputLocked) (e.currentTarget as HTMLElement).style.transform = 'scale(1.05)'; }}
+            onMouseLeave={e => { (e.currentTarget as HTMLElement).style.transform = 'scale(1)'; }}
+          >
+            <Plus size={16} />
+          </button>
+
+          {/* Search box, with the dictate mic embedded inside its right edge */}
+          <div style={{ position: 'relative', flex: 1 }}>
+            <input
+              ref={inputRef}
+              value={input}
+              onChange={e => setInput(e.target.value)}
+              onKeyDown={onKeyDown}
+              placeholder={
+                liveState === 'live' ? 'Live call – speak now…'
+                  : liveState === 'connecting' ? 'Connecting…'
+                  : recording ? 'Listening…'
+                  : transcribing ? 'Transcribing…'
+                  : 'Ask anything about Dhruv…'
+              }
+              disabled={inputLocked}
+              style={{
+                width: '100%',
+                background: 'var(--surface-2)',
+                border: '1px solid var(--border)',
+                borderRadius: '10px',
+                padding: '9px 34px 9px 13px',
+                color: 'var(--text)',
+                fontFamily: "'DM Sans', sans-serif",
+                fontSize: '16px',
+                outline: 'none',
+                transition: 'border-color 0.15s, box-shadow 0.15s',
+              }}
+              onFocus={e => {
+                e.target.style.borderColor = 'var(--accent-dim)';
+                e.target.style.boxShadow = '0 0 0 3px var(--accent-glow)';
+              }}
+              onBlur={e => {
+                e.target.style.borderColor = 'var(--border)';
+                e.target.style.boxShadow = 'none';
+              }}
+            />
+            <button
+              onClick={toggleMic}
+              disabled={loading || liveState !== 'idle'}
+              aria-label={recording ? 'Stop recording' : 'Dictate a message'}
+              title={recording ? 'Stop recording' : 'Dictate a message'}
+              style={{
+                position: 'absolute', top: '50%', right: '6px', transform: 'translateY(-50%)',
+                background: recording ? '#FF6B6B' : 'transparent',
+                border: 'none', borderRadius: '50%',
+                width: '24px', height: '24px',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                cursor: (loading || liveState !== 'idle') ? 'not-allowed' : 'pointer',
+                opacity: (loading || liveState !== 'idle') ? 0.4 : 1,
+                transition: 'background 0.15s, transform 0.1s',
+                color: recording ? '#fff' : 'var(--text-dim)',
+                animation: recording ? 'micPulse 1.4s ease-in-out infinite' : 'none',
+              }}
+            >
+              {transcribing ? <Loader2 size={12} className="spin-slow" /> : recording ? <Square size={10} /> : <Mic size={13} />}
+            </button>
+          </div>
+
+          <button
+            onClick={toggleLiveVoice}
+            disabled={loading || recording || transcribing}
+            aria-label={liveState === 'live' ? 'End live call' : liveState === 'connecting' ? 'Connecting live call' : 'Start live voice call'}
+            title={liveState === 'live' ? 'End live call' : liveState === 'connecting' ? 'Connecting…' : 'Talk live with Dhruv’s AI'}
+            style={{
+              background: liveState === 'live' ? '#FF6B6B' : 'var(--surface-2)',
+              border: `1px solid ${liveState === 'live' ? '#FF6B6B' : 'var(--border)'}`,
               borderRadius: '10px',
               width: '38px', height: '38px',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              cursor: loading || transcribing ? 'not-allowed' : 'pointer',
-              opacity: loading || transcribing ? 0.45 : 1,
+              cursor: (loading || recording || transcribing) ? 'not-allowed' : 'pointer',
+              opacity: (loading || recording || transcribing) ? 0.45 : 1,
               transition: 'background 0.15s, border-color 0.15s, transform 0.1s',
-              flexShrink: 0, color: recording ? '#fff' : 'var(--text-muted)',
-              animation: recording ? 'micPulse 1.4s ease-in-out infinite' : 'none',
+              flexShrink: 0, color: liveState === 'live' ? '#fff' : 'var(--text-muted)',
+              animation: liveState === 'live' ? 'micPulse 1.4s ease-in-out infinite' : 'none',
             }}
-            onMouseEnter={e => { if (!loading && !transcribing) (e.currentTarget as HTMLElement).style.transform = 'scale(1.05)'; }}
+            onMouseEnter={e => { if (!loading && !recording && !transcribing) (e.currentTarget as HTMLElement).style.transform = 'scale(1.05)'; }}
             onMouseLeave={e => { (e.currentTarget as HTMLElement).style.transform = 'scale(1)'; }}
           >
-            {transcribing ? <Loader2 size={15} className="spin-slow" /> : recording ? <Square size={13} /> : <Mic size={15} />}
+            {liveState === 'connecting' ? <Loader2 size={15} className="spin-slow" /> : liveState === 'live' ? <Square size={13} /> : <AudioWaveform size={16} />}
           </button>
           <button
             onClick={() => send()}
-            disabled={loading || !input.trim()}
+            disabled={loading || (!input.trim() && !attachedImage) || liveState !== 'idle'}
             aria-label="Send"
             style={{
               background: 'var(--accent)', border: 'none', borderRadius: '10px',
               width: '38px', height: '38px',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              cursor: loading || !input.trim() ? 'not-allowed' : 'pointer',
-              opacity: loading || !input.trim() ? 0.45 : 1,
+              cursor: (loading || (!input.trim() && !attachedImage) || liveState !== 'idle') ? 'not-allowed' : 'pointer',
+              opacity: (loading || (!input.trim() && !attachedImage) || liveState !== 'idle') ? 0.45 : 1,
               transition: 'opacity 0.15s, transform 0.1s',
               flexShrink: 0, color: 'var(--chat-user-text)',
             }}
-            onMouseEnter={e => { if (!loading && input.trim()) (e.currentTarget as HTMLElement).style.transform = 'scale(1.05)'; }}
+            onMouseEnter={e => { if (!loading && (input.trim() || attachedImage)) (e.currentTarget as HTMLElement).style.transform = 'scale(1.05)'; }}
             onMouseLeave={e => { (e.currentTarget as HTMLElement).style.transform = 'scale(1)'; }}
           >
             <Send size={15} />

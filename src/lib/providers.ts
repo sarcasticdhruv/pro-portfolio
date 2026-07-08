@@ -6,16 +6,25 @@
 // The exported surface (streamChat / chat / hasAnyProvider / hasWebSearch and
 // the types) is unchanged, so searchAgent.ts and other callers are untouched.
 
+// A user message's content is normally a plain string. When the chatbot has
+// an image attached, it becomes an OpenAI-vision-style part array instead -
+// only Gemini among our providers understands this shape, so callers must
+// pair it with `provider: 'gemini'`.
+export type ChatContentPart =
+  | { type: 'text'; text: string }
+  | { type: 'image_url'; image_url: { url: string } };
+
 export interface ChatMessage {
   role: 'system' | 'user' | 'assistant';
-  content: string;
+  content: string | ChatContentPart[];
 }
 
 export type ModelTier = 'fast' | 'synth' | 'web' | 'chat';
 
 // Forces a single named provider instead of the tier's default fallback
-// chain - powers the search page's Photon/Core/Pro model toggle.
-export type ProviderOverride = 'groq' | 'cerebras' | 'huggingface';
+// chain - powers the search page's Photon/Core/Pro model toggle, and the
+// chatbot's image-attachment flow (only Gemini here handles vision input).
+export type ProviderOverride = 'groq' | 'cerebras' | 'huggingface' | 'gemini';
 
 export interface StreamOptions {
   messages: ChatMessage[];
