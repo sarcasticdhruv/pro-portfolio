@@ -152,6 +152,13 @@ function stripTrailingPartialAction(s: string): string {
   return /\]/.test(s.slice(idx)) ? s : s.slice(0, idx);
 }
 
+// Touch-primary device (phone/tablet) vs mouse/trackpad - used to skip
+// programmatic focus() calls that would otherwise pop the on-screen keyboard
+// without the visitor having actually tapped the input themselves.
+function isCoarsePointer(): boolean {
+  return typeof window !== 'undefined' && window.matchMedia('(pointer: coarse)').matches;
+}
+
 // ── Types ─────────────────────────────────────────────────────────────────────
 interface Msg {
   role: 'user' | 'assistant';
@@ -221,7 +228,12 @@ export default function AIChatbot() {
     if (bodyRef.current) {
       bodyRef.current.scrollTop = bodyRef.current.scrollHeight;
     }
-    inputRef.current?.focus();
+    // Skip on touch devices - focusing here isn't a direct tap on the input,
+    // so it would pop the on-screen keyboard open on its own (e.g. right
+    // after opening the chat, or mid-stream while an assistant reply is
+    // still arriving). Desktop keeps the convenience of the cursor already
+    // sitting in the box.
+    if (!isCoarsePointer()) inputRef.current?.focus();
   }, [messages, loading]);
 
   useEffect(() => {
@@ -245,7 +257,9 @@ export default function AIChatbot() {
 
   useEffect(() => {
     if (open) {
-      setTimeout(() => inputRef.current?.focus(), 120);
+      // Same reasoning as the effect above - opening the panel isn't a tap
+      // on the input, so don't steal focus (and pop the keyboard) on touch.
+      if (!isCoarsePointer()) setTimeout(() => inputRef.current?.focus(), 120);
       if (!hasOpened) {
         setHasOpened(true);
         setMessages([{
@@ -778,6 +792,7 @@ export default function AIChatbot() {
           <div style={{ position: 'relative', flex: 1 }}>
             <input
               ref={inputRef}
+              className="chat-text-input"
               value={input}
               onChange={e => setInput(e.target.value)}
               onKeyDown={onKeyDown}
@@ -953,6 +968,11 @@ export default function AIChatbot() {
         @keyframes micPulse {
           0%, 100% { box-shadow: 0 0 0 0 rgba(255,107,107,0.45); }
           50% { box-shadow: 0 0 0 6px rgba(255,107,107,0); }
+        }
+        /* Font-size stays 16px on the input itself (prevents iOS Safari
+           auto-zoom on focus) - only the placeholder text shrinks. */
+        .chat-text-input::placeholder {
+          font-size: 0.82rem;
         }
       `}</style>
     </>

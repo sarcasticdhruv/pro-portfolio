@@ -41,12 +41,12 @@ export default function Navbar({ theme, onToggleTheme }: Props) {
         WebkitBackdropFilter: scrolled ? 'blur(12px)' : 'none',
         boxShadow: scrolled ? 'var(--shadow-md)' : 'none',
       }}>
-        <a href="/" style={{
+        <Link to="/" style={{
           fontFamily: "'JetBrains Mono', monospace", fontWeight: 500,
           fontSize: '0.92rem', color: 'var(--accent)', letterSpacing: '0.02em',
         }}>
           <span style={{ color: 'var(--text-dim)' }}>~/</span>dhruv
-        </a>
+        </Link>
 
         {/* Desktop */}
         <div className="nav-desktop" style={{ display: 'flex', alignItems: 'center', gap: '28px' }}>
