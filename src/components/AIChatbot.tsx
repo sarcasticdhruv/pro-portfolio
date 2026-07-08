@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, type KeyboardEvent } from 'react';
-import { X, Send, Sparkles, ArrowRight, ExternalLink } from 'lucide-react';
+import { X, Send, Sparkles, ArrowRight, ExternalLink, Mic, Square, Loader2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { streamChatbot } from '../lib/chatbotClient';
 
@@ -200,9 +200,13 @@ export default function AIChatbot() {
   const [subtitleIdx, setSubtitleIdx] = useState(0);
   const [teaserIdx, setTeaserIdx] = useState(0);
   const [teaserVisible, setTeaserVisible] = useState(true);
+  const [recording, setRecording] = useState(false);
+  const [transcribing, setTranscribing] = useState(false);
 
   const bodyRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const chunksRef = useRef<Blob[]>([]);
 
   useEffect(() => {
     if (bodyRef.current) {
@@ -315,6 +319,57 @@ export default function AIChatbot() {
       e.preventDefault();
       send();
     }
+  }
+
+  async function transcribe(blob: Blob) {
+    setTranscribing(true);
+    try {
+      const form = new FormData();
+      form.append('audio', blob, 'audio.webm');
+      const res = await fetch('/api/transcribe', { method: 'POST', body: form });
+      const data = await res.json();
+      if (data.text) {
+        setInput(prev => (prev ? `${prev} ${data.text}` : data.text));
+        setTimeout(() => inputRef.current?.focus(), 0);
+      } else {
+        setError(data.error ?? 'Could not transcribe audio.');
+      }
+    } catch {
+      setError('Transcription failed.');
+    } finally {
+      setTranscribing(false);
+    }
+  }
+
+  async function startRecording() {
+    setError('');
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mimeType = MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : '';
+      const recorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined);
+      chunksRef.current = [];
+      recorder.ondataavailable = e => { if (e.data.size > 0) chunksRef.current.push(e.data); };
+      recorder.onstop = () => {
+        stream.getTracks().forEach(t => t.stop());
+        const blob = new Blob(chunksRef.current, { type: recorder.mimeType || 'audio/webm' });
+        void transcribe(blob);
+      };
+      recorder.start();
+      mediaRecorderRef.current = recorder;
+      setRecording(true);
+    } catch {
+      setError('Microphone access denied.');
+    }
+  }
+
+  function stopRecording() {
+    mediaRecorderRef.current?.stop();
+    setRecording(false);
+  }
+
+  function toggleMic() {
+    if (recording) stopRecording();
+    else void startRecording();
   }
 
   return (
@@ -560,8 +615,8 @@ export default function AIChatbot() {
             value={input}
             onChange={e => setInput(e.target.value)}
             onKeyDown={onKeyDown}
-            placeholder="Ask anything about Dhruv…"
-            disabled={loading}
+            placeholder={recording ? 'Listening…' : transcribing ? 'Transcribing…' : 'Ask anything about Dhruv…'}
+            disabled={loading || transcribing}
             style={{
               flex: 1,
               background: 'var(--surface-2)',
@@ -584,6 +639,28 @@ export default function AIChatbot() {
             }}
           />
           <button
+            onClick={toggleMic}
+            disabled={loading || transcribing}
+            aria-label={recording ? 'Stop recording' : 'Ask by voice'}
+            title={recording ? 'Stop recording' : 'Ask by voice'}
+            style={{
+              background: recording ? '#FF6B6B' : 'var(--surface-2)',
+              border: `1px solid ${recording ? '#FF6B6B' : 'var(--border)'}`,
+              borderRadius: '10px',
+              width: '38px', height: '38px',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              cursor: loading || transcribing ? 'not-allowed' : 'pointer',
+              opacity: loading || transcribing ? 0.45 : 1,
+              transition: 'background 0.15s, border-color 0.15s, transform 0.1s',
+              flexShrink: 0, color: recording ? '#fff' : 'var(--text-muted)',
+              animation: recording ? 'micPulse 1.4s ease-in-out infinite' : 'none',
+            }}
+            onMouseEnter={e => { if (!loading && !transcribing) (e.currentTarget as HTMLElement).style.transform = 'scale(1.05)'; }}
+            onMouseLeave={e => { (e.currentTarget as HTMLElement).style.transform = 'scale(1)'; }}
+          >
+            {transcribing ? <Loader2 size={15} className="spin-slow" /> : recording ? <Square size={13} /> : <Mic size={15} />}
+          </button>
+          <button
             onClick={() => send()}
             disabled={loading || !input.trim()}
             aria-label="Send"
@@ -594,7 +671,7 @@ export default function AIChatbot() {
               cursor: loading || !input.trim() ? 'not-allowed' : 'pointer',
               opacity: loading || !input.trim() ? 0.45 : 1,
               transition: 'opacity 0.15s, transform 0.1s',
-              flexShrink: 0, color: '#07110A',
+              flexShrink: 0, color: 'var(--chat-user-text)',
             }}
             onMouseEnter={e => { if (!loading && input.trim()) (e.currentTarget as HTMLElement).style.transform = 'scale(1.05)'; }}
             onMouseLeave={e => { (e.currentTarget as HTMLElement).style.transform = 'scale(1)'; }}
@@ -678,6 +755,10 @@ export default function AIChatbot() {
         @keyframes chatDot {
           0%, 80%, 100% { transform: scale(0.7); opacity: 0.4; }
           40% { transform: scale(1); opacity: 1; }
+        }
+        @keyframes micPulse {
+          0%, 100% { box-shadow: 0 0 0 0 rgba(255,107,107,0.45); }
+          50% { box-shadow: 0 0 0 6px rgba(255,107,107,0); }
         }
       `}</style>
     </>

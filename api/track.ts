@@ -1,6 +1,8 @@
-// Vercel Edge Function: records a page visit.
+// Vercel Edge Function: records a page visit OR a named interaction event
+// (click, toggle, terminal command, search query, etc - see trackEvent() in
+// src/lib/track.ts). Both share one row shape and one timeline per visitor,
+// distinguished by the `event` column ('pageview' by default).
 //
-// Called once per route change from the frontend (see useVisitTracking.ts).
 // Reads the visitor's IP and Vercel's free geo headers server-side (never
 // trusts anything the client claims about its own location), and appends a
 // row to the `visits` table. Fails silently if the database isn't wired up
@@ -25,16 +27,21 @@ async function ensureTable(): Promise<void> {
       user_agent TEXT,
       referrer TEXT,
       path TEXT,
+      event TEXT NOT NULL DEFAULT 'pageview',
+      detail TEXT,
       created_at TIMESTAMPTZ NOT NULL DEFAULT now()
     )
   `;
+  // Columns added after the table's first deployment - safe no-ops once applied.
+  await sql`ALTER TABLE visits ADD COLUMN IF NOT EXISTS event TEXT NOT NULL DEFAULT 'pageview'`;
+  await sql`ALTER TABLE visits ADD COLUMN IF NOT EXISTS detail TEXT`;
 }
 
 export default async function handler(req: Request): Promise<Response> {
   if (req.method !== 'POST') return json({ error: 'method not allowed' }, 405);
   if (!process.env.POSTGRES_URL) return json({ ok: false, error: 'tracking not configured' });
 
-  let body: { visitorId?: string; path?: string; referrer?: string };
+  let body: { visitorId?: string; path?: string; referrer?: string; event?: string; detail?: string };
   try {
     body = await req.json();
   } catch {
@@ -51,12 +58,14 @@ export default async function handler(req: Request): Promise<Response> {
   const country = req.headers.get('x-vercel-ip-country');
   const city = req.headers.get('x-vercel-ip-city');
   const userAgent = req.headers.get('user-agent');
+  const event = (body.event ?? 'pageview').slice(0, 60);
+  const detail = body.detail ? body.detail.slice(0, 300) : null;
 
   try {
     await ensureTable();
     await sql`
-      INSERT INTO visits (visitor_id, ip, country, city, user_agent, referrer, path)
-      VALUES (${visitorId}, ${ip}, ${country}, ${city}, ${userAgent}, ${body.referrer ?? null}, ${body.path ?? null})
+      INSERT INTO visits (visitor_id, ip, country, city, user_agent, referrer, path, event, detail)
+      VALUES (${visitorId}, ${ip}, ${country}, ${city}, ${userAgent}, ${body.referrer ?? null}, ${body.path ?? null}, ${event}, ${detail})
     `;
     return json({ ok: true });
   } catch (e) {

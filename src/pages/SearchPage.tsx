@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { downloadPdf, downloadDocx, downloadHtml, detectDocIntent, hasImageGenIntent, type DocFormat } from '../lib/exportAnswer';
 import { runSearch, type AgentStep, type SearchResult, type ModelChoice } from '../lib/searchAgent';
+import { trackEvent } from '../lib/track';
 import {
   loadHistory, saveToHistory, findCached, removeFromHistory, clearHistory,
   type HistoryEntry,
@@ -126,6 +127,7 @@ export default function SearchPage() {
   function submit(raw: string, opts?: { skipCache?: boolean }) {
     const q = raw.trim();
     if (!q || running) return;
+    trackEvent('search', `[${modelChoice}] ${q}`);
     setQuery(q);
     setImageGenQuery(hasImageGenIntent(q) ? q : null);
     if (!opts?.skipCache) {

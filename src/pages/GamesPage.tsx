@@ -6,6 +6,7 @@ import Game2048 from '../components/games/Game2048';
 import SnakeGame from '../components/games/SnakeGame';
 import TicTacToe from '../components/games/TicTacToe';
 import { useSEO } from '../hooks/useSEO';
+import { trackEvent } from '../lib/track';
 
 type GameKey = 'snake' | '2048' | 'ttt';
 
@@ -73,7 +74,7 @@ export default function GamesPage() {
             return (
               <button
                 key={g.key}
-                onClick={() => setActive(g.key)}
+                onClick={() => { trackEvent('game_select', g.key); setActive(g.key); }}
                 style={{
                   flex: 1, border: 'none', cursor: 'pointer',
                   background: on ? 'var(--accent)' : 'transparent',

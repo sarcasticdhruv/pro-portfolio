@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { Lock, RotateCw, Users, Activity } from 'lucide-react';
+import { Fragment, useEffect, useState } from 'react';
+import { Lock, RotateCw, Users, Activity, ChevronDown, ChevronRight } from 'lucide-react';
 import { useSEO } from '../hooks/useSEO';
 
 const SESSION_KEY = 'admin_key';
@@ -15,6 +15,7 @@ interface VisitorRow {
   lastSeen: string;
   firstSeen: string;
   visitCount: number;
+  eventCount: number;
 }
 
 interface RecentRow {
@@ -22,6 +23,19 @@ interface RecentRow {
   ip: string | null;
   country: string | null;
   path: string | null;
+  event: string;
+  detail: string | null;
+  referrer: string | null;
+  createdAt: string;
+}
+
+interface TimelineEvent {
+  ip: string | null;
+  country: string | null;
+  city: string | null;
+  path: string | null;
+  event: string;
+  detail: string | null;
   referrer: string | null;
   createdAt: string;
 }
@@ -53,6 +67,17 @@ function timeAgo(iso: string): string {
   return `${days}d ago`;
 }
 
+// Renders a single activity row's action + free-text detail together, e.g.
+// "pageview /search", "click GitHub", "terminal_command help".
+function ActionCell({ event, detail, path }: { event: string; detail: string | null; path?: string | null }) {
+  return (
+    <span>
+      <span style={{ color: 'var(--accent)' }}>{event}</span>
+      {(detail || path) && <span style={{ color: 'var(--text-muted)' }}> · {detail ?? path}</span>}
+    </span>
+  );
+}
+
 export default function AdminPage() {
   useSEO({ title: 'Admin', noindex: true });
 
@@ -63,6 +88,10 @@ export default function AdminPage() {
   const [visitors, setVisitors] = useState<VisitorRow[]>([]);
   const [recent, setRecent] = useState<RecentRow[]>([]);
   const [fetchError, setFetchError] = useState('');
+
+  const [expanded, setExpanded] = useState<string | null>(null);
+  const [timelines, setTimelines] = useState<Record<string, TimelineEvent[]>>({});
+  const [timelineLoading, setTimelineLoading] = useState<string | null>(null);
 
   async function load(k: string) {
     setLoading(true);
@@ -85,6 +114,25 @@ export default function AdminPage() {
       setFetchError(e instanceof Error ? e.message : 'failed to load');
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function toggleExpand(visitorId: string) {
+    if (expanded === visitorId) {
+      setExpanded(null);
+      return;
+    }
+    setExpanded(visitorId);
+    if (timelines[visitorId]) return; // already fetched
+    setTimelineLoading(visitorId);
+    try {
+      const res = await fetch(`/api/visits?key=${encodeURIComponent(key)}&visitor=${encodeURIComponent(visitorId)}`);
+      const data = await res.json();
+      setTimelines(prev => ({ ...prev, [visitorId]: data.events ?? [] }));
+    } catch {
+      setTimelines(prev => ({ ...prev, [visitorId]: [] }));
+    } finally {
+      setTimelineLoading(null);
     }
   }
 
@@ -184,7 +232,7 @@ export default function AdminPage() {
         <div style={{ display: 'flex', alignItems: 'center', gap: '7px', marginBottom: '10px' }}>
           <Users size={14} style={{ color: 'var(--accent)' }} />
           <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '0.75rem', color: 'var(--text-dim)', letterSpacing: '0.04em', textTransform: 'uppercase' }}>
-            {visitors.length} known visitor{visitors.length === 1 ? '' : 's'}
+            {visitors.length} known visitor{visitors.length === 1 ? '' : 's'} · click a row for full activity
           </span>
         </div>
         <div style={{
@@ -194,28 +242,64 @@ export default function AdminPage() {
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.78rem', fontFamily: "'JetBrains Mono', monospace" }}>
             <thead>
               <tr style={{ borderBottom: '1px solid var(--border)', textAlign: 'left', color: 'var(--text-dim)' }}>
-                {['visitor', 'ip', 'location', 'device', 'visits', 'first seen', 'last seen', 'last page'].map(h => (
+                {['', 'visitor', 'ip', 'location', 'device', 'visits', 'events', 'first seen', 'last seen', 'last page'].map(h => (
                   <th key={h} style={{ padding: '10px 14px', fontWeight: 600, whiteSpace: 'nowrap' }}>{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
-              {visitors.map(v => (
-                <tr key={v.visitorId} style={{ borderBottom: '1px solid var(--border)' }}>
-                  <td style={{ padding: '10px 14px', color: 'var(--text-dim)' }}>{v.visitorId.slice(0, 8)}</td>
-                  <td style={{ padding: '10px 14px', color: 'var(--text)' }}>{v.ip ?? '-'}</td>
-                  <td style={{ padding: '10px 14px', color: 'var(--text)' }}>
-                    {[v.city, v.country].filter(Boolean).join(', ') || '-'}
-                  </td>
-                  <td style={{ padding: '10px 14px', color: 'var(--text)' }}>{parseUA(v.userAgent)}</td>
-                  <td style={{ padding: '10px 14px', color: 'var(--text)' }}>{v.visitCount}</td>
-                  <td style={{ padding: '10px 14px', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>{timeAgo(v.firstSeen)}</td>
-                  <td style={{ padding: '10px 14px', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>{timeAgo(v.lastSeen)}</td>
-                  <td style={{ padding: '10px 14px', color: 'var(--text-muted)' }}>{v.lastPath ?? '-'}</td>
-                </tr>
-              ))}
+              {visitors.map(v => {
+                const isOpen = expanded === v.visitorId;
+                return (
+                  <Fragment key={v.visitorId}>
+                    <tr
+                      onClick={() => void toggleExpand(v.visitorId)}
+                      style={{ borderBottom: isOpen ? 'none' : '1px solid var(--border)', cursor: 'pointer' }}
+                    >
+                      <td style={{ padding: '10px 8px 10px 14px', color: 'var(--text-dim)' }}>
+                        {isOpen ? <ChevronDown size={13} /> : <ChevronRight size={13} />}
+                      </td>
+                      <td style={{ padding: '10px 14px', color: 'var(--text-dim)' }}>{v.visitorId.slice(0, 8)}</td>
+                      <td style={{ padding: '10px 14px', color: 'var(--text)' }}>{v.ip ?? '-'}</td>
+                      <td style={{ padding: '10px 14px', color: 'var(--text)' }}>
+                        {[v.city, v.country].filter(Boolean).join(', ') || '-'}
+                      </td>
+                      <td style={{ padding: '10px 14px', color: 'var(--text)' }}>{parseUA(v.userAgent)}</td>
+                      <td style={{ padding: '10px 14px', color: 'var(--text)' }}>{v.visitCount}</td>
+                      <td style={{ padding: '10px 14px', color: 'var(--text-muted)' }}>{v.eventCount}</td>
+                      <td style={{ padding: '10px 14px', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>{timeAgo(v.firstSeen)}</td>
+                      <td style={{ padding: '10px 14px', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>{timeAgo(v.lastSeen)}</td>
+                      <td style={{ padding: '10px 14px', color: 'var(--text-muted)' }}>{v.lastPath ?? '-'}</td>
+                    </tr>
+                    {isOpen && (
+                      <tr key={`${v.visitorId}-detail`} style={{ borderBottom: '1px solid var(--border)' }}>
+                        <td colSpan={10} style={{ padding: '0 14px 14px 40px', background: 'var(--surface-2)' }}>
+                          {timelineLoading === v.visitorId ? (
+                            <p style={{ color: 'var(--text-dim)', padding: '10px 0' }}>loading...</p>
+                          ) : (
+                            <div style={{ maxHeight: '320px', overflowY: 'auto', marginTop: '4px' }}>
+                              {(timelines[v.visitorId] ?? []).map((e, i) => (
+                                <div key={i} style={{
+                                  display: 'flex', gap: '12px', padding: '7px 0',
+                                  borderBottom: i < (timelines[v.visitorId]?.length ?? 0) - 1 ? '1px solid var(--border)' : 'none',
+                                }}>
+                                  <span style={{ color: 'var(--text-dim)', whiteSpace: 'nowrap', minWidth: '80px' }}>{timeAgo(e.createdAt)}</span>
+                                  <ActionCell event={e.event} detail={e.detail} path={e.path} />
+                                </div>
+                              ))}
+                              {(timelines[v.visitorId] ?? []).length === 0 && (
+                                <p style={{ color: 'var(--text-dim)', padding: '10px 0' }}>no events</p>
+                              )}
+                            </div>
+                          )}
+                        </td>
+                      </tr>
+                    )}
+                  </Fragment>
+                );
+              })}
               {visitors.length === 0 && (
-                <tr><td colSpan={8} style={{ padding: '20px 14px', color: 'var(--text-dim)', textAlign: 'center' }}>no visits recorded yet</td></tr>
+                <tr><td colSpan={10} style={{ padding: '20px 14px', color: 'var(--text-dim)', textAlign: 'center' }}>no visits recorded yet</td></tr>
               )}
             </tbody>
           </table>
@@ -225,7 +309,7 @@ export default function AdminPage() {
         <div style={{ display: 'flex', alignItems: 'center', gap: '7px', marginBottom: '10px' }}>
           <Activity size={14} style={{ color: 'var(--accent)' }} />
           <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '0.75rem', color: 'var(--text-dim)', letterSpacing: '0.04em', textTransform: 'uppercase' }}>
-            recent activity
+            recent activity (everyone)
           </span>
         </div>
         <div style={{
@@ -235,7 +319,7 @@ export default function AdminPage() {
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.78rem', fontFamily: "'JetBrains Mono', monospace" }}>
             <thead>
               <tr style={{ borderBottom: '1px solid var(--border)', textAlign: 'left', color: 'var(--text-dim)' }}>
-                {['when', 'visitor', 'ip', 'country', 'page', 'referrer'].map(h => (
+                {['when', 'visitor', 'ip', 'country', 'action', 'referrer'].map(h => (
                   <th key={h} style={{ padding: '10px 14px', fontWeight: 600, whiteSpace: 'nowrap' }}>{h}</th>
                 ))}
               </tr>
@@ -247,7 +331,9 @@ export default function AdminPage() {
                   <td style={{ padding: '10px 14px', color: 'var(--text-dim)' }}>{r.visitorId.slice(0, 8)}</td>
                   <td style={{ padding: '10px 14px', color: 'var(--text)' }}>{r.ip ?? '-'}</td>
                   <td style={{ padding: '10px 14px', color: 'var(--text)' }}>{r.country ?? '-'}</td>
-                  <td style={{ padding: '10px 14px', color: 'var(--text)' }}>{r.path ?? '-'}</td>
+                  <td style={{ padding: '10px 14px', color: 'var(--text)' }}>
+                    <ActionCell event={r.event} detail={r.detail} path={r.path} />
+                  </td>
                   <td style={{ padding: '10px 14px', color: 'var(--text-muted)', maxWidth: '220px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     {r.referrer ?? '-'}
                   </td>

@@ -1,6 +1,25 @@
 <!doctype html>
 <html lang="en">
   <head>
+    <!-- Sets data-theme before any CSS paints, so the page never flashes
+         dark first (index.css's :root block is the dark baseline; light is
+         the [data-theme="light"] override). Mirrors useTheme.ts's own logic
+         exactly - light by default, dark only if the OS explicitly prefers
+         it or the visitor manually chose dark before. -->
+    <script>
+      (function () {
+        try {
+          var manual = localStorage.getItem('dhruv_portfolio_theme_manual') === '1';
+          var saved = localStorage.getItem('dhruv_portfolio_theme');
+          var theme = (manual && (saved === 'dark' || saved === 'light'))
+            ? saved
+            : (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+          document.documentElement.setAttribute('data-theme', theme);
+        } catch (e) {
+          document.documentElement.setAttribute('data-theme', 'light');
+        }
+      })();
+    </script>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />

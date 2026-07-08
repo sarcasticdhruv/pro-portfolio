@@ -5,6 +5,7 @@ import { Maximize2, Minimize2, X, Terminal as TermIcon } from 'lucide-react';
 import type { GitHubStats } from '../types';
 import TerminalSnake from './games/TerminalSnake';
 import { chat } from '../lib/providers';
+import { trackEvent } from '../lib/track';
 
 interface Props {
   github: GitHubStats;
@@ -331,6 +332,8 @@ export default function Terminal({ github, onClose, isFloating = false }: Props)
   async function handleCommand(rawCmd: string) {
     const trimmed = rawCmd.trim();
     if (!trimmed) return;
+
+    trackEvent('terminal_command', trimmed);
 
     // Add to history
     setCmdHistory(prev => [trimmed, ...prev.slice(0, 99)]);

@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { Download, Loader2, RotateCw, ImageIcon } from 'lucide-react';
 import { useSEO } from '../hooks/useSEO';
 import { chat } from '../lib/providers';
+import { trackEvent } from '../lib/track';
 
 type Status = 'idle' | 'loading' | 'done' | 'error';
 
@@ -73,6 +74,7 @@ export default function ImaginePage() {
   async function generate(p: string) {
     const text = p.trim();
     if (!text || status === 'loading') return;
+    trackEvent('imagine_generate', text);
     setSubmitted(text);
     setStatus('loading');
     try {

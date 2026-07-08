@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Github, Linkedin, Mail, MapPin, ArrowRight, Circle } from 'lucide-react';
 import Terminal from './Terminal';
 import BootRedirect from './BootRedirect';
+import { trackEvent } from '../lib/track';
 import type { GitHubStats } from '../types';
 
 interface Props { github: GitHubStats; }
@@ -151,16 +152,16 @@ export default function Hero({ github }: Props) {
 
           {/* CTAs */}
           <div className="hero-cta-row" style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginBottom: '36px' }}>
-            <a href="#projects" className="btn btn-primary">
+            <a href="#projects" className="btn btn-primary" onClick={() => trackEvent('click', 'view projects')}>
               <ArrowRight size={14} /> view projects
             </a>
-            <a href="https://github.com/sarcasticdhruv" target="_blank" rel="noopener noreferrer" className="btn btn-outline">
+            <a href="https://github.com/sarcasticdhruv" target="_blank" rel="noopener noreferrer" className="btn btn-outline" onClick={() => trackEvent('click', 'GitHub')}>
               <Github size={14} /> GitHub
             </a>
-            <a href="https://linkedin.com/in/dhruv-choudhary-india" target="_blank" rel="noopener noreferrer" className="btn btn-outline btn-icon">
+            <a href="https://linkedin.com/in/dhruv-choudhary-india" target="_blank" rel="noopener noreferrer" className="btn btn-outline btn-icon" onClick={() => trackEvent('click', 'LinkedIn')}>
               <Linkedin size={14} />
             </a>
-            <a href="mailto:nrdhruv654@gmail.com" className="btn btn-outline btn-icon">
+            <a href="mailto:nrdhruv654@gmail.com" className="btn btn-outline btn-icon" onClick={() => trackEvent('click', 'email')}>
               <Mail size={14} />
             </a>
           </div>

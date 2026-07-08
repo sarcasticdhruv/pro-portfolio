@@ -1,15 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
-
-const STORAGE_KEY = 'visitor_id';
-
-function getVisitorId(): string {
-  const existing = localStorage.getItem(STORAGE_KEY);
-  if (existing) return existing;
-  const id = crypto.randomUUID();
-  localStorage.setItem(STORAGE_KEY, id);
-  return id;
-}
+import { getVisitorId } from '../lib/track';
 
 // Fires a best-effort POST to /api/track on every route change, carrying a
 // visitor ID that persists across visits (localStorage) so the admin
