@@ -1,5 +1,6 @@
 // Direct browser -> Groq calls for the chatbot widget ONLY, bypassing the
-// /api/llm proxy hop entirely for the lowest possible latency.
+// /api/llm and /api/transcribe proxy hops entirely for the lowest possible
+// latency.
 //
 // This is a deliberate, informed exception to the "keys never touch the
 // browser" rule the rest of this codebase follows (search, exports, image
@@ -16,6 +17,8 @@ import { streamChat, type ChatMessage } from './providers';
 const GROQ_KEY = import.meta.env.VITE_GROQ_CHAT_KEY as string | undefined;
 const GROQ_MODEL = 'llama-3.3-70b-versatile'; // Groq's LPU hardware - fastest inference available
 const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions';
+const GROQ_TRANSCRIBE_URL = 'https://api.groq.com/openai/v1/audio/transcriptions';
+const WHISPER_MODEL = 'whisper-large-v3-turbo';
 
 export function hasDirectChat(): boolean {
   return !!GROQ_KEY;
@@ -97,4 +100,45 @@ async function streamGroqDirect(messages: ChatMessage[], opts: ChatbotStreamOpti
 
   if (!full.trim()) throw new Error('empty answer');
   return full;
+}
+
+// Same direct-call shortcut, applied to the dictate mic: posting straight to
+// Groq's Whisper endpoint skips the browser -> our edge function -> Groq hop
+// (plus that edge function's own cold start), which is most of the perceived
+// delay for a short clip - the transcription model itself is unchanged
+// (still whisper-large-v3-turbo), so quality is identical either way.
+export async function transcribeAudio(blob: Blob): Promise<string> {
+  if (GROQ_KEY) {
+    try {
+      return await transcribeGroqDirect(blob);
+    } catch {
+      // Direct call failed (rate limit, network, revoked key) - fall through
+      // to the proxy rather than surface an error the user can't act on.
+    }
+  }
+  const form = new FormData();
+  form.append('audio', blob, 'audio.webm');
+  const res = await fetch('/api/transcribe', { method: 'POST', body: form });
+  const data = await res.json().catch(() => ({} as { text?: string; error?: string }));
+  if (!data.text) throw new Error(data.error ?? 'Could not transcribe audio.');
+  return data.text;
+}
+
+async function transcribeGroqDirect(blob: Blob): Promise<string> {
+  const form = new FormData();
+  form.append('file', blob, 'audio.webm');
+  form.append('model', WHISPER_MODEL);
+  form.append('response_format', 'json');
+
+  const res = await fetch(GROQ_TRANSCRIBE_URL, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${GROQ_KEY}` },
+    body: form,
+  });
+  if (!res.ok) throw new Error(`groq direct ${res.status}`);
+
+  const data = await res.json();
+  const text: string | undefined = data?.text?.trim();
+  if (!text) throw new Error('empty transcript');
+  return text;
 }

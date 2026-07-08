@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, type KeyboardEvent, type ChangeEvent } from 'react';
 import { X, Send, Sparkles, ArrowRight, ExternalLink, Mic, Square, Loader2, Plus, AudioWaveform } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { streamChatbot } from '../lib/chatbotClient';
+import { streamChatbot, transcribeAudio } from '../lib/chatbotClient';
 import { connectLiveVoice, type LiveVoiceController } from '../lib/liveVoice';
 import type { ChatMessage } from '../lib/providers';
 
@@ -352,18 +352,11 @@ export default function AIChatbot() {
   async function transcribe(blob: Blob) {
     setTranscribing(true);
     try {
-      const form = new FormData();
-      form.append('audio', blob, 'audio.webm');
-      const res = await fetch('/api/transcribe', { method: 'POST', body: form });
-      const data = await res.json();
-      if (data.text) {
-        setInput(prev => (prev ? `${prev} ${data.text}` : data.text));
-        setTimeout(() => inputRef.current?.focus(), 0);
-      } else {
-        setError(data.error ?? 'Could not transcribe audio.');
-      }
-    } catch {
-      setError('Transcription failed.');
+      const text = await transcribeAudio(blob);
+      setInput(prev => (prev ? `${prev} ${text}` : text));
+      setTimeout(() => inputRef.current?.focus(), 0);
+    } catch (e: any) {
+      setError(e?.message ?? 'Transcription failed.');
     } finally {
       setTranscribing(false);
     }

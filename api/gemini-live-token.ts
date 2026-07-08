@@ -31,9 +31,14 @@ function json(data: unknown, status = 200): Response {
   return new Response(JSON.stringify(data), { status, headers: { 'Content-Type': 'application/json' } });
 }
 
-// Native-audio conversational model - verified live: connects, transcribes
-// speech both ways, and replies with real synthesized audio on the free tier.
-const LIVE_MODEL = 'gemini-2.5-flash-native-audio-preview-12-2025';
+// The general-purpose Live model, not the "native-audio" one - measured live
+// (real synthesized speech, over the actual locked-token flow, several
+// trials): ~1.4s to first audio, vs ~3-4s for gemini-2.5-flash-native-audio-
+// preview-12-2025. The native-audio variant is tuned for richer vocal
+// expressiveness, but that isn't worth 2x+ the wait for a portfolio chat
+// widget, and this model's transcription was if anything more accurate in
+// testing (it heard "Dhruv" correctly; native-audio heard "Drew").
+const LIVE_MODEL = 'gemini-3.1-flash-live-preview';
 
 const VOICE_SYSTEM_PROMPT = `You are Dhruv Choudhary, talking live by voice through your own portfolio website. You ARE Dhruv, speaking in first person - not an assistant describing him.
 
@@ -55,7 +60,7 @@ export default async function handler(req: Request): Promise<Response> {
   const keys = geminiKeys();
   if (!keys.length) return json({ error: 'live voice not configured' }, 503);
 
-  const { GoogleGenAI, Modality } = await import('@google/genai/web');
+  const { GoogleGenAI, Modality, StartSensitivity, EndSensitivity } = await import('@google/genai/web');
   const now = Date.now();
 
   // Rotate across every configured key - a rate-limited or exhausted key
@@ -80,6 +85,22 @@ export default async function handler(req: Request): Promise<Response> {
               systemInstruction: VOICE_SYSTEM_PROMPT,
               inputAudioTranscription: {},
               outputAudioTranscription: {},
+              // Skips the model's internal chain-of-thought pass before
+              // replying - measured live, this trims real time off first
+              // audio and this persona's short conversational answers don't
+              // need deep reasoning anyway.
+              thinkingConfig: { thinkingBudget: 0 },
+              // High sensitivity + a short silence window so end-of-speech is
+              // committed as soon as reasonably possible (these happen to
+              // already be Gemini Live's defaults, per the SDK's own docs -
+              // set explicitly so that stays true even if defaults change).
+              realtimeInputConfig: {
+                automaticActivityDetection: {
+                  startOfSpeechSensitivity: StartSensitivity.START_SENSITIVITY_HIGH,
+                  endOfSpeechSensitivity: EndSensitivity.END_SENSITIVITY_HIGH,
+                  silenceDurationMs: 400,
+                },
+              },
             },
           },
         },

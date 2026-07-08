@@ -38,7 +38,13 @@ export interface LiveVoiceController {
 
 const INPUT_SAMPLE_RATE = 16000;
 const OUTPUT_SAMPLE_RATE = 24000;
-const CAPTURE_BUFFER_SIZE = 4096;
+// ScriptProcessorNode only fires once this many samples have been captured,
+// so this buffer size is a direct floor on input latency (at a 48kHz mic,
+// 4096 samples was ~85ms of dead time before the last bit of speech even
+// left the browser). Smaller means Gemini hears the tail of an utterance -
+// and can start responding - sooner; 1024 (~21ms at 48kHz) is still well
+// within what browsers handle without glitching.
+const CAPTURE_BUFFER_SIZE = 1024;
 
 // Linear-interpolation downsample from the mic's native rate to the 16kHz
 // mono PCM16 Gemini Live expects for input.
