@@ -18,7 +18,7 @@ export default function About() {
               <span style={{ color: 'var(--accent)' }}>that make sense.</span>
             </h2>
             <p style={{ color: 'var(--text-muted)', marginBottom: '18px', lineHeight: 1.8 }}>
-              Final-year B.Tech student at MITS Gwalior, Department Rank 2 in Information Technology.
+              B.Tech graduate from MITS Gwalior, Department Rank 2 in Information Technology.
               I work at the intersection of AI systems and practical engineering - not just notebooks
               and demos, but pipelines that handle real client data at scale.
             </p>

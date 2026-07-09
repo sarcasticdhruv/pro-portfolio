@@ -1,18 +1,21 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Zap, LayoutGrid, Hash } from 'lucide-react';
+import { Zap, LayoutGrid, Hash, Crown } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import Game2048 from '../components/games/Game2048';
 import SnakeGame from '../components/games/SnakeGame';
 import TicTacToe from '../components/games/TicTacToe';
+import ChessGame from '../components/games/ChessGame';
 import { useSEO } from '../hooks/useSEO';
 import { trackEvent } from '../lib/track';
 
-type GameKey = 'snake' | '2048' | 'ttt';
+type GameKey = 'snake' | '2048' | 'ttt' | 'chess';
 
 const GAMES: {
   key: GameKey; name: string; tag: string; Icon: LucideIcon; desc: string; hint: string;
 }[] = [
+  { key: 'chess', name: 'Chess', tag: 'vs AI', Icon: Crown,
+    desc: 'Beat the AI. You are White.', hint: 'click a piece, then a highlighted square' },
   { key: 'snake', name: 'Snake', tag: 'classic', Icon: Zap,
     desc: 'Eat, grow, don\'t crash.', hint: 'arrows / WASD · swipe · space to pause' },
   { key: '2048', name: '2048', tag: 'puzzle', Icon: LayoutGrid,
@@ -22,12 +25,12 @@ const GAMES: {
 ];
 
 export default function GamesPage() {
-  const [active, setActive] = useState<GameKey>('snake');
+  const [active, setActive] = useState<GameKey>('chess');
   const current = GAMES.find(g => g.key === active)!;
 
   useSEO({
     title: 'Arcade',
-    description: 'Snake, 2048, and Tic-Tac-Toe. Three small games built from scratch, no libraries.',
+    description: 'Snake, 2048, Tic-Tac-Toe, and Chess. Four small games, mostly built from scratch.',
   });
 
   return (
@@ -59,7 +62,7 @@ export default function GamesPage() {
           Arcade<span style={{ color: 'var(--accent)' }}>.</span>
         </h1>
         <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginBottom: '28px' }}>
-          Three small games. Built from scratch, no libraries.
+          Four small games. Snake, 2048 and Tic-Tac-Toe built from scratch, no libraries - Chess uses chess.js for move legality, everything else (board, AI opponent, styling) is hand-built too.
         </p>
 
         {/* Tab bar */}
@@ -76,10 +79,15 @@ export default function GamesPage() {
                 key={g.key}
                 onClick={() => { trackEvent('game_select', g.key); setActive(g.key); }}
                 style={{
-                  flex: 1, border: 'none', cursor: 'pointer',
+                  // minWidth: 0 overrides the flex item default of
+                  // min-width: auto, which otherwise refuses to shrink a tab
+                  // below its own content's width - with 4 tabs in the row
+                  // that fought the equal flex: 1 split and squeezed
+                  // whichever tabs lost that fight.
+                  flex: 1, minWidth: 0, border: 'none', cursor: 'pointer',
                   background: on ? 'var(--accent)' : 'transparent',
                   borderRadius: '10px',
-                  padding: '10px 6px 8px',
+                  padding: '10px 4px 8px',
                   display: 'flex', flexDirection: 'column',
                   alignItems: 'center', gap: '4px',
                   transition: 'background 0.2s ease, color 0.2s ease',
@@ -90,11 +98,14 @@ export default function GamesPage() {
                 <span style={{
                   fontFamily: "'JetBrains Mono', monospace",
                   fontSize: '0.72rem', fontWeight: on ? 700 : 500, lineHeight: 1,
+                  whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+                  maxWidth: '100%',
                 }}>{g.name}</span>
                 <span style={{
                   fontSize: '0.52rem', textTransform: 'uppercase',
                   letterSpacing: '0.08em', opacity: on ? 0.7 : 0.45,
                   fontFamily: "'JetBrains Mono', monospace",
+                  whiteSpace: 'nowrap',
                 }}>{g.tag}</span>
               </button>
             );
@@ -133,6 +144,7 @@ export default function GamesPage() {
           {active === 'snake' && <SnakeGame />}
           {active === '2048' && <Game2048 />}
           {active === 'ttt' && <TicTacToe />}
+          {active === 'chess' && <ChessGame />}
         </div>
 
         {/* Controls */}

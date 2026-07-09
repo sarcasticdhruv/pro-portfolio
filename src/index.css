@@ -32,6 +32,11 @@
   --chat-user-text: #07110A;
   /* divider color switches with theme */
   --divider-contrast: #ffffff;
+  /* Live voice call: who's-speaking glow. Bot reuses the site's own accent
+     (RGB channels, for a variable-opacity rgba()); visitor gets a new but
+     equally vivid blue so the pair reads as one deliberate set. */
+  --voice-user-rgb: 47, 155, 255;
+  --voice-bot-rgb: 0, 217, 109;
 }
 
 [data-theme="light"] {
@@ -62,6 +67,9 @@
   --chat-user-text: #FFFFFF;
   /* divider color switches with theme */
   --divider-contrast: #000000;
+  /* Same pairing as dark theme, darkened to match how --accent shifts. */
+  --voice-user-rgb: 23, 104, 196;
+  --voice-bot-rgb: 0, 122, 61;
 }
 
 html {

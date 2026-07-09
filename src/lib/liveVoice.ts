@@ -30,6 +30,24 @@ export interface LiveVoiceCallbacks {
   // Fires when the visitor starts talking over a reply that's still playing.
   onInterrupted?: () => void;
   onError?: (message: string) => void;
+  // Real-time amplitude (roughly 0-1) of the visitor's mic input, sampled on
+  // every capture chunk - drives a visitor-is-speaking UI cue.
+  onInputLevel?: (level: number) => void;
+  // Real-time amplitude of Dhruv's spoken reply, sampled per audio chunk as
+  // it arrives - drives a Dhruv-is-speaking UI cue.
+  onOutputLevel?: (level: number) => void;
+}
+
+// Root-mean-square of a PCM chunk, scaled into a rough 0-1 UI range. Normal
+// speech sits well under full scale in raw float samples, so this gain is
+// tuned by ear rather than derived from anything principled - checked
+// against synthesized speech (macOS `say`) to land mid-range on average
+// with peaks occasionally reaching full scale, not pegged there constantly.
+function rmsLevel(samples: Float32Array): number {
+  let sumSquares = 0;
+  for (let i = 0; i < samples.length; i++) sumSquares += samples[i] * samples[i];
+  const rms = Math.sqrt(sumSquares / samples.length);
+  return Math.min(1, rms * 5);
 }
 
 export interface LiveVoiceController {
@@ -112,6 +130,7 @@ export async function connectLiveVoice(callbacks: LiveVoiceCallbacks): Promise<L
       try { src.stop(); } catch { /* already stopped */ }
     }
     nextPlaybackTime = audioCtx.currentTime;
+    callbacks.onOutputLevel?.(0);
   }
 
   const ai = new GoogleGenAI({ apiKey: token, httpOptions: { apiVersion: 'v1alpha' } });
@@ -133,6 +152,7 @@ export async function connectLiveVoice(callbacks: LiveVoiceCallbacks): Promise<L
           const buffer = audioCtx.createBuffer(1, pcm.length, OUTPUT_SAMPLE_RATE);
           const channel = buffer.getChannelData(0);
           for (let i = 0; i < pcm.length; i++) channel[i] = pcm[i] / 0x8000;
+          callbacks.onOutputLevel?.(rmsLevel(channel));
           const src = audioCtx.createBufferSource();
           src.buffer = buffer;
           src.connect(audioCtx.destination);
@@ -143,6 +163,9 @@ export async function connectLiveVoice(callbacks: LiveVoiceCallbacks): Promise<L
           src.onended = () => {
             const idx = activeSources.indexOf(src);
             if (idx !== -1) activeSources.splice(idx, 1);
+            // Last chunk of this reply finished playing - drop the glow
+            // back to idle instead of holding the final chunk's level.
+            if (activeSources.length === 0) callbacks.onOutputLevel?.(0);
           };
         }
 
@@ -161,6 +184,7 @@ export async function connectLiveVoice(callbacks: LiveVoiceCallbacks): Promise<L
   processor.onaudioprocess = (e: AudioProcessingEvent) => {
     if (closed) return;
     const input = e.inputBuffer.getChannelData(0);
+    callbacks.onInputLevel?.(rmsLevel(input));
     const pcm16 = floatTo16kPcm(input, audioCtx.sampleRate);
     session.sendRealtimeInput({
       audio: { data: int16ToBase64(pcm16), mimeType: `audio/pcm;rate=${INPUT_SAMPLE_RATE}` },
@@ -174,6 +198,7 @@ export async function connectLiveVoice(callbacks: LiveVoiceCallbacks): Promise<L
     if (closed) return;
     closed = true;
     stopPlayback();
+    callbacks.onInputLevel?.(0);
     processor.onaudioprocess = null;
     try { processor.disconnect(); } catch { /* already disconnected */ }
     try { source.disconnect(); } catch { /* already disconnected */ }

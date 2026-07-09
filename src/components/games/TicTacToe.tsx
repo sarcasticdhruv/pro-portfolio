@@ -131,7 +131,11 @@ export default function TicTacToe() {
       {/* Board */}
       <div style={{
         display: 'grid',
-        gridTemplateColumns: 'repeat(3, 1fr)',
+        // minmax(0, 1fr) on BOTH axes, not bare 1fr - a bare 1fr track
+        // won't shrink below its content's min-content size, so a square
+        // holding an X/O stayed a bit wider/taller than an empty one.
+        gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
+        gridTemplateRows: 'repeat(3, minmax(0, 1fr))',
         gap: '8px',
         width: 'min(300px, 80vw)',
         aspectRatio: '1',
@@ -218,7 +222,10 @@ function GameStat({ label, value, color }: { label: string; value: number; color
         textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '2px',
       }}>{label}</div>
       <div style={{
-        fontFamily: "'Syne', sans-serif", fontWeight: 800, fontSize: '1.25rem',
+        // Syne's digits at heavy weight render as an odd wide pill shape at
+        // this size - JetBrains Mono (already used for the label above)
+        // gives crisp, legible numerals instead.
+        fontFamily: "'JetBrains Mono', monospace", fontWeight: 700, fontSize: '1.15rem',
         color: color ?? 'var(--text)', lineHeight: 1,
       }}>{value}</div>
     </div>

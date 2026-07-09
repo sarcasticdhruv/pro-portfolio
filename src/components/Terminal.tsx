@@ -83,7 +83,7 @@ Handle:   sarcasticdhruv
 Role:     AI Engineer
 Company:  AI LifeBOT (Ignited Wings Technology Pvt. Ltd.)
 Location: Bhopal → Raipur/Hyderabad
-Grad:     May 2026 (MITS Gwalior)
+Degree:   B.Tech IT (IoT), MITS Gwalior
 
 Passionate about building AI systems that actually work
 in production — not just demos. Python purist, occasional
@@ -427,7 +427,7 @@ export default function Terminal({ github, onClose, isFloating = false }: Props)
           out(<span><Colored col="#DFF0E3">Edu:    </Colored><span style={{ color: '#A8C8B0' }}>B.Tech IT (IoT) · MITS Gwalior · CGPA 8.94 · Rank #2</span></span>),
           out(<span><Colored col="#DFF0E3">Stack:  </Colored><span style={{ color: '#A8C8B0' }}>Python, TypeScript, GenAI, AWS, Docker</span></span>),
           out(<span><Colored col="#DFF0E3">Paper:  </Colored><span style={{ color: '#A8C8B0' }}>IEEE MPCON-2025 — Brain Tumor Classification</span></span>),
-          out(<span><Colored col="#DFF0E3">Avail:  </Colored><Colored col="#00D96D">Open to full-time AI/ML roles from May 2026</Colored></span>),
+          out(<span><Colored col="#DFF0E3">Avail:  </Colored><Colored col="#00D96D">Open to full-time AI/ML roles</Colored></span>),
           blank(),
         ]);
         return;

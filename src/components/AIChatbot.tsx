@@ -29,8 +29,8 @@ Linktree: linktr.ee/Dhruv.Choudhary
 Location: Bhopal / Raipur / Hyderabad
 
 === EDUCATION ===
-B.Tech IT (IoT) - MITS Gwalior
-CGPA: 8.94 | Dept Rank #2 | Graduating May 2026
+B.Tech IT (IoT) - MITS Gwalior (completed)
+CGPA: 8.94 | Dept Rank #2
 
 === CURRENT ROLE ===
 AI Engineer (GenAI Solutions) @ AI LifeBOT - Ignited Wings Technology Pvt. Ltd.
@@ -216,13 +216,19 @@ export default function AIChatbot() {
   const [attachedImage, setAttachedImage] = useState<string | null>(null);
 
   const bodyRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const liveControllerRef = useRef<LiveVoiceController | null>(null);
   const liveUserMsgIdRef = useRef<number | null>(null);
   const liveAssistantMsgIdRef = useRef<number | null>(null);
+  // Live-call voice levels update at mic/playback chunk rate (tens of times
+  // a second) - kept out of React state and written straight to the DOM via
+  // CSS custom properties so they don't force a re-render per chunk.
+  const voiceBoxRef = useRef<HTMLDivElement>(null);
+  const inputLevelRef = useRef(0);
+  const outputLevelRef = useRef(0);
 
   useEffect(() => {
     if (bodyRef.current) {
@@ -271,11 +277,20 @@ export default function AIChatbot() {
     }
   }, [open]);
 
+  // Blurring before the panel becomes aria-hidden (not after) matters: React
+  // applies aria-hidden on the same commit as the state update, so blurring
+  // in a later effect would still momentarily hide a focused descendant and
+  // trigger the browser's focus/aria-hidden warning.
+  function closeChat() {
+    inputRef.current?.blur();
+    setOpen(false);
+  }
+
   function handleAction(action: Action) {
     if (action.type === 'navigate') {
       if (action.target.startsWith('/#')) {
         // Hash navigation: go to home then scroll
-        setOpen(false);
+        closeChat();
         setTimeout(() => {
           if (window.location.pathname === '/') {
             const id = action.target.slice(2);
@@ -285,7 +300,7 @@ export default function AIChatbot() {
           }
         }, 200);
       } else {
-        setOpen(false);
+        closeChat();
         setTimeout(() => navigate(action.target), 200);
       }
     } else {
@@ -344,7 +359,7 @@ export default function AIChatbot() {
     }
   }
 
-  function onKeyDown(e: KeyboardEvent<HTMLInputElement>) {
+  function onKeyDown(e: KeyboardEvent<HTMLTextAreaElement>) {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       send();
@@ -411,18 +426,50 @@ export default function AIChatbot() {
   // conversation (audio in, audio out over one WebSocket), separate from the
   // dictate mic above. Transcripts from both sides land as regular chat
   // bubbles so the call reads like the rest of the conversation.
+  // Bot audio takes priority when both streams have some level - during
+  // playback the mic is still picking up room echo/background, which isn't
+  // "the visitor speaking". Smoothed (not the raw per-chunk value) so the
+  // glow settles rather than flickers with every capture chunk.
+  function applyVoiceVisual() {
+    const el = voiceBoxRef.current;
+    if (!el) return;
+    const botLevel = outputLevelRef.current;
+    const userLevel = inputLevelRef.current;
+    const speaking = botLevel > 0.02 ? 'bot' : userLevel > 0.02 ? 'user' : null;
+    const level = speaking === 'bot' ? botLevel : speaking === 'user' ? userLevel : 0;
+    el.style.setProperty('--voice-level', String(Math.min(1, level)));
+    el.style.setProperty('--voice-rgb', speaking === 'bot' ? 'var(--voice-bot-rgb)' : speaking === 'user' ? 'var(--voice-user-rgb)' : '110,110,110');
+    if (el.dataset.voiceSpeaker !== speaking) el.dataset.voiceSpeaker = speaking ?? '';
+  }
+
+  function resetVoiceVisual() {
+    inputLevelRef.current = 0;
+    outputLevelRef.current = 0;
+    applyVoiceVisual();
+  }
+
   function startLiveVoice() {
     setError('');
     setLiveState('connecting');
     liveUserMsgIdRef.current = null;
     liveAssistantMsgIdRef.current = null;
+    resetVoiceVisual();
 
     connectLiveVoice({
+      onInputLevel: level => {
+        inputLevelRef.current = inputLevelRef.current * 0.6 + level * 0.4;
+        applyVoiceVisual();
+      },
+      onOutputLevel: level => {
+        outputLevelRef.current = outputLevelRef.current * 0.6 + level * 0.4;
+        applyVoiceVisual();
+      },
       onStateChange: s => {
         if (s === 'live') setLiveState('live');
         if (s === 'closed') {
           setLiveState('idle');
           liveControllerRef.current = null;
+          resetVoiceVisual();
         }
       },
       onInputTranscript: delta => {
@@ -457,6 +504,7 @@ export default function AIChatbot() {
         setError(msg);
         setLiveState('idle');
         liveControllerRef.current = null;
+        resetVoiceVisual();
       },
     })
       .then(controller => { liveControllerRef.current = controller; })
@@ -470,6 +518,7 @@ export default function AIChatbot() {
     liveControllerRef.current?.hangUp();
     liveControllerRef.current = null;
     setLiveState('idle');
+    resetVoiceVisual();
   }
 
   function toggleLiveVoice() {
@@ -482,6 +531,22 @@ export default function AIChatbot() {
   const inputLocked = loading || transcribing || liveState !== 'idle';
 
   useEffect(() => () => { liveControllerRef.current?.hangUp(); }, []);
+
+  // Grows the search box with wrapped text instead of scrolling it
+  // sideways - reset to auto first so it can shrink back down too, capped
+  // so a very long message scrolls internally rather than swallowing the
+  // whole panel.
+  useEffect(() => {
+    const el = inputRef.current;
+    if (!el) return;
+    el.style.height = 'auto';
+    const grown = el.scrollHeight > 120;
+    el.style.height = `${Math.min(el.scrollHeight, 120)}px`;
+    // Only reserve scrollbar space once text actually exceeds the cap -
+    // otherwise some browsers show a scrollbar gutter on the single-line
+    // box even though there's nothing yet to scroll.
+    el.style.overflowY = grown ? 'auto' : 'hidden';
+  }, [input]);
 
   return (
     <>
@@ -540,7 +605,7 @@ export default function AIChatbot() {
             }}>{SUBTITLES[subtitleIdx]}</div>
           </div>
           <button
-            onClick={() => setOpen(false)}
+            onClick={closeChat}
             aria-label="Close chat"
             style={{
               background: 'none', border: 'none', cursor: 'pointer',
@@ -755,7 +820,7 @@ export default function AIChatbot() {
 
         {/* Input */}
         <div style={{
-          display: 'flex', gap: '8px',
+          display: 'flex', gap: '8px', alignItems: 'flex-end',
           padding: '10px 12px 12px',
           borderTop: '1px solid var(--border)',
           background: 'var(--surface)',
@@ -780,7 +845,7 @@ export default function AIChatbot() {
               cursor: inputLocked ? 'not-allowed' : 'pointer',
               opacity: inputLocked ? 0.45 : 1,
               transition: 'background 0.15s, border-color 0.15s, transform 0.1s',
-              flexShrink: 0, color: 'var(--text-muted)', alignSelf: 'center',
+              flexShrink: 0, color: 'var(--text-muted)', alignSelf: 'flex-end',
             }}
             onMouseEnter={e => { if (!inputLocked) (e.currentTarget as HTMLElement).style.transform = 'scale(1.05)'; }}
             onMouseLeave={e => { (e.currentTarget as HTMLElement).style.transform = 'scale(1)'; }}
@@ -788,11 +853,16 @@ export default function AIChatbot() {
             <Plus size={16} />
           </button>
 
-          {/* Search box, with the dictate mic embedded inside its right edge */}
-          <div style={{ position: 'relative', flex: 1 }}>
-            <input
+          {/* Search box, with the dictate mic embedded inside its right edge.
+              During a live call this same box glows blue while the visitor
+              is talking and green while Dhruv's AI is talking - intensity
+              driven by real mic/playback amplitude via CSS vars set
+              imperatively (see applyVoiceVisual), not React state. */}
+          <div ref={voiceBoxRef} className="chat-voice-box" style={{ position: 'relative', flex: 1 }}>
+            <textarea
               ref={inputRef}
               className="chat-text-input"
+              rows={1}
               value={input}
               onChange={e => setInput(e.target.value)}
               onKeyDown={onKeyDown}
@@ -805,6 +875,7 @@ export default function AIChatbot() {
               }
               disabled={inputLocked}
               style={{
+                display: 'block',
                 width: '100%',
                 background: 'var(--surface-2)',
                 border: '1px solid var(--border)',
@@ -813,7 +884,11 @@ export default function AIChatbot() {
                 color: 'var(--text)',
                 fontFamily: "'DM Sans', sans-serif",
                 fontSize: '16px',
+                lineHeight: 1.4,
                 outline: 'none',
+                resize: 'none',
+                maxHeight: '120px',
+                overflowY: 'hidden',
                 transition: 'border-color 0.15s, box-shadow 0.15s',
               }}
               onFocus={e => {
@@ -831,7 +906,12 @@ export default function AIChatbot() {
               aria-label={recording ? 'Stop recording' : 'Dictate a message'}
               title={recording ? 'Stop recording' : 'Dictate a message'}
               style={{
-                position: 'absolute', top: '50%', right: '6px', transform: 'translateY(-50%)',
+                // Anchored to the bottom, not vertically centered in the
+                // whole box - once text wraps to multiple lines, centering
+                // would drift up into the middle of the paragraph instead of
+                // sitting level with the +/live-call/send buttons outside,
+                // which are bottom-aligned in the row.
+                position: 'absolute', bottom: '8px', right: '6px',
                 background: recording ? '#FF6B6B' : 'transparent',
                 border: 'none', borderRadius: '50%',
                 width: '24px', height: '24px',
@@ -843,7 +923,13 @@ export default function AIChatbot() {
                 animation: recording ? 'micPulse 1.4s ease-in-out infinite' : 'none',
               }}
             >
-              {transcribing ? <Loader2 size={12} className="spin-slow" /> : recording ? <Square size={10} /> : <Mic size={13} />}
+              {liveState === 'live' ? (
+                <span className="voice-bars" aria-hidden="true">
+                  <span className="voice-bar" />
+                  <span className="voice-bar" />
+                  <span className="voice-bar" />
+                </span>
+              ) : transcribing ? <Loader2 size={12} className="spin-slow" /> : recording ? <Square size={10} /> : <Mic size={13} />}
             </button>
           </div>
 
@@ -929,7 +1015,7 @@ export default function AIChatbot() {
 
       {/* ── FAB ── */}
       <button
-        onClick={() => setOpen(o => !o)}
+        onClick={() => { inputRef.current?.blur(); setOpen(o => !o); }}
         aria-label={open ? 'Close AI chat' : 'Open AI chat'}
         style={{
           position: 'fixed', bottom: '24px',
@@ -973,6 +1059,43 @@ export default function AIChatbot() {
            auto-zoom on focus) - only the placeholder text shrinks. */
         .chat-text-input::placeholder {
           font-size: 0.82rem;
+        }
+        /* Live call glow - --voice-level/--voice-rgb are written directly
+           to this element's inline style per audio chunk (see
+           applyVoiceVisual), and inherited by the waveform bars nested
+           inside it below. Idle (level 0) resolves to a fully transparent,
+           invisible ring, so outside a call this costs nothing visually. */
+        .chat-voice-box {
+          border-radius: 10px;
+          transition: box-shadow 0.18s ease;
+          box-shadow: 0 0 0 calc(1px + var(--voice-level, 0) * 5px)
+            rgba(var(--voice-rgb, 110, 110, 110), calc(var(--voice-level, 0) * 0.4));
+        }
+        .voice-bars {
+          display: inline-flex;
+          align-items: center;
+          gap: 2px;
+          height: 13px;
+        }
+        .voice-bar {
+          width: 2.5px;
+          border-radius: 1px;
+          background: rgb(var(--voice-rgb, 110, 110, 110));
+          animation: voiceBarBounce 0.9s ease-in-out infinite;
+          /* Real amplitude modulates how visible the motion is - near-silent
+             holds the bars low and faint; louder brings them fully in. */
+          opacity: calc(0.35 + var(--voice-level, 0) * 0.65);
+          transform-origin: center;
+        }
+        .voice-bar:nth-child(1) { height: 5px; animation-delay: 0s; }
+        .voice-bar:nth-child(2) { height: 13px; animation-delay: 0.15s; }
+        .voice-bar:nth-child(3) { height: 8px; animation-delay: 0.3s; }
+        @keyframes voiceBarBounce {
+          0%, 100% { transform: scaleY(0.4); }
+          50% { transform: scaleY(1); }
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .voice-bar { animation: none; }
         }
       `}</style>
     </>

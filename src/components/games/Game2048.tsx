@@ -172,7 +172,12 @@ export default function Game2048() {
           borderRadius: '14px',
           padding: '10px',
           display: 'grid',
-          gridTemplateColumns: 'repeat(4, 1fr)',
+          // minmax(0, 1fr) on BOTH axes, not bare 1fr - a bare 1fr track
+          // won't shrink below its content's min-content size, so rows/
+          // columns with a bigger tile number would stay larger than
+          // emptier ones.
+          gridTemplateColumns: 'repeat(4, minmax(0, 1fr))',
+          gridTemplateRows: 'repeat(4, minmax(0, 1fr))',
           gap: '8px',
           touchAction: 'none',
           userSelect: 'none',
@@ -238,7 +243,10 @@ function GameStat({ label, value, accent }: { label: string; value: number; acce
         textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '2px',
       }}>{label}</div>
       <div style={{
-        fontFamily: "'Syne', sans-serif", fontWeight: 800, fontSize: '1.3rem',
+        // Syne's digits at heavy weight render as an odd wide pill shape at
+        // this size - JetBrains Mono (already used for the label above)
+        // gives crisp, legible numerals instead.
+        fontFamily: "'JetBrains Mono', monospace", fontWeight: 700, fontSize: '1.2rem',
         color: accent ? 'var(--accent)' : 'var(--text)', lineHeight: 1,
       }}>{value}</div>
     </div>

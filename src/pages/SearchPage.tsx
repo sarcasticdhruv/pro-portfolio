@@ -75,7 +75,7 @@ export default function SearchPage() {
   // instead of waiting for the whole multi-agent run to complete first.
   const [imageGenQuery, setImageGenQuery] = useState<string | null>(null);
   const [history, setHistory] = useState<HistoryEntry[]>(() => loadHistory());
-  const [modelChoice, setModelChoice] = useState<ModelChoice>('pro');
+  const [modelChoice, setModelChoice] = useState<ModelChoice>('core');
   const [aboutChips] = useState<string[]>(() => pickRandom(ABOUT_POOL, 2));
   const [trending, setTrending] = useState<string[]>(() => pickRandom(TRENDING_FALLBACK, 2));
   const inputRef = useRef<HTMLInputElement>(null);

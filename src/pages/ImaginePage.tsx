@@ -1,9 +1,13 @@
 import { useState, useRef, useEffect, type KeyboardEvent } from 'react';
 import { Link } from 'react-router-dom';
-import { Download, Loader2, RotateCw, ImageIcon } from 'lucide-react';
+import { Download, Loader2, RotateCw, ImageIcon, History, Trash2, X } from 'lucide-react';
 import { useSEO } from '../hooks/useSEO';
 import { chat } from '../lib/providers';
 import { trackEvent } from '../lib/track';
+import {
+  loadHistory, saveToHistory, findCached, removeFromHistory, clearHistory,
+  type ImagineHistoryEntry,
+} from '../lib/imagineHistory';
 
 type Status = 'idle' | 'loading' | 'done' | 'error';
 
@@ -36,7 +40,9 @@ export default function ImaginePage() {
   const [status, setStatus] = useState<Status>('idle');
   const [source, setSource] = useState('');
   const [examples, setExamples] = useState<string[]>(FALLBACK_EXAMPLES);
+  const [history, setHistory] = useState<ImagineHistoryEntry[]>(() => loadHistory());
   const srcRef = useRef('');
+  const inputRef = useRef<HTMLInputElement>(null);
 
   useSEO({
     title: 'Imagine',
@@ -71,11 +77,24 @@ export default function ImaginePage() {
     return () => { cancelled = true; };
   }, []);
 
-  async function generate(p: string) {
+  async function generate(p: string, opts?: { skipCache?: boolean }) {
     const text = p.trim();
     if (!text || status === 'loading') return;
     trackEvent('imagine_generate', text);
     setSubmitted(text);
+
+    if (!opts?.skipCache) {
+      const cached = findCached(text);
+      if (cached) {
+        setSource(cached.source);
+        if (srcRef.current) URL.revokeObjectURL(srcRef.current);
+        srcRef.current = '';
+        setSrc(cached.dataUrl);
+        setStatus('done');
+        return;
+      }
+    }
+
     setStatus('loading');
     try {
       const res = await fetch('/api/image', {
@@ -85,15 +104,51 @@ export default function ImaginePage() {
       });
       if (!res.ok) throw new Error('generation failed');
       const blob = await res.blob();
-      setSource(res.headers.get('X-Image-Source') ?? '');
+      const imgSource = res.headers.get('X-Image-Source') ?? '';
+      setSource(imgSource);
       const url = URL.createObjectURL(blob);
       if (srcRef.current) URL.revokeObjectURL(srcRef.current);
       srcRef.current = url;
       setSrc(url);
       setStatus('done');
+      // Object URLs don't survive a reload, so history keeps the actual
+      // pixels as a base64 data URL instead.
+      const reader = new FileReader();
+      reader.onload = () => {
+        if (typeof reader.result === 'string') {
+          setHistory(saveToHistory({ prompt: text, source: imgSource, dataUrl: reader.result }));
+        }
+      };
+      reader.readAsDataURL(blob);
     } catch {
       setStatus('error');
     }
+  }
+
+  function restore(entry: ImagineHistoryEntry) {
+    if (status === 'loading') return;
+    setPrompt(entry.prompt);
+    setSubmitted(entry.prompt);
+    setSource(entry.source);
+    if (srcRef.current) URL.revokeObjectURL(srcRef.current);
+    srcRef.current = '';
+    setSrc(entry.dataUrl);
+    setStatus('done');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  // Fresh session: clear the current prompt/result (history stays)
+  function newSession() {
+    if (status === 'loading') return;
+    setPrompt('');
+    setSubmitted('');
+    setSource('');
+    if (srcRef.current) URL.revokeObjectURL(srcRef.current);
+    srcRef.current = '';
+    setSrc('');
+    setStatus('idle');
+    inputRef.current?.focus();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
   const onKey = (e: KeyboardEvent<HTMLInputElement>) => {
@@ -116,9 +171,15 @@ export default function ImaginePage() {
           <span>/</span>
           <span>imagine</span>
         </div>
-        <h1 className="font-display" style={{
-          fontSize: 'clamp(1.6rem, 4vw, 2.4rem)', fontWeight: 700, marginBottom: '6px',
-        }}>
+        <h1
+          className="font-display"
+          onClick={newSession}
+          title="start a new session"
+          style={{
+            fontSize: 'clamp(1.6rem, 4vw, 2.4rem)', fontWeight: 700, marginBottom: '6px',
+            cursor: 'pointer', userSelect: 'none',
+          }}
+        >
           Imagine<span style={{ color: 'var(--accent)' }}>.</span>
         </h1>
         <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginBottom: '28px' }}>
@@ -133,6 +194,7 @@ export default function ImaginePage() {
         }}>
           <ImageIcon size={16} style={{ color: 'var(--text-dim)', flexShrink: 0 }} />
           <input
+            ref={inputRef}
             className="search-input"
             value={prompt}
             onChange={e => setPrompt(e.target.value)}
@@ -221,7 +283,7 @@ export default function ImaginePage() {
                   {source === 'hf-flux' ? 'Core' : source === 'pollinations' ? 'Lite' : 'generated'} · {submitted}
                 </span>
                 <div style={{ display: 'flex', gap: '6px' }}>
-                  <button onClick={() => generate(submitted)} className="search-chip" style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
+                  <button onClick={() => generate(submitted, { skipCache: true })} className="search-chip" style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
                     <RotateCw size={11} /> regenerate
                   </button>
                   <a href={src} download="imagine.png" className="search-chip" style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', textDecoration: 'none' }}>
@@ -230,6 +292,54 @@ export default function ImaginePage() {
                 </div>
               </div>
             )}
+          </div>
+        )}
+
+        {/* History */}
+        {history.length > 0 && (
+          <div style={{ marginTop: '48px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '14px' }}>
+              <p className="label" style={{ fontSize: '0.68rem' }}>
+                <History size={11} style={{ verticalAlign: '-1px', marginRight: '6px' }} />
+                history
+              </p>
+              <div style={{ flex: 1, height: '1px', background: 'var(--border)' }} />
+              <button
+                onClick={() => { clearHistory(); setHistory([]); }}
+                className="search-chip"
+                style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                <Trash2 size={11} /> clear all
+              </button>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+              {history.map(entry => (
+                <div key={entry.id} className="search-history-row" onClick={() => restore(entry)}>
+                  <img
+                    src={entry.dataUrl} alt=""
+                    style={{ width: '32px', height: '32px', borderRadius: '4px', objectFit: 'cover', flexShrink: 0 }}
+                  />
+                  <span style={{
+                    flex: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+                    color: 'var(--text-muted)', fontSize: '0.82rem',
+                  }}>
+                    {entry.prompt}
+                  </span>
+                  <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '0.66rem', color: 'var(--text-dim)', flexShrink: 0 }}>
+                    {timeAgo(entry.createdAt)}
+                  </span>
+                  <button
+                    onClick={e => { e.stopPropagation(); setHistory(removeFromHistory(entry.id)); }}
+                    title="remove"
+                    className="search-history-remove"
+                    style={{
+                      background: 'none', border: 'none', cursor: 'pointer', padding: '3px',
+                      color: 'var(--text-dim)', display: 'flex', flexShrink: 0,
+                    }}>
+                    <X size={12} />
+                  </button>
+                </div>
+              ))}
+            </div>
           </div>
         )}
       </div>
@@ -244,10 +354,28 @@ export default function ImaginePage() {
           font-size: 0.7rem; cursor: pointer; transition: all 0.18s ease;
         }
         .search-chip:hover { border-color: var(--accent); color: var(--accent); }
+        .search-history-row {
+          display: flex; align-items: center; gap: 10px;
+          padding: 9px 12px; border-radius: 6px; cursor: pointer;
+          transition: background 0.15s ease;
+        }
+        .search-history-row:hover { background: var(--surface-2); }
         @media (max-width: 640px) {
           .search-input { font-size: 16px !important; }
+        }
+        @media (hover: none) {
+          .search-history-remove { padding: 8px !important; }
         }
       `}</style>
     </main>
   );
+}
+
+function timeAgo(ts: number): string {
+  const mins = Math.floor((Date.now() - ts) / 60000);
+  if (mins < 1) return 'now';
+  if (mins < 60) return `${mins}m`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h`;
+  return `${Math.floor(hrs / 24)}d`;
 }

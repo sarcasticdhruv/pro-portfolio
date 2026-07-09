@@ -26,7 +26,7 @@ const STATIC_RECORDS: ContentRecord[] = [
     url: '/#about',
     tags: ['bio', 'about', 'dhruv'],
     text: `Dhruv Choudhary (@sarcasticdhruv) is an AI Engineer at AI LifeBOT (Ignited Wings
-Technology). B.Tech IT (IoT) at MITS Gwalior, CGPA 8.94, Department Rank 2, graduating May 2026.
+Technology). B.Tech IT (IoT) from MITS Gwalior (completed), CGPA 8.94, Department Rank 2.
 Based across Bhopal, Raipur and Hyderabad. Builds GenAI solutions that ship to production.
 Email nrdhruv654@gmail.com, GitHub github.com/sarcasticdhruv,
 LinkedIn linkedin.com/in/dhruv-choudhary-india, Twitter @SarcasticDhruv.`,

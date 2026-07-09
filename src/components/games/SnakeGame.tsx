@@ -2,7 +2,13 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { RotateCcw, Play, Pause, XCircle } from 'lucide-react';
 
 const CELLS = 17;
-const SPEED = 120;
+// Starts noticeably gentler than the old fixed 120ms/tick, then ramps up as
+// the snake grows - 5ms faster per point, capped so it never gets so fast
+// it feels unplayable rather than challenging.
+const START_SPEED = 150;
+const MIN_SPEED = 70;
+const SPEED_STEP = 5;
+const speedForScore = (s: number) => Math.max(MIN_SPEED, START_SPEED - s * SPEED_STEP);
 const BEST_KEY = 'dhruv_snake_best';
 
 type P = { x: number; y: number };
@@ -49,6 +55,7 @@ export default function SnakeGame() {
   const acc = useRef(0);
   const lastTs = useRef(0);
   const raf = useRef(0);
+  const speed = useRef(START_SPEED);
   const touchStart = useRef<{ x: number; y: number } | null>(null);
 
   const reset = useCallback(() => {
@@ -57,6 +64,7 @@ export default function SnakeGame() {
     queued.current = [];
     food.current = randFood(snake.current);
     acc.current = 0;
+    speed.current = START_SPEED;
     setScore(0);
     setOver(false);
     setRunning(true);
@@ -153,6 +161,7 @@ export default function SnakeGame() {
         food.current = randFood(snake.current);
         setScore(s => {
           const ns = s + 1;
+          speed.current = speedForScore(ns);
           setBest(b => { const nb = Math.max(b, ns); localStorage.setItem(BEST_KEY, String(nb)); return nb; });
           return ns;
         });
@@ -167,7 +176,7 @@ export default function SnakeGame() {
       lastTs.current = ts;
       if (running && !over) {
         acc.current += dt;
-        while (acc.current >= SPEED) { acc.current -= SPEED; step(); }
+        while (acc.current >= speed.current) { acc.current -= speed.current; step(); }
       }
       draw();
       raf.current = requestAnimationFrame(tick);
@@ -306,7 +315,10 @@ function GameStat({ label, value, accent }: { label: string; value: number; acce
         textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '2px',
       }}>{label}</div>
       <div style={{
-        fontFamily: "'Syne', sans-serif", fontWeight: 800, fontSize: '1.3rem',
+        // Syne's digits at heavy weight render as an odd wide pill shape at
+        // this size - JetBrains Mono (already used for the label above)
+        // gives crisp, legible numerals instead.
+        fontFamily: "'JetBrains Mono', monospace", fontWeight: 700, fontSize: '1.2rem',
         color: accent ? 'var(--accent)' : 'var(--text)', lineHeight: 1,
       }}>{value}</div>
     </div>

@@ -20,36 +20,67 @@ function pickRandom() {
   return messages[Math.floor(Math.random() * messages.length)];
 }
 
-// Keyless, CORS-open meme feed. Retries across a small safe-for-work pool
-// and skips anything flagged nsfw/spoiler.
+// Keyless, CORS-open meme feed. Skips anything flagged nsfw/spoiler.
 const MEME_SUBS = ['ProgrammerHumor', 'programmingmemes', 'wholesomememes', 'memes'];
+const FETCH_TIMEOUT_MS = 4000;
 
 interface Meme { url: string; title: string; subreddit: string }
 
-async function fetchMeme(): Promise<Meme | null> {
-  for (let i = 0; i < 4; i++) {
-    try {
-      const sub = MEME_SUBS[Math.floor(Math.random() * MEME_SUBS.length)];
-      const res = await fetch(`https://meme-api.com/gimme/${sub}`);
-      if (!res.ok) continue;
-      const data = await res.json();
-      if (data.nsfw || data.spoiler || !data.url) continue;
-      return { url: data.url, title: data.title, subreddit: data.subreddit };
-    } catch {
-      return null;
-    }
+async function fetchOneMeme(sub: string, signal: AbortSignal): Promise<Meme | null> {
+  try {
+    const res = await fetch(`https://meme-api.com/gimme/${sub}`, { signal });
+    if (!res.ok) return null;
+    const data = await res.json();
+    if (data.nsfw || data.spoiler || !data.url) return null;
+    return { url: data.url, title: data.title, subreddit: data.subreddit };
+  } catch {
+    return null;
   }
-  return null;
+}
+
+// Fires a few subreddits concurrently and takes whichever responds first
+// with a valid, safe-for-work meme - a slow or empty one no longer adds to
+// the wait the way sequential retries did. Bounded by a hard timeout so a
+// hung request can't stall the page indefinitely.
+function fetchMeme(): Promise<Meme | null> {
+  const subs = [...MEME_SUBS].sort(() => Math.random() - 0.5).slice(0, 3);
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+
+  return new Promise(resolve => {
+    let done = false;
+    let settled = 0;
+    const finish = (m: Meme | null) => {
+      if (done) return;
+      done = true;
+      clearTimeout(timeout);
+      controller.abort();
+      resolve(m);
+    };
+    subs.forEach(sub => {
+      fetchOneMeme(sub, controller.signal).then(m => {
+        settled++;
+        if (m) finish(m);
+        else if (settled === subs.length) finish(null);
+      });
+    });
+  });
 }
 
 export default function NotFoundPage() {
   const [msg, setMsg] = useState(() => pickRandom());
   const [meme, setMeme] = useState<Meme | null>(null);
   const [memeLoading, setMemeLoading] = useState(true);
+  // Tracks the actual <img> finishing its download, not just the API call
+  // that resolves the URL - without this the spinner vanished and left a
+  // blank box while the real image (hosted on Reddit's CDN) was still
+  // loading behind the scenes.
+  const [imgReady, setImgReady] = useState(false);
   const mounted = useRef(true);
 
   const loadMeme = useCallback(() => {
     setMemeLoading(true);
+    setImgReady(false);
     fetchMeme().then(m => {
       if (!mounted.current) return;
       setMeme(m);
@@ -129,27 +160,34 @@ export default function NotFoundPage() {
             <Loader2 size={22} className="spin" />
           </div>
         ) : meme ? (
-          <>
+          <div style={{ position: 'relative', width: '100%' }}>
+            {!imgReady && (
+              <div style={{
+                position: 'absolute', inset: 0,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                minHeight: '160px', color: 'var(--text-dim)',
+              }}>
+                <Loader2 size={22} className="spin" />
+              </div>
+            )}
             <img
               src={meme.url}
               alt={meme.title}
-              style={{ width: '100%', maxHeight: '360px', objectFit: 'cover', display: 'block' }}
-              onError={() => setMeme(null)}
-            />
-            <div
               style={{
                 width: '100%',
-                padding: '8px 14px',
-                fontFamily: "'JetBrains Mono', monospace",
-                fontSize: '0.65rem',
-                color: 'var(--text-dim)',
-                textAlign: 'left',
-                borderTop: '1px solid var(--border)',
+                maxHeight: '360px',
+                // contain, not cover - cover crops anything taller than the
+                // box (a lot of memes are tall multi-panel images), which
+                // was cutting off the top and bottom of the image.
+                objectFit: 'contain',
+                display: 'block',
+                opacity: imgReady ? 1 : 0,
+                transition: 'opacity 0.2s ease',
               }}
-            >
-              r/{meme.subreddit}
-            </div>
-          </>
+              onLoad={() => setImgReady(true)}
+              onError={() => setMeme(null)}
+            />
+          </div>
         ) : (
           <div style={{
             padding: '40px 16px',
@@ -188,7 +226,10 @@ export default function NotFoundPage() {
             fontFamily: "'JetBrains Mono', monospace",
             fontSize: '0.9rem',
             background: 'var(--accent)',
-            color: '#000',
+            // Hardcoded black read fine in dark mode (bright green button)
+            // but was low-contrast in light mode (deeper green button) -
+            // same theme-aware pair already used for the chat send button.
+            color: 'var(--chat-user-text)',
             borderRadius: '8px',
             textDecoration: 'none',
           }}
