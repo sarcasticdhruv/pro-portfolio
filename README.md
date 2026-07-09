@@ -30,6 +30,16 @@ The Arch Linux terminal in the hero section supports:
 
 Keyboard shortcuts: ↑/↓ for history, Tab for completion, Ctrl+L to clear, Ctrl+C to cancel.
 
+## Pages
+
+- `/` — home, with the terminal hero
+- `/search` — ask anything about my projects, experience, and writing (AI-powered)
+- `/imagine` — generate images from a text prompt, free, in-browser, no sign-up
+- `/games` — arcade: Snake, 2048, Tic-Tac-Toe, Chess
+- `/blog` — writing
+
+There's also a floating AI chatbot (bottom-right on every page) that answers as me, with live voice mode and mic input.
+
 ## Theme Transitions
 
 - **Dark → Light**: Stars waterfall from top-right → bottom-left with sparkles, comet tails, and burst effects
