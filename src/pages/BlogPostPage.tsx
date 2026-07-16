@@ -4,8 +4,9 @@ import { getPost, formatDate } from '../lib/blog';
 import MarkdownRenderer from '../components/blog/MarkdownRenderer';
 import ReadingProgress from '../components/blog/ReadingProgress';
 import TagPill from '../components/blog/TagPill';
+import ShareMenu from '../components/blog/ShareMenu';
 import { useSEO } from '../hooks/useSEO';
-import { ArrowLeft, Clock, CalendarDays, Twitter, Link2 } from 'lucide-react';
+import { ArrowLeft, Clock, CalendarDays } from 'lucide-react';
 
 export default function BlogPostPage() {
   const { slug } = useParams<{ slug: string }>();
@@ -22,11 +23,6 @@ export default function BlogPostPage() {
   if (!post) return null;
 
   const shareUrl = typeof window !== 'undefined' ? window.location.href : '';
-  const twitterShare = `https://twitter.com/intent/tweet?text=${encodeURIComponent(post.title)}&url=${encodeURIComponent(shareUrl)}&via=SarcasticDhruv`;
-
-  function copyLink() {
-    navigator.clipboard.writeText(shareUrl).catch(() => {});
-  }
 
   return (
     <>
@@ -152,62 +148,8 @@ export default function BlogPostPage() {
             )}
 
             {/* Share */}
-            <div style={{ display: 'flex', gap: '10px', alignItems: 'center', marginLeft: 'auto' }}>
-              <a
-                href={twitterShare}
-                target="_blank"
-                rel="noopener noreferrer"
-                title="Share on X/Twitter"
-                style={{
-                  display: 'flex', alignItems: 'center', gap: '5px',
-                  fontFamily: "'JetBrains Mono', monospace",
-                  fontSize: '0.68rem',
-                  color: 'var(--text-dim)',
-                  textDecoration: 'none',
-                  padding: '6px 12px',
-                  border: '1px solid var(--border)',
-                  borderRadius: '8px',
-                  transition: 'color 0.15s, border-color 0.15s',
-                }}
-                onMouseEnter={e => {
-                  (e.currentTarget as HTMLElement).style.color = 'var(--text)';
-                  (e.currentTarget as HTMLElement).style.borderColor = 'var(--border-2)';
-                }}
-                onMouseLeave={e => {
-                  (e.currentTarget as HTMLElement).style.color = 'var(--text-dim)';
-                  (e.currentTarget as HTMLElement).style.borderColor = 'var(--border)';
-                }}
-              >
-                <Twitter size={12} />
-                share
-              </a>
-              <button
-                onClick={copyLink}
-                title="Copy link"
-                style={{
-                  display: 'flex', alignItems: 'center', gap: '5px',
-                  fontFamily: "'JetBrains Mono', monospace",
-                  fontSize: '0.68rem',
-                  color: 'var(--text-dim)',
-                  background: 'none',
-                  padding: '6px 12px',
-                  border: '1px solid var(--border)',
-                  borderRadius: '8px',
-                  cursor: 'pointer',
-                  transition: 'color 0.15s, border-color 0.15s',
-                }}
-                onMouseEnter={e => {
-                  (e.currentTarget as HTMLElement).style.color = 'var(--text)';
-                  (e.currentTarget as HTMLElement).style.borderColor = 'var(--border-2)';
-                }}
-                onMouseLeave={e => {
-                  (e.currentTarget as HTMLElement).style.color = 'var(--text-dim)';
-                  (e.currentTarget as HTMLElement).style.borderColor = 'var(--border)';
-                }}
-              >
-                <Link2 size={12} />
-                copy link
-              </button>
+            <div style={{ marginLeft: 'auto' }}>
+              <ShareMenu title={post.title} url={shareUrl} />
             </div>
           </div>
 
