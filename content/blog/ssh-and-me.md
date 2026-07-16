@@ -19,7 +19,7 @@ Before SSH there was Telnet and rlogin. Both shipped your password across the ne
 
 SSH-1 had its own cryptographic issues later on, so the protocol was redesigned properly into SSH-2 in the late 90s, which is still what you're using today whether you know it or not. That's really the whole history. No twist ending, no billion dollar acquisition. A guy got hacked, got annoyed, fixed it for everyone.
 
-![Red padlock resting on a black computer keyboard](https://images.unsplash.com/photo-1614064641938-3bbee52942c7?fm=jpg&q=60&w=1600&auto=format&fit=crop)
+![Red padlock resting on a black computer keyboard](https://cybersecuritynews.com/wp-content/uploads/2026/04/OpenSSH-10.3-Release.webp)
 
 ## What I actually use it for
 

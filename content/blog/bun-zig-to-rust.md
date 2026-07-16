@@ -3,7 +3,7 @@ title: "Bun Rewrote Itself From Zig to Rust in 11 Days and I Use Bun, So Now I'm
 date: "2026-07-16"
 excerpt: "Jarred Sumner ported 535,000 lines of Zig to Rust in 11 days using a fleet of Claude agents. I run bun install on this very portfolio. Let's talk about it."
 tags: ["Bun", "Rust", "AI Agents", "engineering"]
-coverImage: "https://images.unsplash.com/photo-1754039984985-ef607d80113a?fm=jpg&q=80&w=1600&auto=format&fit=crop"
+coverImage: "https://static0.makeuseofimages.com/wordpress/wp-content/uploads/2022/08/BunjsLogoOnLaptop-1.jpg?w=1600&h=900&fit=crop"
 published: true
 ---
 
@@ -17,7 +17,7 @@ Jarred Sumner, the guy who built Bun, took 535,496 lines of Zig, excluding comme
 
 Read that again. A production JavaScript runtime, the thing powering who knows how many `bun run dev` commands right now, got its foundation replaced in less time than it takes some teams to agree on a linter config.
 
-![Orange and black crab in macro shot photography](https://images.unsplash.com/photo-1472324377224-f42c0943287b?fm=jpg&q=60&w=1600&auto=format&fit=crop)
+![bun](https://www.tecmint.com/wp-content/uploads/2025/01/Install-Bun-in-Linux.png)
 
 ## Why bother
 
