@@ -3,7 +3,7 @@ title: "SSH and Me: A Short, Slightly Funny History of the Little Padlock I Use 
 date: "2026-07-14"
 excerpt: "SSH gets blamed for problems it never caused, including one I personally accused it of last week. Here's the real history, how I actually use it, and what I still don't know about it."
 tags: ["SSH", "git", "dev tools", "engineering"]
-coverImage: "https://images.unsplash.com/photo-1695668548342-c0c1ad479aee?fm=jpg&q=80&w=1600&auto=format&fit=crop"
+coverImage: "https://images.unsplash.com/photo-1633265486064-086b219458ec?fm=jpg&q=80&w=1600&auto=format&fit=crop"
 published: true
 ---
 
@@ -19,7 +19,7 @@ Before SSH there was Telnet and rlogin. Both shipped your password across the ne
 
 SSH-1 had its own cryptographic issues later on, so the protocol was redesigned properly into SSH-2 in the late 90s, which is still what you're using today whether you know it or not. That's really the whole history. No twist ending, no billion dollar acquisition. A guy got hacked, got annoyed, fixed it for everyone.
 
-![Code displayed on a screen in yellow and blue](https://images.unsplash.com/photo-1533709752211-118fcaf03312?fm=jpg&q=60&w=1600&auto=format&fit=crop)
+![Red padlock resting on a black computer keyboard](https://images.unsplash.com/photo-1614064641938-3bbee52942c7?fm=jpg&q=60&w=1600&auto=format&fit=crop)
 
 ## What I actually use it for
 
@@ -45,7 +45,7 @@ Then my remotes just point at `github-personal` or `github-work` instead of `git
 
 The other use case is logging into actual servers, mostly AWS boxes. Same idea, key based, no password, `.pem` file if AWS handed me one, agent forwarding if I'm feeling brave that day. It is, unglamorously, the least exciting part of my job that I use the most.
 
-![Abstract blue network of connected nodes](https://images.unsplash.com/photo-1644088379091-d574269d422f?fm=jpg&q=60&w=1600&auto=format&fit=crop)
+![Padlock and keys resting on a computer keyboard](https://images.unsplash.com/photo-1768839722988-91767bb82b10?fm=jpg&q=60&w=1600&auto=format&fit=crop)
 
 ## What I don't actually know, and I'm fine admitting it
 
