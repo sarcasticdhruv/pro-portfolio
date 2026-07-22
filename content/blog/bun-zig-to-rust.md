@@ -17,7 +17,7 @@ Jarred Sumner, the guy who built Bun, took 535,496 lines of Zig, excluding comme
 
 Read that again. A production JavaScript runtime, the thing powering who knows how many `bun run dev` commands right now, got its foundation replaced in less time than it takes some teams to agree on a linter config.
 
-![bun](https://www.tecmint.com/wp-content/uploads/2025/01/Install-Bun-in-Linux.png)
+![bun](https://images.openai.com/static-rsc-4/-B-elnWzvxOEdH5NVauHxE0FntxGG5Wr1A--4-51B9xUsZO-DuYk0gnVHOuwy-pCkIkTR_YzYONrnNMp0SxOTSSBvA_PwZa_ltcwXQWDzhOARvIJGq4RE7PgBYA11IiO1Q1gGSCcKzuZGxA_9TCQfb_2GcjJbipNlmh4P4Z3x9A?purpose=inline)
 
 ## Why bother
 
