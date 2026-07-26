@@ -40,3 +40,17 @@ I sometimes wonder what the equivalent of "rank 2" would look like for productio
 That's probably fine. The unmeasurability is part of what makes it interesting.
 
 What I know is that my CGPA got me through some doors. What I've learned since walking through those doors is what I'll be using for the rest of my career.
+
+## FAQ
+
+**What production experience is this post actually drawing on?**
+
+My .NET contributions to EMIS, a live government-facing production system with real users and real data. The first time I deployed a change there and nothing broke, I felt relief I never felt handing in an exam - because the failure mode isn't a lost point, it's incorrect data flowing into a live database.
+
+**What's the real difference between academic competence and production competence?**
+
+Academic mode is a clearly bounded problem with a known answer; production mode is a system with state, history, and dependencies, where the question is what you can safely change and how you verify you changed it correctly. Rank 2 measured the first kind of competence well and told me almost nothing about the second.
+
+**Is being careful in production just being slow?**
+
+No - being careful is a mode of attention, not a pace. It's building a mental model of how a system's data flows and dependencies fit together and mentally simulating your change against that model before you touch anything; good engineers do this fast and mostly correctly, and I'm still getting better at doing it fast.

@@ -66,3 +66,17 @@ What's notable is who's saying it. This is a systemic risk regulator, the people
 If you zoom out, every single story this week is really about the same thing: AI stopped being a feature and became infrastructure, and infrastructure comes with infrastructure problems. Microsoft wants to own its models instead of renting them. Apple and the EU are fighting over who controls the App Store. Claude Fable got caught in an actual export-policy squeeze. AI browsers opened up a security hole nobody's finished patching. And now financial regulators are treating AI as a systemic risk instead of a product feature. Different fights, same underlying shift.
 
 Anyway, back to figuring out why my chess board looks like a Windows 95 screensaver in the middle rows. Priorities.
+
+## FAQ
+
+**Why is Microsoft replacing OpenAI and Anthropic models in Excel and Outlook with its own MAI models?**
+
+Basically, rent versus own. Microsoft was paying to run OpenAI and Anthropic models inside Copilot features, and after shipping its own MAI reasoning and multimodal models in June, it started rerouting tens of thousands of weekly prompts to them instead. It's still a small slice of total Copilot traffic today, but the direction is the real story: everyone building on a third party LLM API eventually wants to stop bleeding money on inference.
+
+**Why did Claude Fable 5 get banned and then un-banned within a month?**
+
+The US Department of Commerce slapped export controls on Fable 5 and Mythos 5 over cybersecurity concerns days after Anthropic released them in June, then lifted those controls at the end of the month, with Anthropic flipping access back on July 1st. Mythos 5 is still restricted to a small set of vetted cybersecurity organizations under tighter safeguards, but Fable 5 is back for everyone else. What stuck with me isn't the ban, it's how fast it reversed, which tells you frontier models are now geopolitical objects that export policy can switch on and off like it does with advanced chips.
+
+**What do Microsoft, Apple, Claude Fable, agentic browsers, and financial regulators all have in common this week?**
+
+They're all the same shift wearing different outfits: AI stopped being a feature and became infrastructure, and infrastructure comes with infrastructure problems. Microsoft is fighting inference costs, Apple is fighting the EU over App Store control, Fable got caught in an export-policy squeeze, agentic browsers opened a security hole nobody's finished patching, and now systemic risk regulators are putting AI on the same watchlist as the next 2008. Different fights, same underlying shift.

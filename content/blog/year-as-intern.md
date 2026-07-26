@@ -46,3 +46,17 @@ The year taught me several things I didn't expect to learn. That infrastructure 
 And that the gaps in my knowledge, which felt embarrassing to encounter at the time, were exactly the places where I was actually learning something.
 
 I don't miss being a student, exactly. But I miss having the curriculum tell me clearly what I didn't know yet, so I could find it intentionally. In production, the things you don't know find you.
+
+## FAQ
+
+**Why did the SEO Automation Agent fail when you first deployed it, if the model was working correctly?**
+
+The model did exactly what it was trained to do. The failure was in the infrastructure around it - the rate limiting on the APIs I was calling wasn't handling failures gracefully, and those failures stayed invisible until we set up proper logging. It's the reason I now think about logging more than I think about model architecture.
+
+**Why did you ship a simpler version of the OCR invoice validator instead of the full document understanding system you originally built?**
+
+The full version was more capable but also more brittle. The simpler version handled the common case reliably and fell back to human review on edge cases, and that reliability is what actually produced the 60% reduction in manual effort. Now when I scope a new system, I ask what the minimum useful version looks like, not what the complete version looks like.
+
+**Why did building a no-code chatbot builder end up teaching you more than the projects that felt like "real" AI work?**
+
+Because you're building for people who won't read documentation and won't know what the system expects, it forces a level of robustness that building for yourself never does. You design for graceful degradation instead of catastrophic failure - a mindset I now carry into every project, not just tools.

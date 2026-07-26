@@ -5,6 +5,8 @@ import MarkdownRenderer from '../components/blog/MarkdownRenderer';
 import ReadingProgress from '../components/blog/ReadingProgress';
 import TagPill from '../components/blog/TagPill';
 import ShareMenu from '../components/blog/ShareMenu';
+import AuthorBio from '../components/blog/AuthorBio';
+import RelatedPosts from '../components/blog/RelatedPosts';
 import { useSEO } from '../hooks/useSEO';
 import { ArrowLeft, Clock, CalendarDays } from 'lucide-react';
 
@@ -129,6 +131,9 @@ export default function BlogPostPage() {
             <MarkdownRenderer content={post.content} />
           </article>
 
+          {/* ── Author bio ── */}
+          <AuthorBio />
+
           {/* ── Bottom divider ── */}
           <div style={{
             height: '1px', background: 'var(--border)',
@@ -152,6 +157,9 @@ export default function BlogPostPage() {
               <ShareMenu title={post.title} url={shareUrl} />
             </div>
           </div>
+
+          {/* ── Related posts ── */}
+          <RelatedPosts post={post} />
 
           {/* ── Back to blog (bottom) ── */}
           <div style={{ marginTop: '48px' }}>

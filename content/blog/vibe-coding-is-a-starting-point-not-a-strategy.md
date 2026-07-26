@@ -22,3 +22,17 @@ The problem starts when the same mindset gets applied to something that's going 
 This connects to something I've written about before: the gap between a demo and a deployed system isn't a gap in time, it's a gap in kind. Vibe coding optimizes hard for getting something that looks correct quickly. It does nothing, by design, for the parts of engineering that matter under load: edge cases, failure modes, the ability of the person who owns the code to actually reason about it under pressure at two in the morning when it breaks.
 
 My take is simple. Use the tools. Move fast with them, especially early in a project. But treat what they produce as a first draft written by a very fast, very confident junior engineer who has never met your users and doesn't know your failure modes. Read it before it ships anywhere that matters. The vibe is a fine place to start. It's a bad place to stop.
+
+## FAQ
+
+**Is vibe coding always a bad practice?**
+
+No. For prototypes, weekend projects, or anything you're going to throw away in a week, vibe coding is genuinely great, the low cost of being wrong is exactly what makes skipping close reading a reasonable trade. The problem is only when that same mindset gets carried into code that's going to sit in production or get built on for the next two years.
+
+**How should I actually use AI coding assistants, then?**
+
+Treat whatever they generate as a first draft from a very fast, very confident junior engineer who has never met your users and doesn't know your failure modes, not as finished work. Use them to move fast early on, but read the code before it ships anywhere that matters.
+
+**Why doesn't vibe coding scale to production systems?**
+
+Because the gap between a demo and a deployed system isn't a gap in time, it's a gap in kind. Vibe coding optimizes for something that looks correct quickly, but does nothing for the edge cases, failure modes, and hard-won understanding you need when the code breaks at two in the morning and someone has to actually reason about it.

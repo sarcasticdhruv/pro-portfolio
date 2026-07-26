@@ -74,3 +74,17 @@ Sources:
 - [Thinking Machines Lab, Wikipedia](https://en.wikipedia.org/wiki/Thinking_Machines_Lab)
 - [Tinker product page](https://thinkingmachines.ai/tinker/)
 - [Thinking Machines amps up its bet against one-size-fits-all AI with Inkling](https://techcrunch.com/2026/07/15/thinking-machines-amps-up-its-bet-against-one-size-fits-all-ai-with-its-first-open-model-inkling/)
+
+## FAQ
+
+**How much did Thinking Machines Lab actually raise, and did they have a product when they raised it?**
+
+$2 billion, in a seed round, at a $12 billion valuation, with zero shipped products. Not a beta, not a waitlist, just Mira Murati's name, a bunch of ex-OpenAI researchers, and a manifesto. I still think about that number more than is healthy.
+
+**What does Thinking Machines actually sell, and how is Inkling different from GPT or Claude?**
+
+Their first product is Tinker, a platform for fine-tuning open-source models without dealing with the GPU infrastructure yourself. Their first foundation model, Inkling, is a 975-billion-parameter open-weight MoE model with a "thinking effort" dial, and the company itself admitted it's "not the strongest overall model available today." The bet isn't biggest model wins, it's most customizable model wins.
+
+**What was the "plot twist" with Barret Zoph and the other departures?**
+
+Around the Inkling launch, several senior people, including CTO Barret Zoph, reportedly left Thinking Machines and went back to OpenAI, the same company they'd all left to join Murati's startup in the first place. Reports point to disagreements over product direction and how to spend the war chest. A year after a $12 billion seed round, key people walked back to their old job. That's the twist.

@@ -55,3 +55,17 @@ The thing I'm proudest of in BoardBrief is not the summarisation accuracy or the
 That's a functional improvement in how an organization uses its own institutional memory. It's modest. But it's real, and it works consistently, and it doesn't require the users to change anything about how they run their meetings.
 
 That last part - building something that fits into existing behavior rather than requiring behavioral change - is an underappreciated constraint in product engineering. The technology is rarely the bottleneck. The adoption is.
+
+## FAQ
+
+**Why did BoardBrief move away from summarization if summarization was the easy, solved part?**
+
+Because "easy to build" and "what people actually need" turned out to be different things. People who sat in the meeting already know roughly what happened - they don't want a recap, they want to search for who said what and pull up the objections to a specific decision, which is a retrieval problem, not a summarization one.
+
+**How does the system tell "Mehra," "Mr. Mehra," "Rahul," and "he" all refer to the same speaker?**
+
+That's handled by an entity normalization step downstream of speaker attribution, resolving name variants and pronoun references to a single canonical speaker before anything gets indexed. It's unglamorous work, but without it, filtering a query like "what was the CFO's position" by speaker just doesn't work.
+
+**What happens when the model isn't confident about an action item it extracted?**
+
+It gets flagged instead of presented as settled fact. Confidence is judged by whether the surrounding language was ambiguous - passive voice, indirect reference, conditional framing - and a wrong assignee on an action item is a real problem, not a cosmetic one, so the system errs toward surfacing uncertainty rather than hiding it.

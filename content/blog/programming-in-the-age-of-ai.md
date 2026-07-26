@@ -28,3 +28,17 @@ Debugging with an AI is its own specific flavor of strange. It's like having a r
 ---
 
 Some days I do wonder, half joking, whether I'm still a programmer or have quietly become a very expensive prompt engineer who occasionally remembers how for loops work. Then I hit a bug that the model cheerfully "fixes" three times in a row without actually fixing it, I close the chat, read the stack trace myself, and find it in ninety seconds. That's usually when I remember what the actual job still is. Not typing. Judgment.
+
+## FAQ
+
+**Why does the AI invent function names like `array.smartFilter()` that sound so plausible?**
+
+Because it's not looking anything up, it's pattern-matching on what a method in that spot *should* be called, and it's good enough at that pattern to fool me for a few minutes at a time. The confidence is the tell in hindsight, but in the moment it reads exactly like a real API.
+
+**If AI can write most of the syntax now, do I still need to learn to actually code?**
+
+Yes, more than ever, just not the typing-speed part. The scarce skill now is reading code fast enough to smell when something's subtly wrong even though it compiles and passes the obvious tests, and that instinct only comes from having been burned by confidently wrong code enough times to recognize it.
+
+**How do you catch a bug when the AI keeps insisting its "fix" worked?**
+
+Eventually you stop trusting the duck and go read the stack trace yourself. That's usually the whole trick: close the chat, look at the actual error with your own eyes, and the ninety seconds you spend doing that finds what three rounds of confident "fixes" didn't.

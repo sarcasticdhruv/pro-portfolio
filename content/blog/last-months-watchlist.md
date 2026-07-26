@@ -44,3 +44,13 @@ Hell of a movie. Newman and Redford have this easy chemistry that carries the wh
 ---
 
 Four movies, four completely different decades and moods, and all four are still stuck in my head. Good month.
+
+## FAQ
+
+**Wait, 2001: A Space Odyssey actually came out in 1968?**
+
+Yeah, that's the part that threw me too. I went in assuming it was some early-70s thing and it's not, it's 1968, which makes the visual effects and that whole Jupiter tunnel sequence even harder to explain.
+
+**What's actually going on with the Grosse Pointe Blank rewatches?**
+
+Honestly I can't fully justify it, it's just become a ritual at this point. If I had to point to one thing, it's that convenience store scene, Martin standing there completely checked out while a gunfight happens around the clerk, that's the moment that keeps pulling me back.

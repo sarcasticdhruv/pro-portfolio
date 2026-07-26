@@ -22,3 +22,17 @@ I don't think the skepticism means the claim is false. I think it means the clai
 My opinion, for what it's worth: I want this to be real. Topological qubits, if they work the way the theory says they should, solve a problem that's currently being solved by throwing enormous numbers of physical qubits at error correction. That would matter enormously. But "I want this to be real" is exactly the emotional state that got the 2018 paper past reviewers who should have caught the selective data presentation, and I'd rather wait for boring, repeated, independently verified results than get excited off a press release a second time.
 
 The lesson generalizes past quantum computing. Any time a company announces a hardware or capability breakthrough with a slick keynote and a roadmap slide, the interesting question isn't how big the claim is. It's who outside the company has independently checked it yet. Usually, for a while, the honest answer is nobody.
+
+## FAQ
+
+**Is Microsoft's Majorana 1 chip claim fake?**
+
+I'm not saying that, and I don't think anyone can say that yet. What I'm saying is that "unverified" and "false" aren't the same thing, and given Microsoft's own 2018 paper got retracted after other labs couldn't reproduce it, unverified is exactly the state this claim is in until independent groups confirm it.
+
+**Why does the 2018 retraction matter so much for how we should read the 2025 announcement?**
+
+Because it's the same company making a similar claim about the same physics, and last time the claim didn't survive outside scrutiny, it survived selective data presentation that got past peer review first. That's not proof the new claim is wrong, it's just the reason the burden of proof sits with Microsoft this time, not with the skeptics.
+
+**Has anyone independently verified the Majorana 1 results by now?**
+
+Not that I've seen, and I wrote this more than a year after the original announcement. That gap is the actual story here, not the roadmap slide about a million-qubit chip.

@@ -17,10 +17,16 @@ const ROOT = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const DIST = path.join(ROOT, 'dist');
 const BLOG_DIR = path.join(ROOT, 'content', 'blog');
 const SITE_URL = 'https://dhruv-choudhary.tech';
-const AUTHOR = { '@type': 'Person', name: 'Dhruv Choudhary', url: SITE_URL };
+const SAME_AS = [
+  'https://github.com/sarcasticdhruv',
+  'https://linkedin.com/in/dhruv-choudhary-india',
+  'https://twitter.com/SarcasticDhruv',
+];
+const AUTHOR = { '@type': 'Person', name: 'Dhruv Choudhary', url: SITE_URL, jobTitle: 'AI Engineer', sameAs: SAME_AS };
 
 const { SEARCH_EXAMPLES } = await import(pathToFileURL(path.join(ROOT, 'src/content/searchExamples.mjs')));
 const { IMAGINE_EXAMPLES } = await import(pathToFileURL(path.join(ROOT, 'src/content/imagineExamples.mjs')));
+const { getRelatedPosts } = await import(pathToFileURL(path.join(ROOT, 'src/lib/relatedPosts.mjs')));
 
 marked.use({ gfm: true, breaks: false });
 
@@ -76,6 +82,30 @@ function formatDate(iso) {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return iso;
   return d.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+}
+
+// Static mirror of src/components/blog/AuthorBio.tsx - same facts.
+function authorBioHtml() {
+  return `
+    <div>
+      <p>Written by Dhruv Choudhary, AI Engineer</p>
+      <p>AI Engineer at AI LifeBOT, where I build GenAI systems that ship to production,
+      not just notebooks and demos. Shipping RAG pipelines and agentic systems into real
+      government and healthcare deployments.</p>
+    </div>`;
+}
+
+// Static mirror of src/components/blog/RelatedPosts.tsx - same scoring fn.
+function relatedPostsHtml(post, allPosts) {
+  const related = getRelatedPosts(post, allPosts, 3);
+  if (related.length === 0) return '';
+  return `
+    <div>
+      <h2>Related posts</h2>
+      <ul>
+        ${related.map(p => `<li><a href="/blog/${p.slug}">${escapeHtml(p.title)}</a></li>`).join('')}
+      </ul>
+    </div>`;
 }
 
 function escapeHtml(s) {
@@ -179,7 +209,9 @@ for (const post of posts) {
           <p>${formatDate(post.date)} &middot; ${readingTime(post.content)} min read</p>
           ${post.tags.length ? `<ul>${post.tags.map(t => `<li>${escapeHtml(t)}</li>`).join('')}</ul>` : ''}
           <div class="md-body">${marked.parse(post.content)}</div>
+          ${authorBioHtml()}
         </article>
+        ${relatedPostsHtml(post, posts)}
       </main>`,
   });
 }

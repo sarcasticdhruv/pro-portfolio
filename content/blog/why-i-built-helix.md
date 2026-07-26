@@ -32,3 +32,17 @@ What I didn't expect was for strangers to start using it. Watching issues come i
 If you want to look at it, the code is on [GitHub](https://github.com/sarcasticdhruv/helix-agent), and the package is on [PyPI](https://pypi.org/project/helix-framework/). It's still actively evolving, and I'd rather it stay a little rough and genuinely useful than polished and generic.
 
 The honest lesson from building it isn't really about agents. It's that most of the interesting engineering in AI systems is the boring infrastructure sitting around the model call, not the model call itself. Nobody puts budget limits in a demo video. They're the reason the system survives contact with real traffic.
+
+## FAQ
+
+**How is Helix actually different from something like LangGraph or CrewAI?**
+
+It's not trying to out-graph LangGraph or out-orchestrate CrewAI. Both of those get the execution model right and leave the survival stuff, hard budget limits, semantic caching, memory that persists, as an exercise for you. Helix bakes those in because that's the part that was actually breaking things at AI LifeBOT.
+
+**Did semantic caching really cut costs by 40 to 70 percent, or is that a best-case number?**
+
+That's the real range I saw across our workloads, not a cherry-picked demo stat, it just depends heavily on how repetitive your queries are. A support workflow with lots of near-duplicate questions sits at the high end; something more open-ended sits at the low end.
+
+**What changed once people outside your team started using Helix?**
+
+Mostly the accountability. When it's your own team, you can leave the docs half-written and change an API on a whim because everyone just asks you in Slack. Strangers filing issues for use cases you never imagined forces you to actually document the thing and think twice before breaking backward compatibility.

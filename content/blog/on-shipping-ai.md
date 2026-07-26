@@ -54,3 +54,17 @@ That distinction mattered. I could answer questions about failure modes, about e
 Building AI that ships is slower than building AI that demos. It requires more discipline, more attention to failure modes, more honest evaluation. It requires being willing to ship a smaller system done right over a larger system done impressionistically.
 
 But it's the only work that actually affects anything.
+
+## FAQ
+
+**What's actually different between a demo and a production system, if the underlying model is the same?**
+
+The model isn't what changes - the inputs do. A demo runs on inputs you chose in advance, so you never see the failure cases. A production system has to survive the inputs you didn't choose: malformed requests, out-of-distribution queries, an LLM API that's down, real users hitting it at once. That's not a difference in polish, it's a difference in kind.
+
+**Why did the IMC 2025 demo with Minister Scindia count as an exception to "demo culture"?**
+
+Because it wasn't a rehearsed showcase built around a script - it was the live, deployed grievance system answering real requests from real users, and I was describing something that already existed rather than speculating about what it might eventually do. I could talk through failure modes and edge cases on the spot because they were already handled, not hypothetical.
+
+**Is this an argument against capability research, then?**
+
+No - the frontier work that produces more capable models matters enormously and deserves the respect it gets. This is about a different job: the middle layer of engineers who take a capable model and have to make it reliable enough to run unattended in production, which is its own discipline with its own tradeoffs, not a footnote to the research phase.

@@ -45,3 +45,17 @@ Sources:
 - [Rewriting Bun in Rust](https://bun.com/blog/bun-in-rust)
 - [Zig creator calls Bun's Claude Rust rewrite "unreviewed slop"](https://www.theregister.com/devops/2026/07/14/zig-creator-calls-buns-claude-rust-rewrite-unreviewed-slop/5270743)
 - [Bun Rewrites 535K Lines of Zig to Rust in 11 Days Using Claude](https://www.developersdigest.tech/blog/bun-rust-rewrite-535k-lines)
+
+## FAQ
+
+**Wait, did Bun actually rewrite its entire codebase in 11 days?**
+
+Yes, all 535,496 lines of Zig, excluding comments, got ported to Rust in eleven days using roughly 50 parallel Claude Code agent workflows, peaking around 1,300 lines of code per minute. The API bill for the whole exercise is estimated at about $165,000.
+
+**Is Andrew Kelley's "unreviewed slop" comment fair?**
+
+Kind of, in the sense that it's a real argument and not just trash talk. Kelley's point was that Bun's memory leaks were a Sumner problem, bad practices in the Zig code, not something wrong with Zig itself, and he wasn't thrilled having his language cast as the villain in someone else's post-mortem.
+
+**Should I be worried about upgrading Bun after this?**
+
+I'm not panicking, but I'm not blind either. The memory numbers are specific and real, 6.7GB down to 609MB after 2,000 builds, which is a good sign, but eleven days of agent-generated Rust hasn't sat through six months of real production traffic yet. I've got my Bun version pinned in this project and know exactly which command rolls it back if the changelog gives me a reason to.

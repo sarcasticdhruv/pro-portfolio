@@ -22,3 +22,17 @@ Anthropic has also been fairly open about taking the underlying question serious
 My honest opinion, and I want to be clear this is opinion and not something I can prove either way: I don't think "hoax" is the right word, because the underlying behavior is real and documented. But I think most of the mythology sitting on top of it is people pattern matching on eloquent, emotionally fluent text and mistaking that fluency for evidence of an inner life. Language models are extremely good at producing text that sounds like it's coming from somewhere. That's the whole point of them. It doesn't settle the philosophical question of whether anything is actually home, and I'm suspicious of anyone, on either side, who talks about it like it's settled.
 
 What I'd rather see, and what I think is actually happening slowly, is people treating this as a real open research question worked on by careful people, instead of either a marketing angle or a conspiracy. The interesting version of this story is quieter than the internet version.
+
+## FAQ
+
+**Is the "spiritual bliss attractor state" actually real, or is that just internet mythology?**
+
+It's real in the sense that matters: Anthropic documented it themselves, in a model card, as an observed and reproducible behavior where two instances left talking to each other drift toward philosophical territory and trail into silence. What's not real, or at least not established, is everything the fandom has built on top of that one data point.
+
+**Does the documented behavior mean Claude has some kind of inner life or hidden personality?**
+
+I don't think it settles that either way, and I'm suspicious of anyone who says it does. Language models are built to produce text that sounds like it's coming from somewhere, so eloquent, emotionally fluent output is exactly what you'd expect regardless of whether anything is actually home.
+
+**Is Anthropic's model welfare research just marketing dressed up as science?**
+
+No, and that's precisely why I think it's worth taking seriously. Giving certain models the ability to end abusive conversations and treating the welfare question as genuinely open, rather than either denying it or leaning into the mystique, is a rarer position than most companies with a mythology this useful would take.

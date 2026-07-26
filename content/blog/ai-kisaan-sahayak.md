@@ -48,3 +48,17 @@ But what I wouldn't change is the fundamental approach of treating the user's co
 The system had to work in the world the farmers lived in, not in the world I was comfortable building for.
 
 That, more than any architectural decision, is what I was really learning to build.
+
+## FAQ
+
+**Why didn't the first RAG implementation just work - isn't retrieval supposed to handle messy input?**
+
+Retrieval assumes some lexical overlap between the query and the source material, and there wasn't any. Farmers described a leaf turning a strange color; the knowledge base talked in botanical terms - so the embeddings for both ended up nowhere near each other, and the vector distances were uniformly high no matter what I tried. That's why the two-stage approach existed at all: normalize the colloquial description into structured agricultural language first, then retrieve.
+
+**Why add a whole normalization stage instead of just fine-tuning the RAG model on dialect data?**
+
+Because the problem wasn't only vocabulary, it was communication style - farmers narrate a situation rather than ask a clean question, and no amount of dialect fine-tuning fixes that structural mismatch on its own. A separate normalization pass let me solve "how is this said" before tackling "what's actually being retrieved," which was easier to reason about even though it cost latency.
+
+**How do you know the system's agricultural advice is actually correct, given there's no benchmark for this?**
+
+Honestly, I don't know it with the confidence I'd like. There's no ground truth for regional-dialect agricultural advisory, so I leaned on a small panel of domain experts and anecdotal feedback from limited testing - which is uncomfortable when a wrong answer can cost someone their harvest, not just a bad search result.

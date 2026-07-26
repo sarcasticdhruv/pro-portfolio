@@ -58,3 +58,17 @@ This is an infrastructure problem more than an ML problem. Document versioning, 
 None of this is a critique of RAG as an approach. It's a correct architecture for the problem it solves. But the gap between a RAG prototype that performs well in a demo and a RAG system that performs reliably in production is almost entirely explained by these four issues.
 
 They're not glamorous. They don't improve benchmark numbers. But they're where the actual deployment work lives.
+
+## FAQ
+
+**What's the actual fix for the chunk problem - do you just use bigger chunks?**
+
+No, bigger chunks just delay the problem and waste tokens. The real fix is hierarchical context: retrieve the chunk, but also inject the parent summary, the section heading, and any definitional content it depends on, so the model isn't reconstructing meaning that isn't there.
+
+**If hybrid search doesn't fully solve the embedding mismatch problem, what's next?**
+
+Add a reranker over the initial retrieval pool - it's effective and relatively cheap. If the mismatch is severe, the next step up is fine-tuning the embedding model on your own domain-specific query-document pairs, not dumping more data into the knowledge base.
+
+**How do you actually implement the "I don't know" behavior from the confidence problem?**
+
+Check the relevance of retrieved context against the query before generation, using retrieval similarity scores as a rough proxy or, better, a small separate classifier trained on "is this content actually useful for this query." If nothing clears the threshold, the system should say so instead of falling back on the LLM's parametric knowledge.

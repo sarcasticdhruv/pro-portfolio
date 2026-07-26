@@ -50,3 +50,17 @@ This is not an indictment - building enough rigor into every ML project to acade
 What does the confusion matrix look like by class? What is the model actually attending to? What's the distribution of the deployment data versus the training data?
 
 These are questions that don't take long to ask but take discipline to remember to ask.
+
+## FAQ
+
+**Why did the model do worse on meningioma specifically, and not the other three classes?**
+
+The dataset had a class imbalance, so a model optimizing for overall accuracy could get meningioma wrong more often without paying much of a penalty in the headline number. I only caught this because reviewers asked for per-class metrics instead of accepting the aggregate 94% figure - it wasn't something the original evaluation was designed to surface.
+
+**What did the Grad-CAM visualization actually show, and why call it the most informative part of the project?**
+
+It showed the model attending to real tumor regions in most cases, but also attending to irrelevant parts of the image in some failure cases - meaning at least some of its performance was likely riding on scanner-specific artifacts rather than tumor-relevant features. That mattered more than the accuracy number because it changed the question from "how accurate is it" to "what is it actually doing," which is the question that matters once you're thinking about deployment rather than a leaderboard.
+
+**Could this architecture be used on brain pathologies outside the four classes it was trained on?**
+
+Probably not well, and I said so directly when asked at MPCON. It was trained to distinguish glioma, meningioma, pituitary tumor, and no-tumor cases specifically - it has no mechanism for recognizing that a scan shows something outside those categories, so deploying it clinically without that limitation in mind would be a mistake.

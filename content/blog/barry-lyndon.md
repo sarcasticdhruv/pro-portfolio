@@ -24,3 +24,13 @@ The narrator doesn't help him either. There's this flat, upper-class British voi
 ---
 
 What actually stuck with me after, more than the plot, is realizing how little Barry Lyndon has in common with any other Kubrick film I've seen. This is the same guy who also made A Clockwork Orange, and The Shining, and none of those prepared me for this one at all. Most directors have a fingerprint you can spot across their whole filmography. Kubrick's fingerprint is apparently just total control, applied to whatever genre he felt like taking apart that decade. That's a different kind of mastery than having a style. It's having none, on purpose, every single time.
+
+## FAQ
+
+**What lenses did Kubrick actually use to shoot those candlelit scenes?**
+
+Three Zeiss 50mm f/0.7 lenses, out of only ten that existed on the planet, originally built for NASA to photograph the dark side of the moon. He had the camera itself modified just to mount one, all so a dinner table could look lit by the four candles actually sitting on it.
+
+**What's the Hogarth connection in the drinking room scene?**
+
+That scene is staged after the Orgy panel from Hogarth's "A Rake's Progress," a series about a young man who inherits money and burns it chasing status, which quietly is also the entire plot of Barry Lyndon. Kubrick wasn't being cute, he was telling you the ending in the background of a party scene.

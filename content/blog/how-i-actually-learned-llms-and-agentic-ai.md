@@ -143,3 +143,17 @@ If you get this far, you've independently rediscovered why frameworks like LangG
 One last thing that isn't a step so much as a habit: write about what you're building while you're still confused about it, not after you've figured it out cleanly. Explaining a RAG failure mode to a stranger forces a kind of precision that quietly fixing the bug never does. You find the actual gaps in your understanding exactly at the point where you have to write the next sentence and realize you can't yet.
 
 None of this is the fast path. It's slower than watching a course end to end. It's also the only version of learning this that survives contact with a production system that doesn't behave the way the tutorial promised it would.
+
+## FAQ
+
+**Do I really need to write the agent loop by hand, or can I just start with LangGraph or CrewAI?**
+
+Write it yourself first. It's maybe twenty lines, as the `run_agent` example in Step 4 shows, and once you've built that loop once, every framework afterward reads as a specific set of opinions layered on top of it instead of a black box you're trusting blindly.
+
+**How do I know if my agent is actually good, not just demo-good?**
+
+Don't trust benchmarks like MMLU for this. Write your own small eval, ten real examples from your actual use case, score them by hand first on whatever matters (relevance, faithfulness, completeness), then automate the scoring so you can rerun it on every change, per Step 5.
+
+**I don't have time to follow the whole roadmap, where should I actually start?**
+
+Start at the top of the project ladder: a CLI tool that hits a raw provider API with prompting only, no retrieval, no tools. It's the smallest useful thing on this whole path, and skipping straight to frameworks is exactly the shortcut that costs you later.

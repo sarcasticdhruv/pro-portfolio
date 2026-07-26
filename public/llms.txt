@@ -1,0 +1,36 @@
+# Dhruv Choudhary
+
+> AI Engineer building GenAI systems, RAG pipelines, and production ML. B.Tech from MITS Gwalior (Department Rank 2), currently at AI LifeBOT.
+
+## Site
+
+- [Home](https://dhruv-choudhary.tech/): About, experience, projects, skills, achievements, contact.
+- [Blog](https://dhruv-choudhary.tech/blog): Writing on AI engineering, RAG systems, and shipping production ML.
+- [Search](https://dhruv-choudhary.tech/search): Agentic search over this site and the web.
+- [Imagine](https://dhruv-choudhary.tech/imagine): Free in-browser AI image generation.
+- [Arcade](https://dhruv-choudhary.tech/games): Snake, 2048, Tic-Tac-Toe, and Chess.
+
+## Blog posts
+
+- [raised $2 Billion Before Shipping a Product, and I Have ;;Thoughts](https://dhruv-choudhary.tech/blog/mira-murati-thinking-machines): I spent an evening reading about Mira Murati's new startup instead of sleeping. $12 billion valuation, zero products, and then a plot twist nobody saw coming. Here's the whole story, with receipts.
+- [Bun Rewrote Itself From Zig to Rust in 11 Days and I Use Bun, So Now I'm a Little Nervous](https://dhruv-choudhary.tech/blog/bun-zig-to-rust): Jarred Sumner ported 535,000 lines of Zig to Rust in 11 days using a fleet of Claude agents. I run bun install on this very portfolio. Let's talk about it.
+- [SSH and Me: A Short, Slightly Funny History of the Little Padlock I Use Every Day](https://dhruv-choudhary.tech/blog/ssh-and-me): SSH gets blamed for problems it never caused, including one I personally accused it of last week. Here's the real history, how I actually use it, and what I still don't know about it.
+- [Tech Just Had One of Those Weeks Again](https://dhruv-choudhary.tech/blog/tech-just-had-one-of-those-weeks-again): Microsoft playing landlord with its own AI vendors, Apple losing to the EU, Claude Fable getting banned then un-banned, agentic browsers becoming a hacker's favorite toy, and regulators calling AI a financial stability risk. One week, five stories, all the same underlying shift.
+- [Last Month's Watchlist: Leone, Kubrick, and the One Movie I Can't Stop Rewatching](https://dhruv-choudhary.tech/blog/last-months-watchlist): Four movies from last month's rotation: a Sergio Leone western, a comfort rewatch I can never fully explain, a very late first watch of 2001, and Butch Cassidy and the Sundance Kid.
+- [Programming in the Age of AI Is Weirder Than Anyone Admits](https://dhruv-choudhary.tech/blog/programming-in-the-age-of-ai): On hallucinated function names, the quiet death of Stack Overflow shame, and what's actually still hard about writing software now that the model can write most of the syntax for you.
+- [How I Actually Learned LLMs and Agentic AI (Not How I Wish I Had)](https://dhruv-choudhary.tech/blog/how-i-actually-learned-llms-and-agentic-ai): A full, practical roadmap for learning LLMs and agentic AI specifically - what to read, what to build by hand before touching a framework, and the exact project ladder I'd tell a friend to follow.
+- [The DeepSeek Moment, One Year Later](https://dhruv-choudhary.tech/blog/the-deepseek-moment): Looking back at the week a Chinese open-weight reasoning model wiped out hundreds of billions in Nvidia's market cap in a single day, and what actually held up once the panic settled.
+- [Vibe Coding Is a Starting Point, Not a Strategy](https://dhruv-choudhary.tech/blog/vibe-coding-is-a-starting-point-not-a-strategy): Andrej Karpathy's phrase for AI-assisted, half-supervised programming took over the discourse fast. Here's where I think it's genuinely useful, and where I've watched it quietly wreck production codebases.
+- [Every Frame of Barry Lyndon Is a Painting, and I Can't Stop Thinking About It](https://dhruv-choudhary.tech/blog/barry-lyndon): Notes on finally watching Kubrick's Barry Lyndon - the candlelit cinematography, the paintings it's stealing from, and what it made me realize about how different every one of his films actually is.
+- [Microsoft's Quantum Chip and the Problem With Believing Press Releases](https://dhruv-choudhary.tech/blog/microsofts-quantum-chip-hype-and-reality): More than a year on from the Majorana 1 announcement, a look at what topological qubits actually promise, why physicists were skeptical from day one, and why doubt is usually the correct default.
+- [Is the Claude Mythos Real? Sorting the Research from the Fandom](https://dhruv-choudhary.tech/blog/is-the-claude-mythos-real): Between Anthropic's own published research on model behavior and the online communities that have built a mythology around Claude's inner life, there's a real question buried under a lot of noise.
+- [The Linux Backdoor That Almost Worked, and the Postgres Guy Who Caught It](https://dhruv-choudhary.tech/blog/the-xz-backdoor-nobody-saw-coming): A look back at the xz/liblzma backdoor, a two-year social engineering campaign that nearly compromised SSH on major Linux distributions, caught by a Microsoft engineer chasing a half-second slowdown.
+- [Why I Built Helix (And What Shipping an Agent Framework Actually Taught Me)](https://dhruv-choudhary.tech/blog/why-i-built-helix): The story behind Helix Framework, why the existing agent tools weren't enough for what I was building at work, and what happened once strangers started using it.
+- [What RAG Gets Wrong, and What to Do About It](https://dhruv-choudhary.tech/blog/what-rag-gets-wrong): A practical critique of retrieval-augmented generation as it's commonly implemented - the failure modes that don't show up in benchmarks.
+- [The AI That Ships vs the AI That Demos](https://dhruv-choudhary.tech/blog/on-shipping-ai): Why the most impressive demo you've ever seen is usually the least deployable system in the room.
+- [What a Year Inside a GenAI Startup Actually Taught Me](https://dhruv-choudhary.tech/blog/year-as-intern): Honest notes on the gap between what I expected to learn as an AI engineering intern and what I actually learned.
+- [BoardBrief: On Building Meeting Intelligence That Doesn't Get in the Way](https://dhruv-choudhary.tech/blog/boardbrief-engineering): Design and engineering notes on building an AI system for board meeting summarisation - and why the hardest problem wasn't the AI.
+- [Building AI Kisaan Sahayak: Voice Interfaces for Farmers Who Don't Read English](https://dhruv-choudhary.tech/blog/ai-kisaan-sahayak): A look at what it actually takes to build a voice-first AI assistant for smallholder farmers in India - the hard parts nobody talks about.
+- [From a Kaggle Notebook to an IEEE Paper: What Actually Changed](https://dhruv-choudhary.tech/blog/brain-tumor-detection): Documenting the gap between a model that works on a dataset and a paper worth publishing - and what the review process forced me to understand.
+- [Gradient Descent](https://dhruv-choudhary.tech/blog/poem-gradient): A poem about the mechanics of learning, and the strange comfort of moving in the direction of least resistance.
+- [Terminal](https://dhruv-choudhary.tech/blog/poem-terminal): On the quiet satisfaction of a blinking cursor and a blank line, waiting.

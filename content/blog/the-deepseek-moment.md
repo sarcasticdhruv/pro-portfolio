@@ -20,3 +20,17 @@ But I think it would be a mistake to write the whole episode off as an overreact
 My opinion is that the actual lesson wasn't "compute doesn't matter." It clearly still matters enormously. The lesson was that algorithmic and training efficiency matter more than the dominant narrative had been pricing in, and that the gap between the best closed labs and the best open efforts was smaller and closing faster than most public commentary assumed. That's a healthier way for this field to develop than a world where a handful of companies own the entire frontier permanently by outspending everyone else.
 
 I don't think DeepSeek "won" anything, and I don't think Nvidia lost anything durable. What actually happened is the market got a rough, overdue reminder that a moat measured purely in GPU spend isn't as deep as it looked, and I think the field is better for having that tested this early instead of ten years and a trillion dollars further in.
+
+## FAQ
+
+**Did DeepSeek really train R1 for a fraction of what OpenAI spent?**
+
+Probably not at the headline number. The figure that made headlines got picked apart pretty quickly, and once you count the infrastructure and prior research that fed into it, the real all-in cost was almost certainly higher than what was reported. The efficiency gain was real, just not as dramatic as the number that tanked Nvidia's stock.
+
+**Did Nvidia actually lose anything long-term from the crash?**
+
+Not durably, no. The stock recovered a meaningful chunk of that six-hundred-billion-dollar drop within weeks, and frontier labs kept needing enormous compute regardless. One strong release doesn't erase years of infrastructure investment, which is exactly why I'd call the initial panic overcorrected.
+
+**So what was the actual lesson from the DeepSeek moment, if it wasn't "compute doesn't matter"?**
+
+Compute still matters enormously, that part never changed. The real shift was that algorithmic and training efficiency mattered more than the dominant narrative had priced in, and the gap between the best closed labs and the best open efforts was smaller and closing faster than most public commentary assumed.

@@ -26,3 +26,17 @@ Fedora Rawhide and the Fedora 41 beta had already picked up the compromised rele
 My opinion on this, for what it's worth: the technical sophistication is impressive, but it's not the part that should keep you up at night. The part that should keep you up at night is that the attack vector was patience and reputation, aimed at exactly the kind of maintainer burnout that's extremely common in open source. Most critical infrastructure software is maintained by a small number of people who are tired, unpaid, and under constant pressure to hand off work to whoever offers to help. That's not a flaw you patch with a CVE. That's a structural weakness in how the internet's plumbing gets maintained, and it was sitting there before this incident and it's still sitting there now.
 
 I don't have a clean fix to offer. I just think anyone who works with open source dependencies, which is all of us, should sit with how close this one came before assuming the next one also gets caught in time.
+
+## FAQ
+
+**How did a half-second SSH delay actually lead to finding the backdoor?**
+
+Andres Freund was benchmarking Postgres, not auditing security, and the extra latency was small enough that almost anyone else would have shrugged it off. He didn't, and that stubbornness is really the whole story, since the backdoor itself was hidden well enough that nothing short of someone noticing a performance anomaly was going to surface it.
+
+**Was the backdoor hiding in the xz source code itself?**
+
+No, and that's what made it so effective. It was planted in the build scripts, not the human-readable source, and reached OpenSSH indirectly through a chain that ran via systemd, which is exactly the kind of place a code review focused on "the actual program logic" would never think to look.
+
+**Did the compromised xz version make it into stable Linux distributions?**
+
+It got into Fedora Rawhide and the Fedora 41 beta, plus Debian's unstable branch and openSUSE Tumbleweed, all rolling or pre-release channels. None of the stable, widely deployed distros had shipped it yet, which is the only reason Andres Freund's benchmarking session turned into a near-miss story instead of a full-blown breach.

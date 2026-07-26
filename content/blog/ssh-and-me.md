@@ -54,3 +54,17 @@ I could not, at gunpoint, walk you through the Diffie-Hellman key exchange math 
 I also just click "yes" on that host key fingerprint prompt most of the time, the one that asks if you trust this server you've never seen before. In theory you're supposed to verify that fingerprint through some other channel first. In practice, almost nobody does this for a random EC2 box they just spun up, myself included. I'm not proud of it, I'm just being honest about it.
 
 That's really the whole relationship. SSH is the plumbing under my desk. I don't need to understand the sewage treatment plant to know the toilet should flush. I just need it to keep working, keep my keys straight between two identities, and stop getting unfairly blamed every time my git config is actually the one at fault.
+
+## FAQ
+
+**Wait, so SSH wasn't actually the reason your GitHub graph went dark?**
+
+Correct, zero involvement. My laptop's `git config user.email` was pointed at some garbage local address, so GitHub couldn't match the commits to my account. SSH moved every one of those commits perfectly, faithfully, without complaint, while I stood there blaming it.
+
+**How do you actually run two GitHub identities off one laptop without them colliding?**
+
+A `~/.ssh/config` file with two `Host` aliases, `github-personal` and `github-work`, each pointing at its own key. My git remotes reference the alias instead of `github.com` directly, so SSH quietly hands over the right key and I never have to think about it again.
+
+**Should you actually be verifying that host key fingerprint instead of just clicking yes?**
+
+Technically, yes, that's the entire point of the prompt, it's how you'd catch a man-in-the-middle before trusting a server. Realistically I click yes on random EC2 boxes like almost everyone else does, which is a small hypocrisy I own up to rather than pretend doesn't exist.
