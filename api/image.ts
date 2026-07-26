@@ -23,12 +23,16 @@ function json(data: unknown, status = 200): Response {
   return new Response(JSON.stringify(data), { status, headers: { 'Content-Type': 'application/json' } });
 }
 
-// Fast, high-quality open model that is served on HF's own inference provider.
-const HF_MODEL = 'black-forest-labs/FLUX.1-schnell';
+// HF pulled FLUX.1-schnell off the hf-inference provider on 2026-07-15/16 -
+// every key was failing identically against a now-dead model, not a rotation
+// bug. stable-diffusion-3-medium is HF's own current hf-inference example for
+// text-to-image (https://huggingface.co/docs/inference-providers/en/providers/hf-inference).
+const HF_MODEL = 'stabilityai/stable-diffusion-3-medium-diffusers';
 const HF_URL = `https://router.huggingface.co/hf-inference/models/${HF_MODEL}`;
 
 async function fromHuggingFace(prompt: string): Promise<Response | null> {
   for (const key of hfKeys()) {
+    const keyLabel = `...${key.slice(-4)}`;
     try {
       const r = await fetch(HF_URL, {
         method: 'POST',
@@ -49,8 +53,13 @@ async function fromHuggingFace(prompt: string): Promise<Response | null> {
           },
         });
       }
-    } catch {
-      // try the next token, then fall through to Pollinations
+      // Not ok, or ok but not an image (HF returns JSON error bodies with a
+      // 200 in some cases) - log why so a future outage shows up in Vercel's
+      // function logs instead of silently falling back to Pollinations.
+      const bodyText = await r.text().catch(() => '');
+      console.error(`hf-inference key ${keyLabel} failed: ${r.status} ${type} ${bodyText.slice(0, 300)}`);
+    } catch (err) {
+      console.error(`hf-inference key ${keyLabel} threw:`, err);
     }
   }
   return null;
