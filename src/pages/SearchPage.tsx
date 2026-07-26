@@ -14,6 +14,7 @@ import {
 } from '../lib/searchHistory';
 import MarkdownRenderer from '../components/blog/MarkdownRenderer';
 import { useSEO } from '../hooks/useSEO';
+import { SEARCH_EXAMPLES } from '../content/searchExamples.mjs';
 
 // Pools rotate on every page load: 2 random about-me + 2 random trending
 const ABOUT_POOL = [
@@ -83,7 +84,6 @@ export default function SearchPage() {
   useSEO({
     title: 'Search',
     description: 'Ask anything about Dhruv Choudhary\'s projects, experience, and writing.',
-    noindex: true,
   });
 
   useEffect(() => {
@@ -405,6 +405,39 @@ export default function SearchPage() {
             </div>
           </div>
         )}
+
+        {/* Example questions - always rendered (not gated behind any
+            interaction state), so crawlers and users see the same real,
+            substantive content. Also feeds the FAQPage JSON-LD in
+            scripts/prerender.mjs, from the same source array. */}
+        <div style={{ marginTop: '56px' }}>
+          <p className="label" style={{ fontSize: '0.68rem', marginBottom: '14px' }}>
+            example questions
+          </p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            {SEARCH_EXAMPLES.map(ex => (
+              <div key={ex.question} style={{
+                padding: '14px 16px',
+                background: 'var(--surface)', border: '1px solid var(--border)',
+                borderRadius: '10px',
+              }}>
+                <button
+                  onClick={() => submit(ex.question)}
+                  style={{
+                    display: 'block', background: 'none', border: 'none', padding: 0,
+                    textAlign: 'left', cursor: 'pointer', fontFamily: "'DM Sans', sans-serif",
+                    fontSize: '0.9rem', fontWeight: 600, color: 'var(--text)', marginBottom: '6px',
+                  }}
+                >
+                  {ex.question}
+                </button>
+                <p style={{ fontSize: '0.8rem', color: 'var(--text-dim)', lineHeight: 1.6 }}>
+                  {ex.answerSummary}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
 
       <style>{`

@@ -16,6 +16,16 @@
     <priority>0.5</priority>
   </url>
   <url>
+    <loc>https://dhruv-choudhary.tech/search</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.5</priority>
+  </url>
+  <url>
+    <loc>https://dhruv-choudhary.tech/imagine</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.5</priority>
+  </url>
+  <url>
     <loc>https://dhruv-choudhary.tech/blog/ai-kisaan-sahayak</loc>
     <lastmod>2025-10-15</lastmod>
     <changefreq>monthly</changefreq>
@@ -36,6 +46,12 @@
   <url>
     <loc>https://dhruv-choudhary.tech/blog/brain-tumor-detection</loc>
     <lastmod>2025-09-20</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://dhruv-choudhary.tech/blog/bun-zig-to-rust</loc>
+    <lastmod>2026-07-16</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
@@ -64,6 +80,12 @@
     <priority>0.7</priority>
   </url>
   <url>
+    <loc>https://dhruv-choudhary.tech/blog/mira-murati-thinking-machines</loc>
+    <lastmod>2026-07-22</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
     <loc>https://dhruv-choudhary.tech/blog/on-shipping-ai</loc>
     <lastmod>2026-01-12</lastmod>
     <changefreq>monthly</changefreq>
@@ -84,6 +106,12 @@
   <url>
     <loc>https://dhruv-choudhary.tech/blog/programming-in-the-age-of-ai</loc>
     <lastmod>2026-07-01</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://dhruv-choudhary.tech/blog/ssh-and-me</loc>
+    <lastmod>2026-07-14</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>

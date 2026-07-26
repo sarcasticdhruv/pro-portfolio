@@ -38,6 +38,8 @@ const staticRoutes = [
   { loc: '/', priority: '1.0', changefreq: 'weekly' },
   { loc: '/blog', priority: '0.8', changefreq: 'weekly' },
   { loc: '/games', priority: '0.5', changefreq: 'monthly' },
+  { loc: '/search', priority: '0.5', changefreq: 'monthly' },
+  { loc: '/imagine', priority: '0.5', changefreq: 'monthly' },
 ];
 
 const posts = loadPublishedPosts();
