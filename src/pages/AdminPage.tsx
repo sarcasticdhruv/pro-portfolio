@@ -1,7 +1,7 @@
 import { Fragment, useEffect, useState } from 'react';
-import { Lock, RotateCw, Users, Activity, ChevronDown, ChevronRight, Film } from 'lucide-react';
+import { Lock, RotateCw, Users, Activity, ChevronDown, ChevronRight } from 'lucide-react';
 import { useSEO } from '../hooks/useSEO';
-import MoviesAdmin from '../components/admin/MoviesAdmin';
+import VisitorAnalytics, { type Analytics } from '../components/admin/VisitorAnalytics';
 
 const SESSION_KEY = 'admin_key';
 
@@ -89,11 +89,11 @@ export default function AdminPage() {
   const [visitors, setVisitors] = useState<VisitorRow[]>([]);
   const [recent, setRecent] = useState<RecentRow[]>([]);
   const [fetchError, setFetchError] = useState('');
+  const [analytics, setAnalytics] = useState<Analytics | null>(null);
 
   const [expanded, setExpanded] = useState<string | null>(null);
   const [timelines, setTimelines] = useState<Record<string, TimelineEvent[]>>({});
   const [timelineLoading, setTimelineLoading] = useState<string | null>(null);
-  const [tab, setTab] = useState<'visitors' | 'movies'>('visitors');
 
   async function load(k: string) {
     setLoading(true);
@@ -110,6 +110,7 @@ export default function AdminPage() {
       if (!res.ok) throw new Error(data?.error ?? 'request failed');
       setVisitors(data.visitors ?? []);
       setRecent(data.recent ?? []);
+      setAnalytics(data.analytics ?? null);
       setAuthed(true);
       sessionStorage.setItem(SESSION_KEY, k);
     } catch (e) {
@@ -205,57 +206,32 @@ export default function AdminPage() {
   return (
     <main style={{ minHeight: '100vh', paddingTop: '110px', paddingBottom: '80px' }}>
       <div style={{ maxWidth: '1080px', margin: '0 auto', padding: '0 clamp(16px, 5vw, 24px)' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '28px' }}>
           <h1 className="font-display" style={{ fontSize: 'clamp(1.5rem, 3.5vw, 2rem)', fontWeight: 700 }}>
-            {tab === 'visitors' ? 'Visitors' : 'Watched'}<span style={{ color: 'var(--accent)' }}>.</span>
+            Visitors<span style={{ color: 'var(--accent)' }}>.</span>
           </h1>
-          {tab === 'visitors' && (
-            <button
-              onClick={() => void load(key)}
-              disabled={loading}
-              style={{
-                display: 'flex', alignItems: 'center', gap: '6px',
-                background: 'var(--surface-2)', border: '1px solid var(--border)',
-                borderRadius: '7px', padding: '8px 14px', color: 'var(--text-muted)',
-                fontFamily: "'JetBrains Mono', monospace", fontSize: '0.75rem', cursor: 'pointer',
-              }}
-            >
-              <RotateCw size={12} className={loading ? 'spin-slow' : ''} />
-              refresh
-            </button>
-          )}
+          <button
+            onClick={() => void load(key)}
+            disabled={loading}
+            style={{
+              display: 'flex', alignItems: 'center', gap: '6px',
+              background: 'var(--surface-2)', border: '1px solid var(--border)',
+              borderRadius: '7px', padding: '8px 14px', color: 'var(--text-muted)',
+              fontFamily: "'JetBrains Mono', monospace", fontSize: '0.75rem', cursor: 'pointer',
+            }}
+          >
+            <RotateCw size={12} className={loading ? 'spin-slow' : ''} />
+            refresh
+          </button>
         </div>
-
-        {/* Tabs */}
-        <div style={{ display: 'flex', gap: '6px', marginBottom: '28px' }}>
-          {([['visitors', Users], ['movies', Film]] as const).map(([t, Icon]) => (
-            <button
-              key={t}
-              onClick={() => setTab(t)}
-              style={{
-                display: 'flex', alignItems: 'center', gap: '6px',
-                background: tab === t ? 'var(--accent-glow)' : 'transparent',
-                border: `1px solid ${tab === t ? 'var(--tag-border)' : 'var(--border)'}`,
-                color: tab === t ? 'var(--accent)' : 'var(--text-dim)',
-                borderRadius: '7px', padding: '7px 14px', cursor: 'pointer',
-                fontFamily: "'JetBrains Mono', monospace", fontSize: '0.74rem', fontWeight: 600,
-              }}
-            >
-              <Icon size={12} />
-              {t}
-            </button>
-          ))}
-        </div>
-
-        {tab === 'movies' && <MoviesAdmin adminKey={key} />}
-
-        {tab === 'visitors' && <>
 
         {fetchError && (
           <p style={{ color: '#FF6B6B', fontFamily: "'JetBrains Mono', monospace", fontSize: '0.8rem', marginBottom: '16px' }}>
             {fetchError}
           </p>
         )}
+
+        <VisitorAnalytics analytics={analytics} visitors={visitors} />
 
         {/* Visitors table */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '7px', marginBottom: '10px' }}>
@@ -374,8 +350,6 @@ export default function AdminPage() {
             </tbody>
           </table>
         </div>
-
-        </>}
       </div>
     </main>
   );

@@ -218,6 +218,8 @@ export default async function handler(req: Request): Promise<Response> {
   let body: {
     key?: string; text?: string; movie?: Partial<Draft>; confirm?: boolean; id?: number;
     quickAdd?: boolean; title?: string; year?: number | null;
+    rating?: number | null; tags?: string[]; review?: string | null; blogSlug?: string | null;
+    status?: Status; suggest?: boolean;
   };
   try {
     body = await req.json();
@@ -295,6 +297,54 @@ export default async function handler(req: Request): Promise<Response> {
     }
   }
 
+
+  // ── Suggest what to watch next ─────────────────────────────────────────
+  // Grounded in the actual rated rows, and told explicitly to avoid anything
+  // already in the table - otherwise the top suggestion is usually a film
+  // that's already been watched, which is worse than no suggestion.
+  if (body.suggest) {
+    try {
+      await ensureTable();
+      const { rows } = await sql`
+        SELECT title, year, rating, tags FROM movies
+        ORDER BY rating DESC NULLS LAST, created_at DESC LIMIT 120
+      `;
+      if (rows.length === 0) return json({ suggestions: [], error: 'nothing logged yet to base a suggestion on' }, 422);
+
+      const liked = rows.filter(r => Number(r.rating) >= 4).map(r => `${r.title} (${r.year})`);
+      const allTitles = rows.map(r => String(r.title));
+      const prompt = `Films this person rated highly: ${liked.slice(0, 40).join('; ') || '(none rated yet)'}.
+Films they have ALREADY logged (never suggest any of these): ${allTitles.join('; ')}.
+
+Suggest 5 films they have NOT logged that fit this taste. Return ONLY a JSON array, no prose, no fence:
+[{"title": string, "year": number, "why": string}]
+"why" must be one specific sentence tying it to their taste, naming a film of theirs where it helps. No generic praise.`;
+
+      const r = await fetch(`${origin}/api/llm`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          tier: 'synth', stream: false, temperature: 0.7, maxTokens: 700,
+          messages: [{ role: 'user', content: prompt }],
+        }),
+      });
+      if (!r.ok) return json({ error: `llm failed: ${r.status}` }, 502);
+      const raw: string = (await r.json())?.text ?? '';
+      const m = raw.match(/\[[\s\S]*\]/);
+      if (!m) return json({ error: 'could not parse suggestions' }, 502);
+
+      const seen = new Set(allTitles.map(t => t.toLowerCase()));
+      const suggestions = (JSON.parse(m[0]) as { title: string; year: number; why: string }[])
+        // Second line of defence: the model is told not to repeat, but filter
+        // anyway rather than trusting it.
+        .filter(x => x?.title && !seen.has(String(x.title).toLowerCase()))
+        .slice(0, 5);
+      return json({ suggestions });
+    } catch (e) {
+      return json({ error: e instanceof Error ? e.message : 'suggest failed' }, 500);
+    }
+  }
+
   // ── Quick add: a known title/year straight to TMDB + insert, no LLM ────
   // Used by the bulk import, where titles are already clean, so paying for a
   // parse per film would be pure waste. Goes through the same upsert, so
@@ -312,12 +362,17 @@ export default async function handler(req: Request): Promise<Response> {
       if (existing.rows.length) return json({ skipped: true, title });
 
       const genres = (tmdb?.genreIds ?? []).map(id => TMDB_GENRES[id]).filter(Boolean);
+      // Seed entries may carry a rating/tags/review; most carry none. Tags are
+      // filtered against the vocabulary here too, same as the normal path.
+      const qTags = (Array.isArray(body.tags) ? body.tags : []).filter(t => MOVIE_TAGS.includes(t));
       await sql`
-        INSERT INTO movies (title, year, tmdb_id, poster_url, tmdb_url, genres, tags, status)
+        INSERT INTO movies (title, year, tmdb_id, poster_url, tmdb_url, genres, rating, tags, review, blog_slug, status)
         VALUES (
           ${title}, ${tmdb?.year ?? body.year ?? null}, ${tmdbId},
           ${tmdb?.posterUrl ?? null}, ${tmdb?.tmdbUrl ?? null},
-          ${genres as unknown as string}, ${[] as unknown as string}, 'watched'
+          ${genres as unknown as string}, ${clampRating(body.rating)},
+          ${qTags as unknown as string}, ${body.review ?? null},
+          ${body.blogSlug ?? null}, ${body.status === 'watchlist' ? 'watchlist' : 'watched'}
         )
       `;
       return json({ added: true, title, tmdbMatched: !!tmdb });

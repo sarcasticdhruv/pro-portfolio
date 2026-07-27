@@ -43,7 +43,7 @@ export default async function handler(req: Request): Promise<Response> {
       });
     }
 
-    const [latestPerVisitor, aggregates, recent] = await Promise.all([
+    const [latestPerVisitor, aggregates, recent, daily, topPaths, topReferrers, topEvents, byHour] = await Promise.all([
       sql`
         SELECT DISTINCT ON (visitor_id)
           visitor_id, ip, country, city, user_agent, path AS last_path,
@@ -66,6 +66,37 @@ export default async function handler(req: Request): Promise<Response> {
         FROM visits
         ORDER BY created_at DESC
         LIMIT 100
+      `,
+      // Analytics are aggregated in SQL, not derived in the browser from the
+      // 100-row `recent` sample above - that sample covers hours, not weeks,
+      // so computing "traffic over time" or "top pages" from it would quietly
+      // report the last hour as if it were all-time.
+      sql`
+        SELECT to_char(created_at AT TIME ZONE 'UTC', 'YYYY-MM-DD') AS day,
+               COUNT(*) FILTER (WHERE event = 'pageview') AS views,
+               COUNT(DISTINCT visitor_id) AS uniques
+        FROM visits
+        WHERE created_at > now() - interval '30 days'
+        GROUP BY 1 ORDER BY 1
+      `,
+      sql`
+        SELECT path, COUNT(*) AS n FROM visits
+        WHERE event = 'pageview' AND path IS NOT NULL
+        GROUP BY 1 ORDER BY 2 DESC LIMIT 10
+      `,
+      sql`
+        SELECT referrer, COUNT(*) AS n FROM visits
+        WHERE referrer IS NOT NULL AND referrer <> ''
+        GROUP BY 1 ORDER BY 2 DESC LIMIT 10
+      `,
+      sql`
+        SELECT event, COUNT(*) AS n FROM visits
+        WHERE event <> 'pageview'
+        GROUP BY 1 ORDER BY 2 DESC LIMIT 12
+      `,
+      sql`
+        SELECT to_char(created_at AT TIME ZONE 'UTC', 'HH24') AS hour, COUNT(*) AS n
+        FROM visits GROUP BY 1 ORDER BY 1
       `,
     ]);
 
@@ -91,6 +122,13 @@ export default async function handler(req: Request): Promise<Response> {
 
     return json({
       visitors,
+      analytics: {
+        daily: daily.rows.map(r => ({ day: r.day, views: Number(r.views), uniques: Number(r.uniques) })),
+        topPaths: topPaths.rows.map(r => ({ label: r.path, n: Number(r.n) })),
+        topReferrers: topReferrers.rows.map(r => ({ label: r.referrer, n: Number(r.n) })),
+        topEvents: topEvents.rows.map(r => ({ label: r.event, n: Number(r.n) })),
+        byHour: byHour.rows.map(r => ({ hour: r.hour, n: Number(r.n) })),
+      },
       recent: recent.rows.map(r => ({
         visitorId: r.visitor_id,
         ip: r.ip,

@@ -631,7 +631,7 @@ export default function AIChatbot() {
           }}
         >
           {messages.length === 0 && (
-            <div style={{
+            <div className="chat-empty-hint" style={{
               textAlign: 'center', padding: '32px 16px',
               color: 'var(--text-dim)',
               fontFamily: "'JetBrains Mono', monospace", fontSize: '0.72rem',
@@ -1059,6 +1059,14 @@ export default function AIChatbot() {
            auto-zoom on focus) - only the placeholder text shrinks. */
         .chat-text-input::placeholder {
           font-size: 0.82rem;
+        }
+        /* On a narrow panel "Ask anything about Dhruv" wrapped onto two lines.
+           nowrap alone would let it overflow, so the font shrinks on mobile to
+           make one line actually fit rather than just forcing it. */
+        .chat-empty-hint { white-space: nowrap; }
+        @media (max-width: 640px) {
+          .chat-empty-hint { font-size: 0.64rem !important; }
+          .chat-text-input::placeholder { font-size: 0.74rem; }
         }
         /* Live call glow - --voice-level/--voice-rgb are written directly
            to this element's inline style per audio chunk (see

@@ -1,9 +1,14 @@
 // One-off seed list transcribed from local library folders, for the bulk
-// import button in the admin Movies tab. All are films already WATCHED, with
-// no rating or review - those get added later, by hand, per film.
+// import button on /watched. All are films already WATCHED.
 //
-// Deliberately NOT auto-generating reviews: a made-up opinion attributed to
-// you is worse than an empty field.
+// Most entries carry title + year ONLY - ratings and reviews get added later,
+// by hand, per film. Nothing here is an AI-written opinion.
+//
+// 16 entries carry demo rating/tags so the card layouts are visible. Of those,
+// the 4 with a `review` are CONDENSED FROM DHRUV'S OWN BLOG POSTS
+// (barry-lyndon.md, last-months-watchlist.md) and link back via blogSlug -
+// they are his actual words, not invented. The rating-only entries are
+// placeholders: change or delete them freely.
 //
 // Excluded during transcription: TV/anime series (Chernobyl, Twin Peaks, The
 // Patient, The Bear, Crash Landing on You, Modern Love, Love in Contract,
@@ -15,20 +20,21 @@
 // Sleepless in Seattle, Funny Games. The import is also idempotent server-side
 // (it upserts on tmdb_id / title), so re-running it will not create doubles.
 export const MOVIE_SEED = [
-  { title: '2001: A Space Odyssey', year: 1968 },
+  { title: '2001: A Space Odyssey', year: 1968 , rating: 4.5, tags: ['mindboggling', 'technically-brilliant'], blogSlug: 'last-months-watchlist', review: "A very late first watch. Hard to accept this came out in 1968 - it should not look this good." },
   { title: 'Apollo 10½: A Space Age Childhood', year: 2022 },
   { title: 'Butch Cassidy and the Sundance Kid', year: 1969 },
-  { title: 'Grosse Pointe Blank', year: 1997 },
+  { title: 'Grosse Pointe Blank', year: 1997 , rating: 4, tags: ['comfort-watch', 'rewatchable'], blogSlug: 'last-months-watchlist', review: "The one I keep rewatching and can never fully explain why." },
   { title: 'Mr. & Mrs. Smith', year: 2005 },
   { title: 'Only Yesterday', year: 1991 },
   { title: 'Oye Lucky! Lucky Oye!', year: 2008 },
-  { title: 'The Good, the Bad and the Ugly', year: 1966 },
+  { title: 'The Good, the Bad and the Ugly', year: 1966 , rating: 4.5, tags: ['excellent', 'stayed-with-me'], blogSlug: 'last-months-watchlist', review: "First Sergio Leone western for me and the pace caught me off guard, in a good way. "
+    + "He'll sit on a face for a full minute before anything happens, and it makes the gunfights hit harder when they come. And that score." },
   { title: 'Mean Streets', year: 1973 },
   { title: 'Midnight Cowboy', year: 1969 },
-  { title: 'Stalker', year: 1979 },
+  { title: 'Stalker', year: 1979 , rating: 4.5, tags: ['slow-burn', 'mindboggling'] },
   { title: 'Days of Heaven', year: 1978 },
-  { title: 'Wings of Desire', year: 1987 },
-  { title: 'Bicycle Thieves', year: 1948 },
+  { title: 'Wings of Desire', year: 1987 , rating: 4.5, tags: ['beautiful', 'slow-burn'] },
+  { title: 'Bicycle Thieves', year: 1948 , rating: 4.5, tags: ['stayed-with-me'] },
 
   { title: 'Roman Holiday', year: 1953 },
   { title: 'The Last Samurai', year: 2003 },
@@ -45,7 +51,7 @@ export const MOVIE_SEED = [
   { title: 'Kill Bill: Vol. 1', year: 2003 },
   { title: 'Kill Bill: Vol. 2', year: 2004 },
   { title: 'Killa', year: 2014 },
-  { title: 'Perfect Days', year: 2023 },
+  { title: 'Perfect Days', year: 2023 , rating: 4.5, tags: ['slow-burn', 'stayed-with-me'] },
   { title: 'Princess Mononoke', year: 1997 },
   { title: 'Raman Raghav 2.0', year: 2016 },
   { title: 'Scent of a Woman', year: 1992 },
@@ -54,7 +60,7 @@ export const MOVIE_SEED = [
   { title: 'The Lord of the Rings: The Two Towers', year: 2002 },
   { title: 'The Lord of the Rings: The Return of the King', year: 2003 },
   { title: 'The Other Boleyn Girl', year: 2008 },
-  { title: 'There Will Be Blood', year: 2007 },
+  { title: 'There Will Be Blood', year: 2007 , rating: 5, tags: ['excellent', 'technically-brilliant'] },
   { title: 'Wind River', year: 2017 },
 
   { title: 'Breathe', year: 2017 },
@@ -66,7 +72,8 @@ export const MOVIE_SEED = [
   { title: 'Moonlight', year: 2016 },
   { title: "America's Sweethearts", year: 2001 },
   { title: 'Annie Hall', year: 1977 },
-  { title: 'Barry Lyndon', year: 1975 },
+  { title: 'Barry Lyndon', year: 1975 , rating: 5, tags: ['mindboggling', 'beautiful', 'technically-brilliant'], blogSlug: 'barry-lyndon', review: "Every single frame looks like someone paused a painting. Kubrick pulled straight from Gainsborough and Hogarth, "
+    + "and shot the candlelit interiors on Zeiss f/0.7 lenses built for NASA. Still not fully back from it." },
   { title: 'Binny and Family', year: 2024 },
   { title: 'Drawing Closer', year: 2024 },
   { title: 'Eraserhead', year: 1977 },
@@ -77,14 +84,14 @@ export const MOVIE_SEED = [
   { title: 'No Other Choice', year: 2025 },
   { title: 'Pieces of a Woman', year: 2020 },
   { title: 'Prisoners', year: 2013 },
-  { title: 'Psycho', year: 1960 },
+  { title: 'Psycho', year: 1960 , rating: 4, tags: ['technically-brilliant'] },
   { title: 'Rental Family', year: 2025 },
   { title: 'Reservoir Dogs', year: 1992 },
   { title: 'A Silent Voice', year: 2016 },
   { title: 'Sister Midnight', year: 2024 },
   { title: 'The Little Prince', year: 2015 },
   { title: 'The Pale Blue Eye', year: 2022 },
-  { title: 'The Shawshank Redemption', year: 1994 },
+  { title: 'The Shawshank Redemption', year: 1994 , rating: 4, tags: ['rewatchable', 'comfort-watch'] },
   { title: 'U Turn', year: 1997 },
   { title: 'When Harry Met Sally...', year: 1989 },
 
@@ -105,16 +112,16 @@ export const MOVIE_SEED = [
   { title: 'Crash', year: 2004 },
   { title: 'Detachment', year: 2011 },
   { title: 'Fandry', year: 2013 },
-  { title: 'In the Mood for Love', year: 2000 },
+  { title: 'In the Mood for Love', year: 2000 , rating: 5, tags: ['beautiful', 'slow-burn'] },
   { title: 'Jojo Rabbit', year: 2019 },
   { title: 'Love Sex Aur Dhokha', year: 2010 },
   { title: 'Lucky Baskhar', year: 2024 },
-  { title: 'Memories of Murder', year: 2003 },
+  { title: 'Memories of Murder', year: 2003 , rating: 4.5, tags: ['excellent'] },
   { title: 'Modest Heroes', year: 2018 },
   { title: 'Mulholland Drive', year: 2001 },
   { title: 'Not Another Teen Movie', year: 2001 },
-  { title: 'Oldboy', year: 2003 },
-  { title: 'Paris, Texas', year: 1984 },
+  { title: 'Oldboy', year: 2003 , rating: 4.5, tags: ['mindboggling'] },
+  { title: 'Paris, Texas', year: 1984 , rating: 4.5, tags: ['beautiful', 'stayed-with-me'] },
   { title: 'Sairat', year: 2016 },
   { title: 'Shanghai', year: 2012 },
   { title: 'Sita Ramam', year: 2022 },
@@ -122,7 +129,7 @@ export const MOVIE_SEED = [
   { title: 'The Breadwinner', year: 2017 },
   { title: 'The Holdovers', year: 2023 },
   { title: 'The Menu', year: 2022 },
-  { title: 'The Social Network', year: 2010 },
+  { title: 'The Social Network', year: 2010 , rating: 4, tags: ['rewatchable'] },
   { title: 'Three of Us', year: 2022 },
   { title: 'Zodiac', year: 2007 },
 

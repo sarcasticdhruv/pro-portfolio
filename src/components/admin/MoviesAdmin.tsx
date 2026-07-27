@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Loader2, Sparkles, Check, Trash2, Film, AlertTriangle, Upload } from 'lucide-react';
+import { Loader2, Sparkles, Check, Trash2, Film, AlertTriangle, Upload, Wand2, Plus } from 'lucide-react';
 import { MOVIE_TAGS } from '../../content/movieTags.mjs';
 import { MOVIE_SEED } from '../../content/movieSeed.mjs';
 import { ALL_POSTS } from '../../lib/blog';
@@ -40,7 +40,7 @@ const inputStyle: React.CSSProperties = {
   width: '100%',
 };
 
-export default function MoviesAdmin({ adminKey }: { adminKey: string }) {
+export default function MoviesAdmin({ adminKey, onChange }: { adminKey: string; onChange?: () => void }) {
   const [text, setText] = useState('');
   const [draft, setDraft] = useState<Draft | null>(null);
   const [tmdbWarning, setTmdbWarning] = useState('');
@@ -50,6 +50,46 @@ export default function MoviesAdmin({ adminKey }: { adminKey: string }) {
   const [movies, setMovies] = useState<Movie[]>([]);
   const [importing, setImporting] = useState(false);
   const [progress, setProgress] = useState({ done: 0, added: 0, skipped: 0, failed: [] as string[] });
+  const [suggesting, setSuggesting] = useState(false);
+  const [suggestions, setSuggestions] = useState<{ title: string; year: number; why: string }[]>([]);
+  const [adding, setAdding] = useState<string | null>(null);
+
+  async function suggest() {
+    if (suggesting) return;
+    setSuggesting(true);
+    setErr('');
+    try {
+      const res = await fetch('/api/movies', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ key: adminKey, suggest: true }),
+      });
+      const d = await res.json();
+      if (!res.ok || d.error) throw new Error(d?.error ?? 'suggest failed');
+      setSuggestions(d.suggestions ?? []);
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : 'suggest failed');
+    } finally {
+      setSuggesting(false);
+    }
+  }
+
+  // Accepted suggestions land on the WATCHLIST, not as watched - they haven't
+  // been seen, so they must carry no rating or review.
+  async function addToWatchlist(s: { title: string; year: number }) {
+    setAdding(s.title);
+    try {
+      await fetch('/api/movies', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ key: adminKey, quickAdd: true, title: s.title, year: s.year, status: 'watchlist' }),
+      });
+      setSuggestions(prev => prev.filter(x => x.title !== s.title));
+      loadMovies();
+    } catch {
+      setErr('could not add');
+    } finally {
+      setAdding(null);
+    }
+  }
 
   // Sequential on purpose: 131 parallel TMDB lookups would rate-limit, and
   // this runs once. Skips are expected and fine - the server upserts, so a
@@ -65,7 +105,11 @@ export default function MoviesAdmin({ adminKey }: { adminKey: string }) {
         const res = await fetch('/api/movies', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ key: adminKey, quickAdd: true, title: m.title, year: m.year }),
+          body: JSON.stringify({
+            key: adminKey, quickAdd: true, title: m.title, year: m.year,
+            rating: m.rating ?? null, tags: m.tags ?? [],
+            review: m.review ?? null, blogSlug: m.blogSlug ?? null,
+          }),
         });
         const d = await res.json();
         if (!res.ok || d.error) p.failed.push(m.title);
@@ -83,6 +127,7 @@ export default function MoviesAdmin({ adminKey }: { adminKey: string }) {
 
   function loadMovies() {
     fetch('/api/movies').then(r => r.json()).then(d => setMovies(d.movies ?? [])).catch(() => {});
+    onChange?.();
   }
   useEffect(loadMovies, []);
 
@@ -296,6 +341,58 @@ export default function MoviesAdmin({ adminKey }: { adminKey: string }) {
           </div>
         </div>
       )}
+
+      {/* What to watch next */}
+      <div style={{ marginTop: '28px' }}>
+        <button
+          onClick={suggest}
+          disabled={suggesting}
+          style={{
+            display: 'flex', alignItems: 'center', gap: '7px',
+            background: 'transparent', border: '1px solid var(--border-2)',
+            borderRadius: '7px', padding: '8px 14px', color: 'var(--text-muted)',
+            fontFamily: "'JetBrains Mono', monospace", fontSize: '0.74rem',
+            cursor: suggesting ? 'default' : 'pointer', opacity: suggesting ? 0.6 : 1,
+          }}
+        >
+          {suggesting ? <Loader2 size={12} className="spin-slow" /> : <Wand2 size={12} />}
+          {suggesting ? 'thinking...' : 'what should I watch next'}
+        </button>
+
+        {suggestions.length > 0 && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '12px' }}>
+            {suggestions.map(s => (
+              <div key={s.title} style={{
+                display: 'flex', alignItems: 'flex-start', gap: '12px', padding: '11px 13px',
+                background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '9px',
+              }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <p style={{ fontFamily: "'DM Sans', sans-serif", fontWeight: 600, fontSize: '0.85rem', color: 'var(--text)' }}>
+                    {s.title} <span style={{ color: 'var(--text-dim)', fontWeight: 500 }}>({s.year})</span>
+                  </p>
+                  <p style={{ fontSize: '0.76rem', color: 'var(--text-dim)', lineHeight: 1.5, marginTop: '3px' }}>
+                    {s.why}
+                  </p>
+                </div>
+                <button
+                  onClick={() => addToWatchlist(s)}
+                  disabled={adding === s.title}
+                  title="add to watchlist"
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: '5px', flexShrink: 0,
+                    background: 'transparent', border: '1px solid var(--border-2)',
+                    borderRadius: '6px', padding: '5px 10px', cursor: 'pointer', color: 'var(--accent)',
+                    fontFamily: "'JetBrains Mono', monospace", fontSize: '0.66rem',
+                  }}
+                >
+                  {adding === s.title ? <Loader2 size={10} className="spin-slow" /> : <Plus size={10} />}
+                  watchlist
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
 
       {/* Bulk import of the transcribed library list */}
       <div style={{
