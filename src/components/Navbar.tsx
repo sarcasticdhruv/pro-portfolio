@@ -1,9 +1,17 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Sun, Moon, Menu, X, BookOpen, Gamepad2, Search, Aperture } from 'lucide-react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import type { Theme } from '../types';
 
 interface Props { theme: Theme; onToggleTheme: (origin?: { x: number; y: number }) => void; }
+
+// Double-clicking the ~/dhruv logo opens /watched (an easter egg - the page
+// is also reachable directly by URL). Single- and double-click on one element
+// inherently conflict, because a plain <Link> navigates home before the
+// second click can land, so the first click is deferred by this much and
+// cancelled if a second arrives. The cost is that normal "go home" clicks are
+// delayed by 250ms; that's the unavoidable price of the gesture.
+const DOUBLE_CLICK_MS = 250;
 
 const NAV_LINKS = [
   { label: 'about', href: '/#about' },
@@ -17,6 +25,8 @@ export default function Navbar({ theme, onToggleTheme }: Props) {
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const { pathname } = useLocation();
+  const navigate = useNavigate();
+  const clickTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const onBlog = pathname.startsWith('/blog');
   const onGames = pathname.startsWith('/games');
   const onSearch = pathname.startsWith('/search');
@@ -27,6 +37,28 @@ export default function Navbar({ theme, onToggleTheme }: Props) {
     window.addEventListener('scroll', handler, { passive: true });
     return () => window.removeEventListener('scroll', handler);
   }, []);
+
+  // A pending single-click timer must not fire after unmount.
+  useEffect(() => () => {
+    if (clickTimer.current) clearTimeout(clickTimer.current);
+  }, []);
+
+  function onLogoClick(e: React.MouseEvent<HTMLAnchorElement>) {
+    // Let cmd/ctrl/shift-click open in a new tab like a normal link.
+    if (e.metaKey || e.ctrlKey || e.shiftKey) return;
+    e.preventDefault();
+
+    if (clickTimer.current) {
+      clearTimeout(clickTimer.current);
+      clickTimer.current = null;
+      navigate('/watched');
+      return;
+    }
+    clickTimer.current = setTimeout(() => {
+      clickTimer.current = null;
+      navigate('/');
+    }, DOUBLE_CLICK_MS);
+  }
 
   return (
     <>
@@ -41,12 +73,17 @@ export default function Navbar({ theme, onToggleTheme }: Props) {
         WebkitBackdropFilter: scrolled ? 'blur(12px)' : 'none',
         boxShadow: scrolled ? 'var(--shadow-md)' : 'none',
       }}>
-        <Link to="/" style={{
-          fontFamily: "'JetBrains Mono', monospace", fontWeight: 500,
-          fontSize: '0.92rem', color: 'var(--accent)', letterSpacing: '0.02em',
-        }}>
+        <a
+          href="/"
+          onClick={onLogoClick}
+          style={{
+            fontFamily: "'JetBrains Mono', monospace", fontWeight: 500,
+            fontSize: '0.92rem', color: 'var(--accent)', letterSpacing: '0.02em',
+            textDecoration: 'none', cursor: 'pointer',
+          }}
+        >
           <span style={{ color: 'var(--text-dim)' }}>~/</span>dhruv
-        </Link>
+        </a>
 
         {/* Desktop */}
         <div className="nav-desktop" style={{ display: 'flex', alignItems: 'center', gap: '28px' }}>

@@ -9,6 +9,7 @@
 - [Search](https://dhruv-choudhary.tech/search): Agentic search over this site and the web.
 - [Imagine](https://dhruv-choudhary.tech/imagine): Free in-browser AI image generation.
 - [Arcade](https://dhruv-choudhary.tech/games): Snake, 2048, Tic-Tac-Toe, and Chess.
+- [Watched](https://dhruv-choudhary.tech/watched): Films watched, with personal ratings, tags, and short reviews.
 
 ## Blog posts
 

@@ -40,6 +40,7 @@ const staticRoutes = [
   { loc: '/games', priority: '0.5', changefreq: 'monthly' },
   { loc: '/search', priority: '0.5', changefreq: 'monthly' },
   { loc: '/imagine', priority: '0.5', changefreq: 'monthly' },
+  { loc: '/watched', priority: '0.5', changefreq: 'weekly' },
 ];
 
 const posts = loadPublishedPosts();

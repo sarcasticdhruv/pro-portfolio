@@ -56,6 +56,7 @@ const txt = `# Dhruv Choudhary
 - [Search](${SITE_URL}/search): Agentic search over this site and the web.
 - [Imagine](${SITE_URL}/imagine): Free in-browser AI image generation.
 - [Arcade](${SITE_URL}/games): Snake, 2048, Tic-Tac-Toe, and Chess.
+- [Watched](${SITE_URL}/watched): Films watched, with personal ratings, tags, and short reviews.
 
 ## Blog posts
 

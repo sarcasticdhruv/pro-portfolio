@@ -26,6 +26,11 @@
     <priority>0.5</priority>
   </url>
   <url>
+    <loc>https://dhruv-choudhary.tech/watched</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.5</priority>
+  </url>
+  <url>
     <loc>https://dhruv-choudhary.tech/blog/ai-kisaan-sahayak</loc>
     <lastmod>2025-10-15</lastmod>
     <changefreq>monthly</changefreq>

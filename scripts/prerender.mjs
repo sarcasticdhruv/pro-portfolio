@@ -285,6 +285,55 @@ pages.push({
   },
 });
 
+// /watched - the only route whose content lives in Postgres rather than the
+// repo, so the rows are fetched here at build time. A DB hiccup must never
+// fail the whole build: on any error this falls back to meta + JSON-LD only
+// and the CSR app fills the page in for real visitors regardless.
+let watchedMovies = [];
+if (process.env.POSTGRES_URL) {
+  try {
+    const { sql } = await import('@vercel/postgres');
+    const { rows } = await sql`
+      SELECT title, year, rating, review, tags, blog_slug
+      FROM movies
+      ORDER BY watched_on DESC NULLS LAST, created_at DESC
+    `;
+    watchedMovies = rows;
+  } catch (err) {
+    console.warn(`prerender: /watched DB fetch failed, emitting meta-only page (${err instanceof Error ? err.message : err})`);
+  }
+} else {
+  console.warn('prerender: POSTGRES_URL unset, /watched gets a meta-only page');
+}
+
+pages.push({
+  path: '/watched',
+  title: 'Watched',
+  description: 'Films watched, with personal ratings, tags, and short reviews by Dhruv Choudhary.',
+  jsonLd: {
+    '@context': 'https://schema.org',
+    '@type': 'CollectionPage',
+    name: 'Watched',
+    url: `${SITE_URL}/watched`,
+    description: 'Films watched, with personal ratings, tags, and short reviews by Dhruv Choudhary.',
+  },
+  bodyHtml: `
+    <main>
+      <h1>Watched.</h1>
+      <p>Films I've seen, rated honestly. Some have a few lines, some just a rating.</p>
+      ${watchedMovies.length ? `<ul>
+        ${watchedMovies.map(m => `
+        <li>
+          <h2>${escapeHtml(m.title)}${m.year ? ` (${m.year})` : ''}</h2>
+          ${m.rating != null ? `<p>Rated ${m.rating} out of 5</p>` : ''}
+          ${(m.tags ?? []).length ? `<p>${(m.tags ?? []).map(t => escapeHtml(t)).join(', ')}</p>` : ''}
+          ${m.review ? `<p>${escapeHtml(m.review)}</p>` : ''}
+          ${m.blog_slug ? `<a href="/blog/${m.blog_slug}">Read the post</a>` : ''}
+        </li>`).join('')}
+      </ul>` : ''}
+    </main>`,
+});
+
 // ── Write ────────────────────────────────────────────────────────────────
 let failures = 0;
 for (const page of pages) {
