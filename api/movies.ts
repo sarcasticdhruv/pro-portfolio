@@ -50,11 +50,15 @@ async function ensureTable(): Promise<void> {
       watched_on  DATE,
       blog_slug   TEXT,
       status      TEXT NOT NULL DEFAULT 'watched',
+      favorite    BOOLEAN NOT NULL DEFAULT false,
+      director    TEXT,
       created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
     )
   `;
   // Added after the table's first deployment - safe no-op once applied.
   await sql`ALTER TABLE movies ADD COLUMN IF NOT EXISTS status TEXT NOT NULL DEFAULT 'watched'`;
+  await sql`ALTER TABLE movies ADD COLUMN IF NOT EXISTS favorite BOOLEAN NOT NULL DEFAULT false`;
+  await sql`ALTER TABLE movies ADD COLUMN IF NOT EXISTS director TEXT`;
 }
 
 type Status = 'watched' | 'watchlist';
@@ -72,6 +76,8 @@ interface Draft {
   tmdbUrl: string | null;
   genres: string[];
   status: Status;
+  favorite: boolean;
+  director: string | null;
 }
 
 // ── Step 1: free text -> structured fields, via the existing /api/llm proxy
@@ -143,7 +149,21 @@ async function lookupTmdb(title: string, year: number | null) {
     }
     const hit = (await r.json())?.results?.[0];
     if (!hit) return null;
+
+    // The search endpoint has no crew, so the director needs one more call.
+    // Failure here is non-fatal: a missing director is fine, a failed import
+    // is not.
+    let director: string | null = null;
+    try {
+      const cr = await fetch(`https://api.themoviedb.org/3/movie/${hit.id}/credits?api_key=${apiKey}`);
+      if (cr.ok) {
+        const crew = (await cr.json())?.crew ?? [];
+        director = crew.find((c: { job?: string }) => c.job === 'Director')?.name ?? null;
+      }
+    } catch { /* keep null */ }
+
     return {
+      director,
       tmdbId: hit.id as number,
       posterUrl: hit.poster_path ? `https://image.tmdb.org/t/p/w500${hit.poster_path}` : null,
       tmdbUrl: `https://www.themoviedb.org/movie/${hit.id}`,
@@ -192,6 +212,8 @@ function rowToMovie(r: Record<string, unknown>) {
     watchedOn: r.watched_on,
     blogSlug: r.blog_slug,
     status: r.status ?? 'watched',
+    favorite: r.favorite === true,
+    director: r.director ?? null,
     createdAt: r.created_at,
   };
 }
@@ -219,7 +241,7 @@ export default async function handler(req: Request): Promise<Response> {
     key?: string; text?: string; movie?: Partial<Draft>; confirm?: boolean; id?: number;
     quickAdd?: boolean; title?: string; year?: number | null;
     rating?: number | null; tags?: string[]; review?: string | null; blogSlug?: string | null;
-    status?: Status; suggest?: boolean;
+    status?: Status; suggest?: boolean; favorite?: boolean; toggleFavorite?: boolean;
   };
   try {
     body = await req.json();
@@ -274,7 +296,8 @@ export default async function handler(req: Request): Promise<Response> {
             tmdb_url = ${m.tmdbUrl ?? null}, genres = ${genres as unknown as string},
             rating = ${clampRating(m.rating)}, tags = ${tags as unknown as string},
             review = ${m.review ?? null}, watched_on = ${isoDate(m.watchedOn)},
-            blog_slug = ${m.blogSlug ?? null}, status = ${status}
+            blog_slug = ${m.blogSlug ?? null}, status = ${status},
+            favorite = ${m.favorite === true}, director = ${m.director ?? null}
           WHERE id = ${existing.rows[0].id}
           RETURNING *
         `;
@@ -282,12 +305,13 @@ export default async function handler(req: Request): Promise<Response> {
       }
 
       const { rows } = await sql`
-        INSERT INTO movies (title, year, tmdb_id, poster_url, tmdb_url, genres, rating, tags, review, watched_on, blog_slug, status)
+        INSERT INTO movies (title, year, tmdb_id, poster_url, tmdb_url, genres, rating, tags, review, watched_on, blog_slug, status, favorite, director)
         VALUES (
           ${m.title}, ${m.year ?? null}, ${m.tmdbId ?? null}, ${m.posterUrl ?? null},
           ${m.tmdbUrl ?? null}, ${genres as unknown as string},
           ${clampRating(m.rating)}, ${tags as unknown as string},
-          ${m.review ?? null}, ${isoDate(m.watchedOn)}, ${m.blogSlug ?? null}, ${status}
+          ${m.review ?? null}, ${isoDate(m.watchedOn)}, ${m.blogSlug ?? null}, ${status},
+          ${m.favorite === true}, ${m.director ?? null}
         )
         RETURNING *
       `;
@@ -297,6 +321,19 @@ export default async function handler(req: Request): Promise<Response> {
     }
   }
 
+
+  // ── Toggle the heart ───────────────────────────────────────────────────
+  if (body.toggleFavorite && body.id) {
+    try {
+      const { rows } = await sql`
+        UPDATE movies SET favorite = NOT favorite WHERE id = ${body.id} RETURNING *
+      `;
+      if (!rows.length) return json({ error: 'not found' }, 404);
+      return json({ movie: rowToMovie(rows[0]) });
+    } catch (e) {
+      return json({ error: e instanceof Error ? e.message : 'db error' }, 500);
+    }
+  }
 
   // ── Suggest what to watch next ─────────────────────────────────────────
   // Grounded in the actual rated rows, and told explicitly to avoid anything
@@ -366,13 +403,14 @@ Suggest 5 films they have NOT logged that fit this taste. Return ONLY a JSON arr
       // filtered against the vocabulary here too, same as the normal path.
       const qTags = (Array.isArray(body.tags) ? body.tags : []).filter(t => MOVIE_TAGS.includes(t));
       await sql`
-        INSERT INTO movies (title, year, tmdb_id, poster_url, tmdb_url, genres, rating, tags, review, blog_slug, status)
+        INSERT INTO movies (title, year, tmdb_id, poster_url, tmdb_url, genres, rating, tags, review, blog_slug, status, favorite, director)
         VALUES (
           ${title}, ${tmdb?.year ?? body.year ?? null}, ${tmdbId},
           ${tmdb?.posterUrl ?? null}, ${tmdb?.tmdbUrl ?? null},
           ${genres as unknown as string}, ${clampRating(body.rating)},
           ${qTags as unknown as string}, ${body.review ?? null},
-          ${body.blogSlug ?? null}, ${body.status === 'watchlist' ? 'watchlist' : 'watched'}
+          ${body.blogSlug ?? null}, ${body.status === 'watchlist' ? 'watchlist' : 'watched'},
+          ${body.favorite === true}, ${tmdb?.director ?? null}
         )
       `;
       return json({ added: true, title, tmdbMatched: !!tmdb });
@@ -408,6 +446,8 @@ Suggest 5 films they have NOT logged that fit this taste. Return ONLY a JSON arr
     posterUrl: tmdb?.posterUrl ?? null,
     tmdbUrl: tmdb?.tmdbUrl ?? null,
     genres: (tmdb?.genreIds ?? []).map(id => TMDB_GENRES[id]).filter(Boolean),
+    favorite: false,
+    director: tmdb?.director ?? null,
   };
 
   return json({

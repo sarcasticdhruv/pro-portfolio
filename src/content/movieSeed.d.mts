@@ -5,4 +5,5 @@ export const MOVIE_SEED: {
   tags?: string[];
   review?: string;
   blogSlug?: string;
+  favorite?: boolean;
 }[];

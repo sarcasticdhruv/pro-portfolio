@@ -104,11 +104,19 @@ export function ChartCard({ title, note, children, wide }: {
 
 // A headline number is the right form when there is exactly one value to read;
 // wrapping it in a chart would add ink without adding information.
-export function StatTile({ value, label }: { value: string | number; label: string }) {
+export function StatTile({ value, label, onClick }: {
+  value: string | number; label: string; onClick?: () => void;
+}) {
   return (
-    <div style={{
+    <div
+      onClick={onClick}
+      role={onClick ? 'button' : undefined}
+      tabIndex={onClick ? 0 : undefined}
+      onKeyDown={onClick ? e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick(); } } : undefined}
+      style={{
       background: 'var(--surface)', border: '1px solid var(--border)',
       borderRadius: '12px', padding: '14px 16px',
+      cursor: onClick ? 'pointer' : undefined,
     }}>
       <p style={{
         fontFamily: "'Syne', sans-serif", fontWeight: 700,

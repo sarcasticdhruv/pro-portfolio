@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Loader2, Sparkles, Check, Trash2, Film, AlertTriangle, Upload, Wand2, Plus } from 'lucide-react';
+import { Loader2, Sparkles, Check, Trash2, Film, AlertTriangle, Upload, Wand2, Plus, Heart } from 'lucide-react';
 import { MOVIE_TAGS } from '../../content/movieTags.mjs';
 import { MOVIE_SEED } from '../../content/movieSeed.mjs';
 import { ALL_POSTS } from '../../lib/blog';
@@ -177,6 +177,18 @@ export default function MoviesAdmin({ adminKey, onChange }: { adminKey: string; 
       setErr(e instanceof Error ? e.message : 'save failed');
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function toggleFav(id: number) {
+    try {
+      await fetch('/api/movies', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ key: adminKey, toggleFavorite: true, id }),
+      });
+      loadMovies();
+    } catch {
+      setErr('could not update');
     }
   }
 
@@ -445,6 +457,11 @@ export default function MoviesAdmin({ adminKey, onChange }: { adminKey: string; 
               {m.title}{m.year ? ` (${m.year})` : ''}
             </span>
             <span style={{ color: 'var(--text-dim)', flexShrink: 0 }}>{m.rating ?? '—'}</span>
+            <button onClick={() => toggleFav(m.id)} title={m.favorite ? 'unfavourite' : 'favourite'}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', padding: '3px',
+                color: m.favorite ? '#ff6b81' : 'var(--text-dim)' }}>
+              <Heart size={12} fill={m.favorite ? 'currentColor' : 'none'} />
+            </button>
             <button onClick={() => remove(m.id)} title="delete"
               style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-dim)', display: 'flex', padding: '3px' }}>
               <Trash2 size={12} />

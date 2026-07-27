@@ -230,6 +230,21 @@ export default function AIChatbot() {
   const inputLevelRef = useRef(0);
   const outputLevelRef = useRef(0);
 
+  // Measured: the full string needs ~148px but only ~122px is available at
+  // 360px and ~85px at 320px, so it truncated on small phones. Shortening the
+  // text beats shrinking the font to an unreadable size.
+  const [askPlaceholder, setAskPlaceholder] = useState('Ask anything about Dhruv…');
+  useEffect(() => {
+    const pick = () => setAskPlaceholder(
+      window.innerWidth <= 340 ? 'Ask anything…'
+        : window.innerWidth <= 400 ? 'Ask about Dhruv…'
+        : 'Ask anything about Dhruv…',
+    );
+    pick();
+    window.addEventListener('resize', pick);
+    return () => window.removeEventListener('resize', pick);
+  }, []);
+
   useEffect(() => {
     if (bodyRef.current) {
       bodyRef.current.scrollTop = bodyRef.current.scrollHeight;
@@ -871,7 +886,7 @@ export default function AIChatbot() {
                   : liveState === 'connecting' ? 'Connecting…'
                   : recording ? 'Listening…'
                   : transcribing ? 'Transcribing…'
-                  : 'Ask anything about Dhruv…'
+                  : askPlaceholder
               }
               disabled={inputLocked}
               style={{

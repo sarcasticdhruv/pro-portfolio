@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Star, Film, ExternalLink, Lock, X, Bookmark } from 'lucide-react';
+import { Star, Film, ExternalLink, Lock, X, Bookmark, Heart, Search, LayoutGrid, List, Grid3x3 } from 'lucide-react';
 import { useSEO } from '../hooks/useSEO';
 import MoviesAdmin from '../components/admin/MoviesAdmin';
 import Recommender from '../components/movies/Recommender';
@@ -22,6 +22,8 @@ export interface Movie {
   watchedOn: string | null;
   blogSlug: string | null;
   status: 'watched' | 'watchlist';
+  favorite: boolean;
+  director: string | null;
 }
 
 // Half-steps are drawn by clipping a filled star to 50% width rather than
@@ -49,6 +51,13 @@ function Stars({ value, size = 13 }: { value: number; size?: number }) {
 function monthKey(d: Date) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
 }
+type View = 'grid' | 'compact' | 'list';
+const VIEWS: { key: View; Icon: typeof LayoutGrid; title: string }[] = [
+  { key: 'grid', Icon: LayoutGrid, title: 'grid' },
+  { key: 'compact', Icon: Grid3x3, title: 'small grid' },
+  { key: 'list', Icon: List, title: 'list' },
+];
+
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
 export default function WatchedPage() {
@@ -63,6 +72,14 @@ export default function WatchedPage() {
   const [adminKey, setAdminKey] = useState('');
   const [lockErr, setLockErr] = useState('');
   const [checking, setChecking] = useState(false);
+
+  // Filters
+  const [q, setQ] = useState('');
+  const [favOnly, setFavOnly] = useState(false);
+  const [minRating, setMinRating] = useState(0);
+  const [tagFilter, setTagFilter] = useState<string | null>(null);
+  const [genreFilter, setGenreFilter] = useState<string | null>(null);
+  const [view, setView] = useState<View>('grid');
 
   useSEO({
     title: 'Watched',
@@ -156,6 +173,26 @@ export default function WatchedPage() {
     }
     return out;
   }, [watched]);
+
+  // Filters narrow the GRID only. The charts deliberately keep describing the
+  // whole collection, so a filter can't silently make the stats look wrong.
+  const shown = useMemo(() => {
+    const needle = q.trim().toLowerCase();
+    return watched.filter(m => {
+      if (favOnly && !m.favorite) return false;
+      if (minRating > 0 && (m.rating ?? 0) < minRating) return false;
+      if (tagFilter && !m.tags?.includes(tagFilter)) return false;
+      if (genreFilter && !m.genres?.includes(genreFilter)) return false;
+      if (needle) {
+        const hay = `${m.title} ${m.director ?? ''} ${m.year ?? ''} ${(m.tags ?? []).join(' ')} ${(m.genres ?? []).join(' ')} ${m.review ?? ''}`.toLowerCase();
+        if (!hay.includes(needle)) return false;
+      }
+      return true;
+    });
+  }, [watched, q, favOnly, minRating, tagFilter, genreFilter]);
+
+  const favCount = watched.filter(m => m.favorite).length;
+  const filtersOn = !!(q.trim() || favOnly || minRating > 0 || tagFilter || genreFilter);
 
   const topDecade = decadeData.length
     ? decadeData.reduce((a, b) => (b[1] > a[1] ? b : a))[0]
@@ -268,8 +305,14 @@ export default function WatchedPage() {
               <StatTile value={avgRating} label="avg rating" />
               <StatTile value={genreData.length} label="genres" />
               <StatTile value={topDecade} label="top decade" />
+              {favCount > 0 && <StatTile value={favCount} label="favourites" />}
               {thisYear > 0 && <StatTile value={thisYear} label="this year" />}
-              {watchlist.length > 0 && <StatTile value={watchlist.length} label="watchlist" />}
+              {watchlist.length > 0 && (
+                <StatTile
+                  value={watchlist.length} label="watchlist ↓"
+                  onClick={() => document.getElementById('watchlist')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+                />
+              )}
             </StatRow>
 
             <ChartGrid>
@@ -312,20 +355,136 @@ export default function WatchedPage() {
           </div>
         )}
 
+        {/* Filters */}
+        {watched.length > 0 && (
+          <div style={{ marginBottom: '18px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '9px', flexWrap: 'wrap' }}>
+              <div style={{
+                display: 'flex', alignItems: 'center', gap: '8px', flex: 1, minWidth: '190px',
+                background: 'var(--surface)', border: '1px solid var(--border-2)',
+                borderRadius: '8px', padding: '7px 11px',
+              }}>
+                <Search size={13} style={{ color: 'var(--text-dim)', flexShrink: 0 }} />
+                <input
+                  value={q} onChange={e => setQ(e.target.value)}
+                  placeholder="search title, director, tag..."
+                  style={{
+                    flex: 1, minWidth: 0, background: 'none', border: 'none', outline: 'none',
+                    color: 'var(--text)', fontFamily: "'JetBrains Mono', monospace", fontSize: '0.76rem',
+                  }}
+                />
+              </div>
+              <button
+                onClick={() => setFavOnly(v => !v)}
+                title="favourites only"
+                style={{
+                  display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer',
+                  background: favOnly ? 'var(--accent-glow)' : 'transparent',
+                  border: `1px solid ${favOnly ? 'var(--tag-border)' : 'var(--border)'}`,
+                  borderRadius: '8px', padding: '7px 12px',
+                  color: favOnly ? 'var(--accent)' : 'var(--text-dim)',
+                  fontFamily: "'JetBrains Mono', monospace", fontSize: '0.7rem',
+                }}
+              >
+                <Heart size={12} fill={favOnly ? 'currentColor' : 'none'} />
+                {favCount}
+              </button>
+              {[4, 4.5, 5].map(r => (
+                <button
+                  key={r}
+                  onClick={() => setMinRating(v => (v === r ? 0 : r))}
+                  style={{
+                    cursor: 'pointer', borderRadius: '8px', padding: '7px 11px',
+                    background: minRating === r ? 'var(--accent-glow)' : 'transparent',
+                    border: `1px solid ${minRating === r ? 'var(--tag-border)' : 'var(--border)'}`,
+                    color: minRating === r ? 'var(--accent)' : 'var(--text-dim)',
+                    fontFamily: "'JetBrains Mono', monospace", fontSize: '0.7rem',
+                  }}
+                >
+                  {r}★+
+                </button>
+              ))}
+              <div style={{
+                display: 'flex', gap: '2px', padding: '2px', borderRadius: '8px',
+                border: '1px solid var(--border)', background: 'var(--surface)',
+              }}>
+                {VIEWS.map(v => (
+                  <button
+                    key={v.key} onClick={() => setView(v.key)} title={v.title}
+                    style={{
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      width: '28px', height: '26px', borderRadius: '6px', cursor: 'pointer', border: 'none',
+                      background: view === v.key ? 'var(--accent-glow)' : 'transparent',
+                      color: view === v.key ? 'var(--accent)' : 'var(--text-dim)',
+                    }}
+                  >
+                    <v.Icon size={13} />
+                  </button>
+                ))}
+              </div>
+              {filtersOn && (
+                <button
+                  onClick={() => { setQ(''); setFavOnly(false); setMinRating(0); setTagFilter(null); setGenreFilter(null); }}
+                  style={{
+                    cursor: 'pointer', background: 'none', border: 'none', color: 'var(--text-dim)',
+                    fontFamily: "'JetBrains Mono', monospace", fontSize: '0.68rem', textDecoration: 'underline',
+                  }}
+                >
+                  clear
+                </button>
+              )}
+            </div>
+
+            {/* tag + genre chips */}
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px' }}>
+              {tagData.map(([t]) => (
+                <Chip key={t} on={tagFilter === t} onClick={() => setTagFilter(v => (v === t ? null : t))}>{t}</Chip>
+              ))}
+              {genreData.slice(0, 6).map(([g]) => (
+                <Chip key={g} on={genreFilter === g} onClick={() => setGenreFilter(v => (v === g ? null : g))}>{g}</Chip>
+              ))}
+            </div>
+
+            <p style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '0.66rem', color: 'var(--text-dim)' }}>
+              showing {shown.length} of {watched.length}
+            </p>
+          </div>
+        )}
+
         {/* Watched grid */}
-        {watched.length > 0 && <Grid movies={watched} />}
+        {shown.length > 0
+          ? <Grid movies={shown} view={view} />
+          : watched.length > 0 && (
+            <p style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '0.76rem', color: 'var(--text-dim)', padding: '24px 0' }}>
+              nothing matches those filters.
+            </p>
+          )}
 
         {/* Watchlist - posters only, since nothing is rated yet */}
         {watchlist.length > 0 && (
-          <div style={{ marginTop: '52px' }}>
+          <div id="watchlist" style={{ marginTop: '52px', scrollMarginTop: '90px' }}>
             <p className="label" style={{ fontSize: '0.66rem', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '7px' }}>
               <Bookmark size={12} /> watchlist · {watchlist.length}
             </p>
-            <Grid movies={watchlist} compact />
+            <Grid movies={watchlist} view="compact" />
           </div>
         )}
       </div>
     </main>
+  );
+}
+
+function Chip({ on, onClick, children }: { on: boolean; onClick: () => void; children: React.ReactNode }) {
+  return (
+    <button onClick={onClick} style={{
+      fontFamily: "'JetBrains Mono', monospace", fontSize: '0.6rem',
+      padding: '3px 10px', borderRadius: '100px', cursor: 'pointer',
+      background: on ? 'var(--accent-glow)' : 'transparent',
+      border: `1px solid ${on ? 'var(--tag-border)' : 'var(--border)'}`,
+      color: on ? 'var(--accent)' : 'var(--text-dim)',
+    }}>
+      {children}
+    </button>
   );
 }
 
@@ -337,7 +496,9 @@ function Muted({ children }: { children: React.ReactNode }) {
   );
 }
 
-function Grid({ movies, compact }: { movies: Movie[]; compact?: boolean }) {
+function Grid({ movies, view = 'grid' }: { movies: Movie[]; view?: View }) {
+  if (view === 'list') return <ListView movies={movies} />;
+  const compact = view === 'compact';
   return (
     <div style={{
       display: 'grid',
@@ -350,9 +511,19 @@ function Grid({ movies, compact }: { movies: Movie[]; compact?: boolean }) {
           borderRadius: '12px', overflow: 'hidden', display: 'flex', flexDirection: 'column',
         }}>
           <div style={{
-            aspectRatio: '2/3', background: 'var(--surface-2)',
+            aspectRatio: '2/3', background: 'var(--surface-2)', position: 'relative',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
           }}>
+            {m.favorite && (
+              <span title="favourite" style={{
+                position: 'absolute', top: '7px', right: '7px', zIndex: 1,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                width: '22px', height: '22px', borderRadius: '50%',
+                background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(2px)',
+              }}>
+                <Heart size={11} fill="#ff6b81" style={{ color: '#ff6b81' }} />
+              </span>
+            )}
             {m.posterUrl
               ? <img src={m.posterUrl} alt={m.title} loading="lazy"
                   style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
@@ -367,6 +538,15 @@ function Grid({ movies, compact }: { movies: Movie[]; compact?: boolean }) {
               {m.title}
               {m.year && <span style={{ color: 'var(--text-dim)', fontWeight: 500 }}> ({m.year})</span>}
             </p>
+
+            {m.director && (
+              <p style={{
+                fontFamily: "'JetBrains Mono', monospace", fontSize: '0.58rem',
+                color: 'var(--text-dim)', marginTop: '-3px',
+              }}>
+                {m.director}
+              </p>
+            )}
 
             {m.rating != null && <Stars value={m.rating} />}
 
@@ -392,6 +572,78 @@ function Grid({ movies, compact }: { movies: Movie[]; compact?: boolean }) {
             )}
 
             <div style={{ marginTop: 'auto', display: 'flex', alignItems: 'center', gap: '10px', paddingTop: '4px' }}>
+              {m.blogSlug && (
+                <Link to={`/blog/${m.blogSlug}`} style={{
+                  fontFamily: "'JetBrains Mono', monospace", fontSize: '0.6rem',
+                  color: 'var(--accent)', textDecoration: 'none',
+                }}>
+                  read the post →
+                </Link>
+              )}
+              {m.tmdbUrl && (
+                <a href={m.tmdbUrl} target="_blank" rel="noopener noreferrer" title="View on TMDB"
+                  style={{ marginLeft: 'auto', color: 'var(--text-dim)', display: 'flex' }}>
+                  <ExternalLink size={11} />
+                </a>
+              )}
+            </div>
+          </div>
+        </article>
+      ))}
+    </div>
+  );
+}
+
+// Row layout: at this density a poster thumbnail plus one line of metadata
+// reads faster than a card, and the review gets room to actually be read.
+function ListView({ movies }: { movies: Movie[] }) {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column' }}>
+      {movies.map(m => (
+        <article key={m.id} style={{
+          display: 'flex', gap: '13px', padding: '12px 4px',
+          borderBottom: '1px solid var(--border)', alignItems: 'flex-start',
+        }}>
+          <div style={{
+            width: '46px', flexShrink: 0, aspectRatio: '2/3', borderRadius: '5px',
+            overflow: 'hidden', background: 'var(--surface-2)', position: 'relative',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>
+            {m.posterUrl
+              ? <img src={m.posterUrl} alt={m.title} loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              : <Film size={13} style={{ color: 'var(--text-dim)' }} />}
+          </div>
+
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '7px', flexWrap: 'wrap' }}>
+              <p style={{ fontFamily: "'DM Sans', sans-serif", fontWeight: 600, fontSize: '0.88rem', color: 'var(--text)' }}>
+                {m.title}
+                {m.year && <span style={{ color: 'var(--text-dim)', fontWeight: 500 }}> ({m.year})</span>}
+              </p>
+              {m.favorite && <Heart size={11} fill="#ff6b81" style={{ color: '#ff6b81', flexShrink: 0 }} />}
+              {m.rating != null && <Stars value={m.rating} size={11} />}
+            </div>
+
+            {m.director && (
+              <p style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '0.6rem', color: 'var(--text-dim)', marginTop: '2px' }}>
+                {m.director}
+              </p>
+            )}
+
+            {m.review && (
+              <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: '0.78rem', color: 'var(--text-muted)', lineHeight: 1.55, marginTop: '5px' }}>
+                {m.review}
+              </p>
+            )}
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginTop: '6px' }}>
+              {m.tags.map(t => (
+                <span key={t} style={{
+                  fontFamily: "'JetBrains Mono', monospace", fontSize: '0.55rem',
+                  color: 'var(--accent)', background: 'var(--accent-glow)',
+                  border: '1px solid var(--tag-border)', borderRadius: '100px', padding: '1px 7px',
+                }}>{t}</span>
+              ))}
               {m.blogSlug && (
                 <Link to={`/blog/${m.blogSlug}`} style={{
                   fontFamily: "'JetBrains Mono', monospace", fontSize: '0.6rem',
