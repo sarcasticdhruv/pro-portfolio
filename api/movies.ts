@@ -241,7 +241,7 @@ export default async function handler(req: Request): Promise<Response> {
     key?: string; text?: string; movie?: Partial<Draft>; confirm?: boolean; id?: number;
     quickAdd?: boolean; title?: string; year?: number | null;
     rating?: number | null; tags?: string[]; review?: string | null; blogSlug?: string | null;
-    status?: Status; suggest?: boolean; favorite?: boolean; toggleFavorite?: boolean;
+    status?: Status; suggest?: boolean; favorite?: boolean; toggleFavorite?: boolean; overwrite?: boolean;
   };
   try {
     body = await req.json();
@@ -396,7 +396,36 @@ Suggest 5 films they have NOT logged that fit this taste. Return ONLY a JSON arr
       const existing = tmdbId
         ? await sql`SELECT id FROM movies WHERE tmdb_id = ${tmdbId} LIMIT 1`
         : await sql`SELECT id FROM movies WHERE lower(title) = lower(${title}) LIMIT 1`;
-      if (existing.rows.length) return json({ skipped: true, title });
+
+      if (existing.rows.length) {
+        if (!body.overwrite) return json({ skipped: true, title });
+
+        // Overwrite mode is deliberately PARTIAL. TMDB-derived fields
+        // (poster, genres, director) are always refreshed - they're not your
+        // data, so re-fetching them is safe and is how backfills happen.
+        // Your fields (rating, tags, review, favorite) are only replaced when
+        // the seed actually supplies one, via COALESCE/NULLIF. A blanket
+        // overwrite would wipe a rating you typed in the UI just because the
+        // seed row has none, which is the opposite of what re-importing is for.
+        const oTags = (Array.isArray(body.tags) ? body.tags : []).filter(t => MOVIE_TAGS.includes(t));
+        const oGenres = (tmdb?.genreIds ?? []).map(id => TMDB_GENRES[id]).filter(Boolean);
+        await sql`
+          UPDATE movies SET
+            year       = COALESCE(${tmdb?.year ?? body.year ?? null}, year),
+            tmdb_id    = COALESCE(${tmdbId}, tmdb_id),
+            poster_url = COALESCE(${tmdb?.posterUrl ?? null}, poster_url),
+            tmdb_url   = COALESCE(${tmdb?.tmdbUrl ?? null}, tmdb_url),
+            director   = COALESCE(${tmdb?.director ?? null}, director),
+            genres     = CASE WHEN ${oGenres.length} > 0 THEN ${oGenres as unknown as string} ELSE genres END,
+            rating     = COALESCE(${clampRating(body.rating)}, rating),
+            tags       = CASE WHEN ${oTags.length} > 0 THEN ${oTags as unknown as string} ELSE tags END,
+            review     = COALESCE(${body.review ?? null}, review),
+            blog_slug  = COALESCE(${body.blogSlug ?? null}, blog_slug),
+            favorite   = COALESCE(${body.favorite === true ? true : null}, favorite)
+          WHERE id = ${existing.rows[0].id}
+        `;
+        return json({ updated: true, title });
+      }
 
       const genres = (tmdb?.genreIds ?? []).map(id => TMDB_GENRES[id]).filter(Boolean);
       // Seed entries may carry a rating/tags/review; most carry none. Tags are

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Loader2, Sparkles, Check, Trash2, Film, AlertTriangle, Upload, Wand2, Plus, Heart } from 'lucide-react';
+import { Loader2, Sparkles, Check, Trash2, Film, AlertTriangle, Upload, Plus, Heart } from 'lucide-react';
 import { MOVIE_TAGS } from '../../content/movieTags.mjs';
 import { MOVIE_SEED } from '../../content/movieSeed.mjs';
 import { ALL_POSTS } from '../../lib/blog';
@@ -49,7 +49,8 @@ export default function MoviesAdmin({ adminKey, onChange }: { adminKey: string; 
   const [err, setErr] = useState('');
   const [movies, setMovies] = useState<Movie[]>([]);
   const [importing, setImporting] = useState(false);
-  const [progress, setProgress] = useState({ done: 0, added: 0, skipped: 0, failed: [] as string[] });
+  const [progress, setProgress] = useState({ done: 0, added: 0, skipped: 0, updated: 0, failed: [] as string[] });
+  const [overwrite, setOverwrite] = useState(false);
   const [suggesting, setSuggesting] = useState(false);
   const [suggestions, setSuggestions] = useState<{ title: string; year: number; why: string }[]>([]);
   const [adding, setAdding] = useState<string | null>(null);
@@ -98,7 +99,7 @@ export default function MoviesAdmin({ adminKey, onChange }: { adminKey: string; 
     if (importing) return;
     setImporting(true);
     setErr('');
-    const p = { done: 0, added: 0, skipped: 0, failed: [] as string[] };
+    const p = { done: 0, added: 0, skipped: 0, updated: 0, failed: [] as string[] };
     setProgress({ ...p });
     for (const m of MOVIE_SEED) {
       try {
@@ -109,11 +110,13 @@ export default function MoviesAdmin({ adminKey, onChange }: { adminKey: string; 
             key: adminKey, quickAdd: true, title: m.title, year: m.year,
             rating: m.rating ?? null, tags: m.tags ?? [],
             review: m.review ?? null, blogSlug: m.blogSlug ?? null,
+            favorite: m.favorite === true, overwrite,
           }),
         });
         const d = await res.json();
         if (!res.ok || d.error) p.failed.push(m.title);
         else if (d.skipped) p.skipped++;
+        else if (d.updated) p.updated++;
         else p.added++;
       } catch {
         p.failed.push(m.title);
@@ -367,7 +370,7 @@ export default function MoviesAdmin({ adminKey, onChange }: { adminKey: string; 
             cursor: suggesting ? 'default' : 'pointer', opacity: suggesting ? 0.6 : 1,
           }}
         >
-          {suggesting ? <Loader2 size={12} className="spin-slow" /> : <Wand2 size={12} />}
+          {suggesting && <Loader2 size={12} className="spin-slow" />}
           {suggesting ? 'thinking...' : 'what should I watch next'}
         </button>
 
@@ -426,9 +429,16 @@ export default function MoviesAdmin({ adminKey, onChange }: { adminKey: string; 
             {importing ? <Loader2 size={12} className="spin-slow" /> : <Upload size={12} />}
             import {MOVIE_SEED.length} from library list
           </button>
+          <label style={{
+            display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer',
+            fontFamily: "'JetBrains Mono', monospace", fontSize: '0.7rem', color: 'var(--text-dim)',
+          }}>
+            <input type="checkbox" checked={overwrite} onChange={e => setOverwrite(e.target.checked)} />
+            update rows that already exist
+          </label>
           {(importing || progress.done > 0) && (
             <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '0.7rem', color: 'var(--text-dim)' }}>
-              {progress.done}/{MOVIE_SEED.length} · {progress.added} added · {progress.skipped} already there
+              {progress.done}/{MOVIE_SEED.length} · {progress.added} added · {progress.updated} updated · {progress.skipped} skipped
               {progress.failed.length > 0 && ` · ${progress.failed.length} failed`}
             </span>
           )}

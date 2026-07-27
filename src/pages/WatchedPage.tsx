@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Star, Film, ExternalLink, Lock, X, Bookmark, Heart, Search, LayoutGrid, List, Grid3x3 } from 'lucide-react';
+import { Star, Film, ExternalLink, Lock, X, Bookmark, Heart, Search, LayoutGrid, List, Grid3x3, AlignJustify } from 'lucide-react';
 import { useSEO } from '../hooks/useSEO';
 import MoviesAdmin from '../components/admin/MoviesAdmin';
 import Recommender from '../components/movies/Recommender';
@@ -51,11 +51,12 @@ function Stars({ value, size = 13 }: { value: number; size?: number }) {
 function monthKey(d: Date) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
 }
-type View = 'grid' | 'compact' | 'list';
+type View = 'grid' | 'compact' | 'list' | 'text';
 const VIEWS: { key: View; Icon: typeof LayoutGrid; title: string }[] = [
   { key: 'grid', Icon: LayoutGrid, title: 'grid' },
   { key: 'compact', Icon: Grid3x3, title: 'small grid' },
   { key: 'list', Icon: List, title: 'list' },
+  { key: 'text', Icon: AlignJustify, title: 'titles only' },
 ];
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -498,6 +499,7 @@ function Muted({ children }: { children: React.ReactNode }) {
 
 function Grid({ movies, view = 'grid' }: { movies: Movie[]; view?: View }) {
   if (view === 'list') return <ListView movies={movies} />;
+  if (view === 'text') return <TextView movies={movies} />;
   const compact = view === 'compact';
   return (
     <div style={{
@@ -662,6 +664,62 @@ function ListView({ movies }: { movies: Movie[] }) {
           </div>
         </article>
       ))}
+    </div>
+  );
+}
+
+// Densest view: no posters at all, just the facts on one line each. Useful
+// for scanning a long collection or checking whether something is in it.
+function TextView({ movies }: { movies: Movie[] }) {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column' }}>
+      {movies.map(m => (
+        <div key={m.id} style={{
+          display: 'flex', alignItems: 'center', gap: '10px',
+          padding: '7px 4px', borderBottom: '1px solid var(--border)',
+          fontFamily: "'JetBrains Mono', monospace", fontSize: '0.75rem',
+        }}>
+          {m.favorite
+            ? <Heart size={10} fill="#ff6b81" style={{ color: '#ff6b81', flexShrink: 0 }} />
+            : <span style={{ width: '10px', flexShrink: 0 }} />}
+
+          <span style={{
+            color: 'var(--text)', flex: 1, minWidth: 0,
+            whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+          }}>
+            {m.title}
+            {m.year && <span style={{ color: 'var(--text-dim)' }}> ({m.year})</span>}
+          </span>
+
+          {m.director && (
+            <span className="tv-director" style={{
+              color: 'var(--text-dim)', fontSize: '0.68rem', flexShrink: 0,
+              maxWidth: '170px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+            }}>
+              {m.director}
+            </span>
+          )}
+
+          <span style={{
+            color: m.rating != null ? 'var(--accent)' : 'var(--text-dim)',
+            width: '38px', textAlign: 'right', flexShrink: 0, fontSize: '0.7rem',
+          }}>
+            {m.rating != null ? `${m.rating}★` : '—'}
+          </span>
+
+          {m.tmdbUrl && (
+            <a href={m.tmdbUrl} target="_blank" rel="noopener noreferrer" title="View on TMDB"
+              style={{ color: 'var(--text-dim)', display: 'flex', flexShrink: 0 }}>
+              <ExternalLink size={10} />
+            </a>
+          )}
+        </div>
+      ))}
+      <style>{`
+        /* The director is the first thing worth dropping on a phone - the
+           title and rating still carry the row without it. */
+        @media (max-width: 560px) { .tv-director { display: none; } }
+      `}</style>
     </div>
   );
 }
