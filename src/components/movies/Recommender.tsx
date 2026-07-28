@@ -11,19 +11,27 @@ import type { Movie } from '../../pages/WatchedPage';
 // isn't a recommendation), and never repeats the film currently on screen.
 const MIN_RATING = 4;
 
+// Same fix as WatchedPage's Stars: a whole/empty star is one icon, not two
+// stacked layers - stacking a second identical copy on every star (as before)
+// left a faint ghost outline from sub-pixel anti-aliasing drift between the
+// base and the clipped overlay. Only a half-star needs the second layer.
 function Stars({ value }: { value: number }) {
   return (
     <span style={{ display: 'inline-flex', gap: '1px' }} aria-label={`${value} out of 5`}>
       {[0, 1, 2, 3, 4].map(i => {
         const fill = Math.max(0, Math.min(1, value - i));
+        if (fill <= 0 || fill >= 1) {
+          return (
+            <Star key={i} size={13} fill={fill >= 1 ? 'var(--accent)' : 'none'}
+              style={{ display: 'block', color: fill >= 1 ? 'var(--accent)' : 'var(--border-2)' }} />
+          );
+        }
         return (
           <span key={i} style={{ position: 'relative', width: 13, height: 13, display: 'inline-block' }}>
             <Star size={13} style={{ color: 'var(--border-2)', position: 'absolute', inset: 0 }} />
-            {fill > 0 && (
-              <span style={{ position: 'absolute', inset: 0, width: `${fill * 100}%`, overflow: 'hidden' }}>
-                <Star size={13} fill="var(--accent)" style={{ color: 'var(--accent)' }} />
-              </span>
-            )}
+            <span style={{ position: 'absolute', inset: 0, width: `${fill * 100}%`, overflow: 'hidden' }}>
+              <Star size={13} fill="var(--accent)" style={{ color: 'var(--accent)', position: 'absolute', inset: 0 }} />
+            </span>
           </span>
         );
       })}

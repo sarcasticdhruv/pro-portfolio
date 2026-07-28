@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Star, Film, ExternalLink, Lock, X, Bookmark, Heart, Search, LayoutGrid, List, Grid3x3, AlignJustify } from 'lucide-react';
 import { useSEO } from '../hooks/useSEO';
@@ -28,19 +28,29 @@ export interface Movie {
 
 // Half-steps are drawn by clipping a filled star to 50% width rather than
 // using a separate half-star glyph, so the halves always align exactly.
+// A WHOLE or EMPTY star is exactly one icon. The old version always stacked
+// a second identical icon on top - even at fill 0 or 1, where nothing needed
+// clipping - and the two same-size copies anti-alias at very slightly
+// different sub-pixel edges, leaving a faint outline "ghost" around every
+// star's points. Only a genuine half-star (0 < fill < 1) needs the second,
+// clipped layer.
 function Stars({ value, size = 13 }: { value: number; size?: number }) {
   return (
     <span style={{ display: 'inline-flex', gap: '1px' }} aria-label={`${value} out of 5`}>
       {[0, 1, 2, 3, 4].map(i => {
         const fill = Math.max(0, Math.min(1, value - i));
+        if (fill <= 0 || fill >= 1) {
+          return (
+            <Star key={i} size={size} fill={fill >= 1 ? 'var(--accent)' : 'none'}
+              style={{ display: 'block', color: fill >= 1 ? 'var(--accent)' : 'var(--border-2)' }} />
+          );
+        }
         return (
           <span key={i} style={{ position: 'relative', width: size, height: size, display: 'inline-block' }}>
             <Star size={size} style={{ color: 'var(--border-2)', position: 'absolute', inset: 0 }} />
-            {fill > 0 && (
-              <span style={{ position: 'absolute', inset: 0, width: `${fill * 100}%`, overflow: 'hidden' }}>
-                <Star size={size} fill="var(--accent)" style={{ color: 'var(--accent)' }} />
-              </span>
-            )}
+            <span style={{ position: 'absolute', inset: 0, width: `${fill * 100}%`, overflow: 'hidden' }}>
+              <Star size={size} fill="var(--accent)" style={{ color: 'var(--accent)', position: 'absolute', inset: 0 }} />
+            </span>
           </span>
         );
       })}
@@ -506,93 +516,136 @@ function Grid({ movies, view = 'grid' }: { movies: Movie[]; view?: View }) {
       display: 'grid',
       gridTemplateColumns: `repeat(auto-fill, minmax(${compact ? 120 : 158}px, 1fr))`,
       gap: compact ? '12px' : '18px',
+      // CSS Grid stretches every cell to match the tallest cell in its row by
+      // default. A card with a full review would otherwise force every other
+      // card sharing its row to inflate to the same height, opening a dead
+      // blank gap under their shorter content - which is what made a sparse
+      // row look broken next to a full one. `start` lets each card keep its
+      // own natural height, the same as the row-based list view already does.
+      alignItems: 'start',
     }}>
-      {movies.map(m => (
-        <article key={m.id} style={{
-          background: 'var(--surface)', border: '1px solid var(--border)',
-          borderRadius: '12px', overflow: 'hidden', display: 'flex', flexDirection: 'column',
-        }}>
-          <div style={{
-            aspectRatio: '2/3', background: 'var(--surface-2)', position: 'relative',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-          }}>
-            {m.favorite && (
-              <span title="favourite" style={{
-                position: 'absolute', top: '7px', right: '7px', zIndex: 1,
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                width: '22px', height: '22px', borderRadius: '50%',
-                background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(2px)',
-              }}>
-                <Heart size={11} fill="#ff6b81" style={{ color: '#ff6b81' }} />
-              </span>
-            )}
-            {m.posterUrl
-              ? <img src={m.posterUrl} alt={m.title} loading="lazy"
-                  style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
-              : <Film size={20} style={{ color: 'var(--text-dim)' }} />}
-          </div>
-
-          <div style={{ padding: compact ? '9px 10px' : '12px 13px', display: 'flex', flexDirection: 'column', gap: '6px', flex: 1 }}>
-            <p style={{
-              fontFamily: "'DM Sans', sans-serif", fontWeight: 600,
-              fontSize: compact ? '0.78rem' : '0.85rem', color: 'var(--text)', lineHeight: 1.3,
-            }}>
-              {m.title}
-              {m.year && <span style={{ color: 'var(--text-dim)', fontWeight: 500 }}> ({m.year})</span>}
-            </p>
-
-            {m.director && (
-              <p style={{
-                fontFamily: "'JetBrains Mono', monospace", fontSize: '0.58rem',
-                color: 'var(--text-dim)', marginTop: '-3px',
-              }}>
-                {m.director}
-              </p>
-            )}
-
-            {m.rating != null && <Stars value={m.rating} />}
-
-            {m.tags.length > 0 && (
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
-                {m.tags.map(t => (
-                  <span key={t} style={{
-                    fontFamily: "'JetBrains Mono', monospace", fontSize: '0.55rem',
-                    color: 'var(--accent)', background: 'var(--accent-glow)',
-                    border: '1px solid var(--tag-border)', borderRadius: '100px', padding: '1px 7px',
-                  }}>{t}</span>
-                ))}
-              </div>
-            )}
-
-            {m.review && (
-              <p style={{
-                fontFamily: "'DM Sans', sans-serif", fontSize: '0.75rem',
-                color: 'var(--text-muted)', lineHeight: 1.55,
-              }}>
-                {m.review}
-              </p>
-            )}
-
-            <div style={{ marginTop: 'auto', display: 'flex', alignItems: 'center', gap: '10px', paddingTop: '4px' }}>
-              {m.blogSlug && (
-                <Link to={`/blog/${m.blogSlug}`} style={{
-                  fontFamily: "'JetBrains Mono', monospace", fontSize: '0.6rem',
-                  color: 'var(--accent)', textDecoration: 'none',
-                }}>
-                  read the post →
-                </Link>
-              )}
-              {m.tmdbUrl && (
-                <a href={m.tmdbUrl} target="_blank" rel="noopener noreferrer" title="View on TMDB"
-                  style={{ marginLeft: 'auto', color: 'var(--text-dim)', display: 'flex' }}>
-                  <ExternalLink size={11} />
-                </a>
-              )}
-            </div>
-          </div>
-        </article>
-      ))}
+      {movies.map(m => <MovieCard key={m.id} m={m} compact={compact} />)}
     </div>
+  );
+}
+
+function MovieCard({ m, compact }: { m: Movie; compact: boolean }) {
+  const [expanded, setExpanded] = useState(false);
+  const [truncated, setTruncated] = useState(false);
+  const reviewRef = useRef<HTMLParagraphElement>(null);
+
+  // The clamp itself always fits the review into 2 lines; whether a "more"
+  // toggle should even show depends on whether that clamp actually cut
+  // anything off - a short review clamped to 2 lines has nothing hidden, so
+  // no dead toggle button should appear under it.
+  useEffect(() => {
+    const el = reviewRef.current;
+    if (!el) return;
+    setTruncated(el.scrollHeight > el.clientHeight + 1);
+  }, [m.review]);
+
+  return (
+    <article style={{
+      background: 'var(--surface)', border: '1px solid var(--border)',
+      borderRadius: '12px', overflow: 'hidden', display: 'flex', flexDirection: 'column',
+    }}>
+      <div style={{
+        aspectRatio: '2/3', background: 'var(--surface-2)', position: 'relative',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+      }}>
+        {m.favorite && (
+          <span title="favourite" style={{
+            position: 'absolute', top: '7px', right: '7px', zIndex: 1,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            width: '22px', height: '22px', borderRadius: '50%',
+            background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(2px)',
+          }}>
+            <Heart size={11} fill="#ff6b81" style={{ color: '#ff6b81' }} />
+          </span>
+        )}
+        {m.posterUrl
+          ? <img src={m.posterUrl} alt={m.title} loading="lazy"
+              style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+          : <Film size={20} style={{ color: 'var(--text-dim)' }} />}
+      </div>
+
+      <div style={{ padding: compact ? '9px 10px' : '12px 13px', display: 'flex', flexDirection: 'column', gap: '6px', flex: 1 }}>
+        <p style={{
+          fontFamily: "'DM Sans', sans-serif", fontWeight: 600,
+          fontSize: compact ? '0.78rem' : '0.85rem', color: 'var(--text)', lineHeight: 1.3,
+        }}>
+          {m.title}
+          {m.year && <span style={{ color: 'var(--text-dim)', fontWeight: 500 }}> ({m.year})</span>}
+        </p>
+
+        {m.director && (
+          <p style={{
+            fontFamily: "'JetBrains Mono', monospace", fontSize: '0.58rem',
+            color: 'var(--text-dim)', marginTop: '-3px',
+          }}>
+            {m.director}
+          </p>
+        )}
+
+        {m.rating != null && <Stars value={m.rating} />}
+
+        {m.tags.length > 0 && (
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
+            {m.tags.map(t => (
+              <span key={t} style={{
+                fontFamily: "'JetBrains Mono', monospace", fontSize: '0.55rem',
+                color: 'var(--accent)', background: 'var(--accent-glow)',
+                border: '1px solid var(--tag-border)', borderRadius: '100px', padding: '1px 7px',
+              }}>{t}</span>
+            ))}
+          </div>
+        )}
+
+        {m.review && (
+          <div>
+            <p ref={reviewRef} style={{
+              fontFamily: "'DM Sans', sans-serif", fontSize: '0.75rem',
+              color: 'var(--text-muted)', lineHeight: 1.55,
+              display: expanded ? 'block' : '-webkit-box',
+              WebkitLineClamp: expanded ? 'unset' : 2,
+              WebkitBoxOrient: 'vertical',
+              overflow: expanded ? 'visible' : 'hidden',
+            }}>
+              {m.review}
+            </p>
+            {(truncated || expanded) && (
+              <button
+                onClick={() => setExpanded(v => !v)}
+                style={{
+                  background: 'none', border: 'none', cursor: 'pointer', padding: 0, marginTop: '2px',
+                  fontFamily: "'JetBrains Mono', monospace", fontSize: '0.62rem',
+                  color: 'var(--accent)',
+                }}
+              >
+                {expanded ? 'show less' : 'more'}
+              </button>
+            )}
+          </div>
+        )}
+
+        <div style={{ marginTop: 'auto', display: 'flex', alignItems: 'center', gap: '10px', paddingTop: '4px' }}>
+          {m.blogSlug && (
+            <Link to={`/blog/${m.blogSlug}`} style={{
+              fontFamily: "'JetBrains Mono', monospace", fontSize: '0.6rem',
+              color: 'var(--accent)', textDecoration: 'none',
+            }}>
+              read the post →
+            </Link>
+          )}
+          {m.tmdbUrl && (
+            <a href={m.tmdbUrl} target="_blank" rel="noopener noreferrer" title="View on TMDB"
+              style={{ marginLeft: 'auto', color: 'var(--text-dim)', display: 'flex' }}>
+              <ExternalLink size={11} />
+            </a>
+          )}
+        </div>
+      </div>
+    </article>
   );
 }
 
