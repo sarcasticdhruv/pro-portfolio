@@ -198,6 +198,12 @@ const SUBTITLES = [
   'reliability over demos',
 ];
 
+// Every control in the composer row - attach, search box, live-call, send -
+// is exactly this tall, so the row reads as one bar rather than three sizes.
+// The search box hits it via line-height + padding + border (22 + 7*2 + 1*2),
+// which is why those three numbers are not free to change independently.
+const ROW_H = 38;
+
 // ── Component ─────────────────────────────────────────────────────────────────
 export default function AIChatbot() {
   const navigate = useNavigate();
@@ -217,6 +223,7 @@ export default function AIChatbot() {
 
   const bodyRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
@@ -554,19 +561,58 @@ export default function AIChatbot() {
   useEffect(() => {
     const el = inputRef.current;
     if (!el) return;
+    // An empty box is exactly one row, always - never measured. Chrome counts
+    // the PLACEHOLDER in scrollHeight while the value is empty, and at mount
+    // the web font hasn't loaded yet, so on a narrow panel "Ask anything…"
+    // measured wide enough to wrap and sized the empty box to two rows until
+    // the first keystroke. Short-circuiting here is both simpler and more
+    // correct than trying to measure around it.
+    if (!input) {
+      el.style.height = `${ROW_H}px`;
+      el.style.overflowY = 'hidden';
+      return;
+    }
     el.style.height = 'auto';
-    const grown = el.scrollHeight > 120;
-    el.style.height = `${Math.min(el.scrollHeight, 120)}px`;
+    // Under the global border-box, scrollHeight covers content + padding but
+    // NOT the border, so assigning it raw lands the box 2px short of the
+    // buttons beside it. Read the border off computed style rather than as an
+    // offsetHeight/clientHeight difference: that difference is a LAYOUT value,
+    // and on the first pass at narrow widths it reported 24 instead of 2,
+    // which sized the empty box to two lines until the first keystroke fixed
+    // it. Border width is a style, so ask for the style.
+    const cs = getComputedStyle(el);
+    const borderY = parseFloat(cs.borderTopWidth) + parseFloat(cs.borderBottomWidth);
+    const natural = Math.max(el.scrollHeight + borderY, ROW_H);
+    const grown = natural > 120;
+    el.style.height = `${Math.min(natural, 120)}px`;
     // Only reserve scrollbar space once text actually exceeds the cap -
     // otherwise some browsers show a scrollbar gutter on the single-line
     // box even though there's nothing yet to scroll.
     el.style.overflowY = grown ? 'auto' : 'hidden';
   }, [input]);
 
+  // aria-hidden on an ancestor of the focused element hides a real focus target
+  // from assistive tech, which is both a genuine a11y bug and the console
+  // warning. It fires because the close button that dismissed the panel still
+  // holds focus as the panel goes hidden. So on close: drop focus first, then
+  // mark the subtree inert - that's the attribute the spec points at, and
+  // unlike aria-hidden it also stops Tab from landing inside a hidden panel.
+  // Done imperatively because React 18 has no typed `inert` prop and warns if
+  // it's passed as a boolean.
+  useEffect(() => {
+    const el = panelRef.current;
+    if (!el) return;
+    if (open) { el.removeAttribute('inert'); return; }
+    const active = document.activeElement;
+    if (active instanceof HTMLElement && el.contains(active)) active.blur();
+    el.setAttribute('inert', '');
+  }, [open]);
+
   return (
     <>
       {/* ── Panel ── */}
       <div
+        ref={panelRef}
         aria-hidden={!open}
         style={{
           position: 'fixed',
@@ -855,7 +901,7 @@ export default function AIChatbot() {
             title="Attach an image"
             style={{
               background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: '10px',
-              width: '34px', height: '34px',
+              width: `${ROW_H}px`, height: `${ROW_H}px`,
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               cursor: inputLocked ? 'not-allowed' : 'pointer',
               opacity: inputLocked ? 0.45 : 1,
@@ -895,13 +941,16 @@ export default function AIChatbot() {
                 background: 'var(--surface-2)',
                 border: '1px solid var(--border)',
                 borderRadius: '10px',
-                padding: '9px 34px 9px 13px',
+                padding: '7px 34px 7px 13px',
                 color: 'var(--text)',
                 fontFamily: "'DM Sans', sans-serif",
                 fontSize: '16px',
-                lineHeight: 1.4,
+                // 22 + 7*2 padding + 1*2 border = ROW_H exactly. A unitless
+                // 1.4 here would compute to 22.4 and overshoot the buttons.
+                lineHeight: '22px',
                 outline: 'none',
                 resize: 'none',
+                minHeight: `${ROW_H}px`,
                 maxHeight: '120px',
                 overflowY: 'hidden',
                 transition: 'border-color 0.15s, box-shadow 0.15s',
@@ -926,7 +975,7 @@ export default function AIChatbot() {
                 // would drift up into the middle of the paragraph instead of
                 // sitting level with the +/live-call/send buttons outside,
                 // which are bottom-aligned in the row.
-                position: 'absolute', bottom: '8px', right: '6px',
+                position: 'absolute', bottom: `${(ROW_H - 24) / 2}px`, right: '6px',
                 background: recording ? '#FF6B6B' : 'transparent',
                 border: 'none', borderRadius: '50%',
                 width: '24px', height: '24px',
@@ -957,7 +1006,7 @@ export default function AIChatbot() {
               background: liveState === 'live' ? '#FF6B6B' : 'var(--surface-2)',
               border: `1px solid ${liveState === 'live' ? '#FF6B6B' : 'var(--border)'}`,
               borderRadius: '10px',
-              width: '38px', height: '38px',
+              width: `${ROW_H}px`, height: `${ROW_H}px`,
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               cursor: (loading || recording || transcribing) ? 'not-allowed' : 'pointer',
               opacity: (loading || recording || transcribing) ? 0.45 : 1,
@@ -976,7 +1025,7 @@ export default function AIChatbot() {
             aria-label="Send"
             style={{
               background: 'var(--accent)', border: 'none', borderRadius: '10px',
-              width: '38px', height: '38px',
+              width: `${ROW_H}px`, height: `${ROW_H}px`,
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               cursor: (loading || (!input.trim() && !attachedImage) || liveState !== 'idle') ? 'not-allowed' : 'pointer',
               opacity: (loading || (!input.trim() && !attachedImage) || liveState !== 'idle') ? 0.45 : 1,

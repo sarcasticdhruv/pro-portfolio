@@ -4,6 +4,15 @@
 //   POST   { key, text }                       -> parse free text + match TMDB,
 //                                                 returns a DRAFT, writes nothing
 //   POST   { key, movie, confirm: true }       -> insert the (edited) draft
+//   POST   { key, quickAdd, title, ... }       -> no-LLM upsert, used by the
+//                                                 bulk import. Existing rows are
+//                                                 skipped unless `overwrite`,
+//                                                 in which case every field the
+//                                                 caller MENTIONS is replaced
+//                                                 and omitted keys are left as
+//                                                 they are (see below).
+//   POST   { key, toggleFavorite, id }         -> flip the heart
+//   POST   { key, suggest: true }              -> 5 recommendations
 //   DELETE { key, id }                         -> remove one row
 //
 // Everything except GET is gated behind ADMIN_KEY, the same env var and check
@@ -85,10 +94,13 @@ interface Draft {
 const PARSE_SYSTEM = `You extract structured data about a film from someone's casual note. The note is either about a film they ALREADY WATCHED, or one they WANT TO WATCH later.
 
 Return ONLY a JSON object, no prose, no markdown fence. Shape:
-{"status": "watched"|"watchlist", "title": string, "year": number|null, "rating": number|null, "tags": string[], "review": string|null, "watchedOn": string|null}
+{"status": "watched"|"watchlist", "title": string, "year": number|null, "director": string|null, "rating": number|null, "tags": string[], "review": string|null, "watchedOn": string|null}
 
 Rules:
-- status: "watchlist" if the note expresses intent or desire to see it in the future ("want to watch", "should see", "adding X", "need to watch", "on my list", "recommended to me"). "watched" if they describe having seen it, in any tense, or give any opinion or rating. When genuinely ambiguous, prefer "watched" only if there is an opinion or rating present; otherwise "watchlist".
+- status: "watched" whenever the note describes having seen it, in ANY tense - "watched X", "saw X", "rewatched X", "finished X", "just watched X" are all "watched" even when the note carries no opinion and no rating at all. Past-tense wording alone is decisive; do not downgrade it to "watchlist" for lacking an opinion.
+- status: "watchlist" ONLY if the note expresses future intent and no past viewing ("want to watch", "should see", "need to watch", "on my list", "yet to see", "recommended to me").
+- If the note has neither past-tense wording nor future intent (a bare title), use "watched".
+- director: the director's name if the note names one ("by Tarkovsky", "dir. Kubrick", "Wong Kar-wai film"). Give the full name as normally written. null if the note does not name a director. Never guess a director from your own knowledge of the film - only extract what the note actually says.
 - For "watchlist" entries, rating, review and watchedOn MUST be null and tags MUST be empty - they have not seen it yet, so inventing an opinion would be wrong.
 - title: the film's name only, correctly spelled, no year, no extra words.
 - year: release year if the note states or clearly implies one, else null.
@@ -97,6 +109,22 @@ Rules:
 ${MOVIE_TAGS.join(', ')}
 - review: their actual opinion, lightly cleaned up, in their own voice. Do not invent praise or add words they did not mean. null if they gave no opinion.
 - watchedOn: ISO date YYYY-MM-DD if the note says when ("last night", "yesterday"), resolved against today's date given in the user message. null if unstated.`;
+
+// Explicit wording beats the model's judgement on the one field that is purely
+// mechanical. "watched X" with no opinion attached is the single most common
+// thing typed into this box, and it was landing on the watchlist - so decide it
+// in code where it's deterministic, and only fall back to the model when the
+// note is genuinely mixed or says nothing either way.
+const WATCHLIST_RE = /\b(want(?:s|ed)? to (?:watch|see)|need(?:s)? to (?:watch|see)|should (?:watch|see)|gonna (?:watch|see)|going to (?:watch|see)|plan(?:ning)? to (?:watch|see)|watchlist|to-?watch|(?:on|to) (?:my )?list|have ?n'?t (?:watched|seen)|not (?:yet )?(?:watched|seen)|yet to (?:watch|see))\b/i;
+const WATCHED_RE = /\b(watched|rewatched|re-watched|saw|seen|finished|caught)\b/i;
+
+function statusFromText(text: string): Status | null {
+  const wantsTo = WATCHLIST_RE.test(text);
+  const hasSeen = WATCHED_RE.test(text);
+  if (wantsTo && !hasSeen) return 'watchlist';
+  if (hasSeen && !wantsTo) return 'watched';
+  return null; // both ("haven't watched") or neither - let the model judge
+}
 
 async function parseText(origin: string, text: string): Promise<Partial<Draft> | null> {
   const today = new Date().toISOString().slice(0, 10);
@@ -394,37 +422,61 @@ Suggest 5 films they have NOT logged that fit this taste. Return ONLY a JSON arr
       const tmdbId = tmdb?.tmdbId ?? null;
 
       const existing = tmdbId
-        ? await sql`SELECT id FROM movies WHERE tmdb_id = ${tmdbId} LIMIT 1`
-        : await sql`SELECT id FROM movies WHERE lower(title) = lower(${title}) LIMIT 1`;
+        ? await sql`SELECT * FROM movies WHERE tmdb_id = ${tmdbId} LIMIT 1`
+        : await sql`SELECT * FROM movies WHERE lower(title) = lower(${title}) LIMIT 1`;
 
       if (existing.rows.length) {
         if (!body.overwrite) return json({ skipped: true, title });
 
-        // Overwrite mode is deliberately PARTIAL. TMDB-derived fields
-        // (poster, genres, director) are always refreshed - they're not your
-        // data, so re-fetching them is safe and is how backfills happen.
-        // Your fields (rating, tags, review, favorite) are only replaced when
-        // the seed actually supplies one, via COALESCE/NULLIF. A blanket
-        // overwrite would wipe a rating you typed in the UI just because the
-        // seed row has none, which is the opposite of what re-importing is for.
+        // Overwrite means: whatever the seed states WINS, for every field the
+        // seed actually mentions. Merged here in JS rather than with a SQL-side
+        // COALESCE because only JS can tell an absent key ("the seed says
+        // nothing about the rating" -> keep the DB value, which may have been
+        // typed in the UI) from an explicit null ("clear it"). The client omits
+        // keys the seed doesn't define, so editing a row in the seed genuinely
+        // replaces that row here - which the previous COALESCE version could
+        // not do, since it saw both cases as null.
+        const cur = existing.rows[0];
         const oTags = (Array.isArray(body.tags) ? body.tags : []).filter(t => MOVIE_TAGS.includes(t));
         const oGenres = (tmdb?.genreIds ?? []).map(id => TMDB_GENRES[id]).filter(Boolean);
-        await sql`
+
+        // TMDB-derived fields refresh whenever TMDB answered - that's how the
+        // director/poster backfill happens. A failed lookup falls through to
+        // what's already stored rather than blanking it.
+        const next = {
+          title,
+          year: tmdb?.year ?? body.year ?? (cur.year == null ? null : Number(cur.year)),
+          tmdbId: tmdbId ?? (cur.tmdb_id == null ? null : Number(cur.tmdb_id)),
+          posterUrl: tmdb?.posterUrl ?? (cur.poster_url as string | null),
+          tmdbUrl: tmdb?.tmdbUrl ?? (cur.tmdb_url as string | null),
+          director: tmdb?.director ?? (cur.director as string | null),
+          genres: oGenres.length ? oGenres : ((cur.genres as string[]) ?? []),
+          rating: body.rating !== undefined ? clampRating(body.rating) : (cur.rating == null ? null : Number(cur.rating)),
+          tags: body.tags !== undefined ? oTags : ((cur.tags as string[]) ?? []),
+          review: body.review !== undefined ? body.review : (cur.review as string | null),
+          blogSlug: body.blogSlug !== undefined ? body.blogSlug : (cur.blog_slug as string | null),
+          favorite: body.favorite !== undefined ? body.favorite === true : cur.favorite === true,
+          status: body.status !== undefined
+            ? (body.status === 'watchlist' ? 'watchlist' : 'watched')
+            : ((cur.status as string) ?? 'watched'),
+        };
+
+        const { rows } = await sql`
           UPDATE movies SET
-            year       = COALESCE(${tmdb?.year ?? body.year ?? null}, year),
-            tmdb_id    = COALESCE(${tmdbId}, tmdb_id),
-            poster_url = COALESCE(${tmdb?.posterUrl ?? null}, poster_url),
-            tmdb_url   = COALESCE(${tmdb?.tmdbUrl ?? null}, tmdb_url),
-            director   = COALESCE(${tmdb?.director ?? null}, director),
-            genres     = CASE WHEN ${oGenres.length} > 0 THEN ${oGenres as unknown as string} ELSE genres END,
-            rating     = COALESCE(${clampRating(body.rating)}, rating),
-            tags       = CASE WHEN ${oTags.length} > 0 THEN ${oTags as unknown as string} ELSE tags END,
-            review     = COALESCE(${body.review ?? null}, review),
-            blog_slug  = COALESCE(${body.blogSlug ?? null}, blog_slug),
-            favorite   = COALESCE(${body.favorite === true ? true : null}, favorite)
-          WHERE id = ${existing.rows[0].id}
+            title = ${next.title}, year = ${next.year}, tmdb_id = ${next.tmdbId},
+            poster_url = ${next.posterUrl}, tmdb_url = ${next.tmdbUrl},
+            director = ${next.director}, genres = ${next.genres as unknown as string},
+            rating = ${next.rating}, tags = ${next.tags as unknown as string},
+            review = ${next.review}, blog_slug = ${next.blogSlug},
+            favorite = ${next.favorite}, status = ${next.status}
+          WHERE id = ${cur.id}
+          RETURNING *
         `;
-        return json({ updated: true, title });
+        // Reported separately from `updated` on purpose: a re-import that
+        // touched a row and changed nothing is not an update, and counting it
+        // as one is exactly what made the last run look like it had worked.
+        const changed = JSON.stringify(rowToMovie(cur)) !== JSON.stringify(rowToMovie(rows[0]));
+        return changed ? json({ updated: true, title }) : json({ unchanged: true, title });
       }
 
       const genres = (tmdb?.genreIds ?? []).map(id => TMDB_GENRES[id]).filter(Boolean);
@@ -457,7 +509,9 @@ Suggest 5 films they have NOT logged that fit this taste. Return ONLY a JSON arr
 
   const tmdb = await lookupTmdb(parsed.title, parsed.year ?? null);
 
-  const status: Status = parsed.status === 'watchlist' ? 'watchlist' : 'watched';
+  // Deterministic wording check wins; the model only decides when the note
+  // gives no clear signal either way.
+  const status: Status = statusFromText(text) ?? (parsed.status === 'watchlist' ? 'watchlist' : 'watched');
   const unseen = status === 'watchlist';
 
   const draft: Draft = {
@@ -476,7 +530,10 @@ Suggest 5 films they have NOT logged that fit this taste. Return ONLY a JSON arr
     tmdbUrl: tmdb?.tmdbUrl ?? null,
     genres: (tmdb?.genreIds ?? []).map(id => TMDB_GENRES[id]).filter(Boolean),
     favorite: false,
-    director: tmdb?.director ?? null,
+    // TMDB first because it spells names correctly and consistently; the note's
+    // own director is the fallback for films TMDB didn't match or has no crew
+    // for, so a director you typed is never silently dropped.
+    director: tmdb?.director ?? (typeof parsed.director === 'string' && parsed.director.trim() ? parsed.director.trim() : null),
   };
 
   return json({

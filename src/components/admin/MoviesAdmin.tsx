@@ -1,10 +1,15 @@
 import { useEffect, useState } from 'react';
-import { Loader2, Sparkles, Check, Trash2, Film, AlertTriangle, Upload, Plus, Heart } from 'lucide-react';
+import { Loader2, Sparkles, Check, Trash2, Film, AlertTriangle, Upload, Plus, Heart, Search, X } from 'lucide-react';
 import { MOVIE_TAGS } from '../../content/movieTags.mjs';
 import { MOVIE_SEED } from '../../content/movieSeed.mjs';
 import { ALL_POSTS } from '../../lib/blog';
 import type { Movie } from '../../pages/WatchedPage';
 
+// Mirrors the server's Draft exactly. It previously omitted status, favorite
+// and director even though /api/movies always sent them - they survived the
+// round trip anyway (the response is untyped JSON), but nothing in the preview
+// could read or edit them, which is why a mis-filed watchlist entry and a
+// director in the note were both invisible before saving.
 interface Draft {
   title: string;
   year: number | null;
@@ -17,6 +22,9 @@ interface Draft {
   posterUrl: string | null;
   tmdbUrl: string | null;
   genres: string[];
+  status: 'watched' | 'watchlist';
+  favorite: boolean;
+  director: string | null;
 }
 
 // Suggest an existing blog post for this film. Deliberately conservative:
@@ -49,11 +57,12 @@ export default function MoviesAdmin({ adminKey, onChange }: { adminKey: string; 
   const [err, setErr] = useState('');
   const [movies, setMovies] = useState<Movie[]>([]);
   const [importing, setImporting] = useState(false);
-  const [progress, setProgress] = useState({ done: 0, added: 0, skipped: 0, updated: 0, failed: [] as string[] });
+  const [progress, setProgress] = useState({ done: 0, added: 0, skipped: 0, updated: 0, unchanged: 0, failed: [] as string[] });
   const [overwrite, setOverwrite] = useState(false);
   const [suggesting, setSuggesting] = useState(false);
   const [suggestions, setSuggestions] = useState<{ title: string; year: number; why: string }[]>([]);
   const [adding, setAdding] = useState<string | null>(null);
+  const [rowQuery, setRowQuery] = useState('');
 
   async function suggest() {
     if (suggesting) return;
@@ -99,24 +108,29 @@ export default function MoviesAdmin({ adminKey, onChange }: { adminKey: string; 
     if (importing) return;
     setImporting(true);
     setErr('');
-    const p = { done: 0, added: 0, skipped: 0, updated: 0, failed: [] as string[] };
+    const p = { done: 0, added: 0, skipped: 0, updated: 0, unchanged: 0, failed: [] as string[] };
     setProgress({ ...p });
     for (const m of MOVIE_SEED) {
       try {
         const res = await fetch('/api/movies', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
+          // These are passed through RAW, not defaulted to null/[]. JSON.stringify
+          // drops undefined keys, so a field this seed row doesn't define simply
+          // isn't in the request - which is how the server tells "the seed says
+          // nothing about this" from "the seed says empty". Defaulting them here
+          // (rating: m.rating ?? null) is what made overwrite a no-op before.
           body: JSON.stringify({
             key: adminKey, quickAdd: true, title: m.title, year: m.year,
-            rating: m.rating ?? null, tags: m.tags ?? [],
-            review: m.review ?? null, blogSlug: m.blogSlug ?? null,
-            favorite: m.favorite === true, overwrite,
+            rating: m.rating, tags: m.tags, review: m.review,
+            blogSlug: m.blogSlug, favorite: m.favorite, overwrite,
           }),
         });
         const d = await res.json();
         if (!res.ok || d.error) p.failed.push(m.title);
         else if (d.skipped) p.skipped++;
         else if (d.updated) p.updated++;
+        else if (d.unchanged) p.unchanged++;
         else p.added++;
       } catch {
         p.failed.push(m.title);
@@ -212,6 +226,22 @@ export default function MoviesAdmin({ adminKey, onChange }: { adminKey: string; 
     setDraft(d => (d ? { ...d, ...p } : d));
   }
 
+  // A watchlist entry has nothing to rate yet, so the opinion fields go inert
+  // rather than accepting input the server would strip on the way in.
+  const unseen = draft?.status === 'watchlist';
+
+  // Matches director, year and tags as well as the title: "who directed the
+  // slow-burn ones" is as common a way to locate a row here as remembering
+  // its exact name.
+  const rq = rowQuery.trim().toLowerCase();
+  const visibleRows = rq
+    ? movies.filter(m =>
+        m.title.toLowerCase().includes(rq)
+        || (m.director ?? '').toLowerCase().includes(rq)
+        || String(m.year ?? '').includes(rq)
+        || (m.tags ?? []).some(t => t.toLowerCase().includes(rq)))
+    : movies;
+
   return (
     <div>
       {/* Input */}
@@ -270,6 +300,52 @@ export default function MoviesAdmin({ adminKey, onChange }: { adminKey: string; 
               </p>
             )}
 
+            {/* Status is surfaced because the parser has to infer it from the
+                note, and a wrong guess is the one mistake that becomes
+                invisible once saved - a film you only meant to queue up sitting
+                in the watched list. Now it's always visible and one tap to fix. */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+              {(['watched', 'watchlist'] as const).map(s => {
+                const on = draft.status === s;
+                return (
+                  <button
+                    key={s}
+                    onClick={() => patch(s === 'watchlist'
+                      // A film you haven't seen can't carry an opinion, so
+                      // switching to watchlist drops the rating/review/tags
+                      // rather than saving values the parser itself refuses.
+                      ? { status: s, rating: null, review: null, tags: [], watchedOn: null }
+                      : { status: s })}
+                    style={{
+                      fontFamily: "'JetBrains Mono', monospace", fontSize: '0.64rem',
+                      padding: '5px 13px', borderRadius: '100px', cursor: 'pointer',
+                      background: on ? 'var(--accent-glow)' : 'transparent',
+                      border: `1px solid ${on ? 'var(--tag-border)' : 'var(--border)'}`,
+                      color: on ? 'var(--accent)' : 'var(--text-dim)',
+                      fontWeight: on ? 600 : 400,
+                    }}
+                  >
+                    {s}
+                  </button>
+                );
+              })}
+              <button
+                onClick={() => patch({ favorite: !draft.favorite })}
+                title={draft.favorite ? 'remove from favourites' : 'add to favourites'}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: '6px', marginLeft: 'auto',
+                  background: 'transparent',
+                  border: `1px solid ${draft.favorite ? '#FF6B81' : 'var(--border)'}`,
+                  borderRadius: '100px', padding: '5px 13px', cursor: 'pointer',
+                  fontFamily: "'JetBrains Mono', monospace", fontSize: '0.64rem',
+                  color: draft.favorite ? '#FF6B81' : 'var(--text-dim)',
+                }}
+              >
+                <Heart size={11} fill={draft.favorite ? '#FF6B81' : 'none'} />
+                {draft.favorite ? 'favourite' : 'add to favourites'}
+              </button>
+            </div>
+
             <div style={{ display: 'flex', gap: '8px' }}>
               <input value={draft.title} onChange={e => patch({ title: e.target.value })}
                 placeholder="title" style={{ ...inputStyle, flex: 1 }} />
@@ -277,26 +353,34 @@ export default function MoviesAdmin({ adminKey, onChange }: { adminKey: string; 
                 placeholder="year" style={{ ...inputStyle, width: '76px' }} />
             </div>
 
-            <div style={{ display: 'flex', gap: '8px' }}>
+            {/* TMDB fills this in when it matched; otherwise it carries whatever
+                director the note named, and either way it stays editable. */}
+            <input value={draft.director ?? ''} onChange={e => patch({ director: e.target.value || null })}
+              placeholder="director" style={inputStyle} />
+
+            <div style={{ display: 'flex', gap: '8px', opacity: unseen ? 0.45 : 1 }}>
               <input value={draft.rating ?? ''} type="number" step="0.5" min="0.5" max="5"
+                disabled={unseen}
                 onChange={e => patch({ rating: e.target.value ? Number(e.target.value) : null })}
                 placeholder="rating" style={{ ...inputStyle, width: '90px' }} />
               <input value={draft.watchedOn ?? ''} type="date"
+                disabled={unseen}
                 onChange={e => patch({ watchedOn: e.target.value || null })}
                 style={{ ...inputStyle, flex: 1 }} />
             </div>
 
             {/* Fixed vocabulary — the server filters anything not in this list */}
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px' }}>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px', opacity: unseen ? 0.45 : 1 }}>
               {MOVIE_TAGS.map(t => {
                 const on = draft.tags.includes(t);
                 return (
                   <button
                     key={t}
+                    disabled={unseen}
                     onClick={() => patch({ tags: on ? draft.tags.filter(x => x !== t) : [...draft.tags, t] })}
                     style={{
                       fontFamily: "'JetBrains Mono', monospace", fontSize: '0.6rem',
-                      padding: '3px 9px', borderRadius: '100px', cursor: 'pointer',
+                      padding: '3px 9px', borderRadius: '100px', cursor: unseen ? 'default' : 'pointer',
                       background: on ? 'var(--accent-glow)' : 'transparent',
                       border: `1px solid ${on ? 'var(--tag-border)' : 'var(--border)'}`,
                       color: on ? 'var(--accent)' : 'var(--text-dim)',
@@ -309,8 +393,9 @@ export default function MoviesAdmin({ adminKey, onChange }: { adminKey: string; 
             </div>
 
             <textarea value={draft.review ?? ''} onChange={e => patch({ review: e.target.value || null })}
-              placeholder="review (optional)" rows={2}
-              style={{ ...inputStyle, resize: 'vertical', lineHeight: 1.55 }} />
+              placeholder={unseen ? 'not seen yet - no review' : 'review (optional)'} rows={2}
+              disabled={unseen}
+              style={{ ...inputStyle, resize: 'vertical', lineHeight: 1.55, opacity: unseen ? 0.45 : 1 }} />
 
             <select
               value={draft.blogSlug ?? ''}
@@ -438,7 +523,8 @@ export default function MoviesAdmin({ adminKey, onChange }: { adminKey: string; 
           </label>
           {(importing || progress.done > 0) && (
             <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '0.7rem', color: 'var(--text-dim)' }}>
-              {progress.done}/{MOVIE_SEED.length} · {progress.added} added · {progress.updated} updated · {progress.skipped} skipped
+              {progress.done}/{MOVIE_SEED.length} · {progress.added} added · {progress.updated} updated
+              {overwrite ? ` · ${progress.unchanged} already current` : ` · ${progress.skipped} skipped`}
               {progress.failed.length > 0 && ` · ${progress.failed.length} failed`}
             </span>
           )}
@@ -453,12 +539,49 @@ export default function MoviesAdmin({ adminKey, onChange }: { adminKey: string; 
         )}
       </div>
 
-      {/* Existing rows */}
-      <p className="label" style={{ fontSize: '0.66rem', margin: '30px 0 10px' }}>
-        {movies.length} logged
-      </p>
+      {/* Existing rows. With 130+ of them, finding the one row you want to
+          re-rate or delete by scrolling is the slow part, so the filter sits
+          right on the count. */}
+      <div style={{
+        display: 'flex', alignItems: 'center', gap: '10px',
+        flexWrap: 'wrap', margin: '30px 0 10px',
+      }}>
+        <p className="label" style={{ fontSize: '0.66rem', flexShrink: 0 }}>
+          {rowQuery.trim() ? `${visibleRows.length} of ${movies.length}` : `${movies.length} logged`}
+        </p>
+        <div style={{ position: 'relative', flex: 1, minWidth: '170px' }}>
+          <Search size={12} style={{
+            position: 'absolute', left: '9px', top: '50%', transform: 'translateY(-50%)',
+            color: 'var(--text-dim)', pointerEvents: 'none',
+          }} />
+          <input
+            value={rowQuery}
+            onChange={e => setRowQuery(e.target.value)}
+            placeholder="find a film…"
+            style={{ ...inputStyle, padding: '7px 26px 7px 26px' }}
+          />
+          {rowQuery && (
+            <button
+              onClick={() => setRowQuery('')}
+              aria-label="Clear search"
+              style={{
+                position: 'absolute', right: '6px', top: '50%', transform: 'translateY(-50%)',
+                background: 'none', border: 'none', cursor: 'pointer', display: 'flex',
+                padding: '2px', color: 'var(--text-dim)',
+              }}
+            >
+              <X size={11} />
+            </button>
+          )}
+        </div>
+      </div>
+      {rowQuery.trim() && visibleRows.length === 0 && (
+        <p style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '0.7rem', color: 'var(--text-dim)', padding: '8px 10px' }}>
+          nothing matches “{rowQuery.trim()}”
+        </p>
+      )}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-        {movies.map(m => (
+        {visibleRows.map(m => (
           <div key={m.id} style={{
             display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 10px',
             borderRadius: '6px', fontFamily: "'JetBrains Mono', monospace", fontSize: '0.74rem',
