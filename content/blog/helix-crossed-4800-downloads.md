@@ -5,9 +5,9 @@ excerpt: "A short update on Helix Framework's first real milestone, what's actua
 tags: ["AI Agents", "Python", "open source", "Helix"]
 coverImage: "/blog/helix-4.8k-downloads.webp"
 coverBg: "#050605"
+coverFit: true
 published: true
 ---
-
 Helix just crossed 4.8K downloads on PyPI. I'm not going to pretend that's not a good feeling.
 
 I built it because I kept hitting the same two walls on every agent project: API bills that spiked without warning, and agents that forgot everything the moment a run ended. [Why I Built Helix](/blog/why-i-built-helix) has the longer version of that story. This post is just the update.

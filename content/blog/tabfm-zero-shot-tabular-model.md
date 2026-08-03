@@ -5,6 +5,7 @@ excerpt: "Google Research shipped a foundation model that predicts on any spread
 tags: ["Machine Learning", "Tabular Data", "Foundation Models", "Google Research", "Python"]
 coverImage: "/blog/tabfm-zero-shot-tabular-model.webp"
 coverBg: "#ffffff"
+coverFit: true
 published: true
 ---
 

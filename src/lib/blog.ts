@@ -6,6 +6,7 @@ export interface PostFrontmatter {
   tags: string[];
   coverImage: string;
   coverBg?: string;
+  coverFit?: boolean;   // opt-in: letterbox the cover image instead of cropping it. Default (unset) keeps the original cover/crop behavior.
   published: boolean;
 }
 
@@ -81,6 +82,7 @@ function loadAllPosts(): Post[] {
         tags:       data.tags       ?? [],
         coverImage: data.coverImage ?? '',
         coverBg:    data.coverBg,
+        coverFit:   data.coverFit ?? false,
         published:  data.published  ?? false,
         content,
         readingTime: calcReadingTime(content),
