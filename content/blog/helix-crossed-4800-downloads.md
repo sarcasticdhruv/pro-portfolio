@@ -3,7 +3,7 @@ title: "Helix Just Crossed 4.8K Downloads on PyPI"
 date: "2026-07-31"
 excerpt: "A short update on Helix Framework's first real milestone, what's actually in the box, and why watching strangers pip install it still feels a little unreal."
 tags: ["AI Agents", "Python", "open source", "Helix"]
-coverImage: "/blog/helix-4.8k-downloads.png"
+coverImage: "/blog/helix-4.8k-downloads.webp"
 coverBg: "#050605"
 published: true
 ---
