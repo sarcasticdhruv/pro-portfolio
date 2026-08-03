@@ -64,11 +64,12 @@ export default function BlogPostPage() {
               borderRadius: '12px', overflow: 'hidden',
               marginBottom: '40px',
               border: '1px solid var(--border)',
+              background: post.coverBg || 'var(--surface)',
             }}>
               <img
                 src={post.coverImage}
                 alt={post.title}
-                style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }}
               />
             </div>
           )}

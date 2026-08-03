@@ -31,12 +31,13 @@ export default function BlogCard({ post }: Props) {
             borderRadius: '10px', overflow: 'hidden',
             marginBottom: '24px',
             border: '1px solid var(--border)',
+            background: post.coverBg || 'var(--surface)',
           }}>
             <img
               src={post.coverImage}
               alt={post.title}
               loading="lazy"
-              style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+              style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }}
             />
           </div>
         )}

@@ -5,6 +5,7 @@ export interface PostFrontmatter {
   excerpt: string;
   tags: string[];
   coverImage: string;
+  coverBg?: string;
   published: boolean;
 }
 
@@ -79,6 +80,7 @@ function loadAllPosts(): Post[] {
         excerpt:    data.excerpt    ?? '',
         tags:       data.tags       ?? [],
         coverImage: data.coverImage ?? '',
+        coverBg:    data.coverBg,
         published:  data.published  ?? false,
         content,
         readingTime: calcReadingTime(content),

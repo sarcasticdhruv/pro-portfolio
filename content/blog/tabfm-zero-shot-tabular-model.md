@@ -4,6 +4,7 @@ date: "2026-08-03"
 excerpt: "Google Research shipped a foundation model that predicts on any spreadsheet with zero training. I cloned the repo, fought my ISP for an afternoon, and ran the real thing on Colab."
 tags: ["Machine Learning", "Tabular Data", "Foundation Models", "Google Research", "Python"]
 coverImage: "/blog/tabfm-zero-shot-tabular-model.webp"
+coverBg: "#ffffff"
 published: true
 ---
 
