@@ -220,7 +220,7 @@ export default function SearchPage() {
             style={{
               flex: 1, background: 'none', border: 'none', outline: 'none',
               color: 'var(--text)', fontFamily: "'JetBrains Mono', monospace",
-              fontSize: '0.88rem', padding: '10px 0', minWidth: 0,
+              fontSize: 'clamp(0.74rem, 3vw, 0.88rem)', padding: '10px 0', minWidth: 0,
             }}
           />
           <ModelPicker value={modelChoice} onChange={setModelChoice} disabled={running} />

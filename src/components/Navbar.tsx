@@ -1,17 +1,27 @@
 import { useState, useEffect, useRef } from 'react';
-import { Sun, Moon, Menu, X, BookOpen, Gamepad2, Search, Aperture } from 'lucide-react';
+import { Sun, Moon, Menu, X, BookOpen, Gamepad2, Search, Aperture, Clapperboard } from 'lucide-react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import type { Theme } from '../types';
 
 interface Props { theme: Theme; onToggleTheme: (origin?: { x: number; y: number }) => void; }
 
-// Double-clicking the ~/dhruv logo opens /watched (an easter egg - the page
+// Double-clicking the ~/dhruv logo opens /admin (an easter egg - the page
 // is also reachable directly by URL). Single- and double-click on one element
 // inherently conflict, because a plain <Link> navigates home before the
 // second click can land, so the first click is deferred by this much and
 // cancelled if a second arrives. The cost is that normal "go home" clicks are
 // delayed by 250ms; that's the unavoidable price of the gesture.
 const DOUBLE_CLICK_MS = 250;
+
+// With 10 desktop nav items (5 anchor links + blog/games/search/imagine/watched)
+// plus the logo and theme toggle, a fixed gap/font-size only has room to
+// breathe above ~1350px. Below that the gap and label size scale down
+// smoothly via clamp() so the bar visibly compresses instead of wrapping or
+// overflowing in the ~900-1350px "laptop window, not maximized" zone, right
+// up until the hamburger menu takes over at NAV_BREAKPOINT.
+const NAV_GAP = 'clamp(8px, 1.6vw, 28px)';
+const NAV_FONT = 'clamp(0.64rem, 1vw, 0.76rem)';
+const NAV_BREAKPOINT = 940; // was 768 - too narrow once "watched" made it 10 items
 
 const NAV_LINKS = [
   { label: 'about', href: '/#about' },
@@ -31,6 +41,7 @@ export default function Navbar({ theme, onToggleTheme }: Props) {
   const onGames = pathname.startsWith('/games');
   const onSearch = pathname.startsWith('/search');
   const onImagine = pathname.startsWith('/imagine');
+  const onWatched = pathname.startsWith('/watched');
 
   useEffect(() => {
     const handler = () => setScrolled(window.scrollY > 40);
@@ -51,7 +62,7 @@ export default function Navbar({ theme, onToggleTheme }: Props) {
     if (clickTimer.current) {
       clearTimeout(clickTimer.current);
       clickTimer.current = null;
-      navigate('/watched');
+      navigate('/admin');
       return;
     }
     clickTimer.current = setTimeout(() => {
@@ -64,7 +75,7 @@ export default function Navbar({ theme, onToggleTheme }: Props) {
     <>
       <nav style={{
         position: 'fixed', top: 0, left: 0, right: 0, zIndex: 100,
-        padding: '0 32px', height: '60px',
+        padding: '0 clamp(16px, 2.4vw, 32px)', height: '60px',
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         background: scrolled ? 'var(--bg)' : 'transparent',
         borderBottom: scrolled ? '1px solid var(--border)' : '1px solid transparent',
@@ -86,10 +97,10 @@ export default function Navbar({ theme, onToggleTheme }: Props) {
         </a>
 
         {/* Desktop */}
-        <div className="nav-desktop" style={{ display: 'flex', alignItems: 'center', gap: '28px' }}>
+        <div className="nav-desktop" style={{ display: 'flex', alignItems: 'center', gap: NAV_GAP }}>
           {NAV_LINKS.map(link => (
             <a key={link.label} href={link.href} style={{
-              fontFamily: "'JetBrains Mono', monospace", fontSize: '0.76rem',
+              fontFamily: "'JetBrains Mono', monospace", fontSize: NAV_FONT,
               color: 'var(--text-muted)', letterSpacing: '0.04em',
               transition: 'color 0.18s ease',
             }}
@@ -104,7 +115,7 @@ export default function Navbar({ theme, onToggleTheme }: Props) {
             to="/blog"
             style={{
               fontFamily: "'JetBrains Mono', monospace",
-              fontSize: '0.76rem',
+              fontSize: NAV_FONT,
               letterSpacing: '0.04em',
               display: 'flex', alignItems: 'center', gap: '5px',
               textDecoration: 'none',
@@ -123,7 +134,7 @@ export default function Navbar({ theme, onToggleTheme }: Props) {
             to="/games"
             style={{
               fontFamily: "'JetBrains Mono', monospace",
-              fontSize: '0.76rem',
+              fontSize: NAV_FONT,
               letterSpacing: '0.04em',
               display: 'flex', alignItems: 'center', gap: '5px',
               textDecoration: 'none',
@@ -142,7 +153,7 @@ export default function Navbar({ theme, onToggleTheme }: Props) {
             to="/search"
             style={{
               fontFamily: "'JetBrains Mono', monospace",
-              fontSize: '0.76rem',
+              fontSize: NAV_FONT,
               letterSpacing: '0.04em',
               display: 'flex', alignItems: 'center', gap: '5px',
               textDecoration: 'none',
@@ -161,7 +172,7 @@ export default function Navbar({ theme, onToggleTheme }: Props) {
             to="/imagine"
             style={{
               fontFamily: "'JetBrains Mono', monospace",
-              fontSize: '0.76rem',
+              fontSize: NAV_FONT,
               letterSpacing: '0.04em',
               display: 'flex', alignItems: 'center', gap: '5px',
               textDecoration: 'none',
@@ -173,6 +184,25 @@ export default function Navbar({ theme, onToggleTheme }: Props) {
           >
             <Aperture size={13} />
             imagine
+          </Link>
+
+          {/* Watched link */}
+          <Link
+            to="/watched"
+            style={{
+              fontFamily: "'JetBrains Mono', monospace",
+              fontSize: NAV_FONT,
+              letterSpacing: '0.04em',
+              display: 'flex', alignItems: 'center', gap: '5px',
+              textDecoration: 'none',
+              color: onWatched ? 'var(--accent)' : 'var(--text-muted)',
+              transition: 'color 0.18s ease',
+            }}
+            onMouseEnter={e => ((e.currentTarget as HTMLElement).style.color = 'var(--accent)')}
+            onMouseLeave={e => ((e.currentTarget as HTMLElement).style.color = onWatched ? 'var(--accent)' : 'var(--text-muted)')}
+          >
+            <Clapperboard size={13} />
+            watched
           </Link>
 
           <ThemeBtn theme={theme} onToggle={onToggleTheme} />
@@ -251,11 +281,23 @@ export default function Navbar({ theme, onToggleTheme }: Props) {
             <Aperture size={13} />
             ./imagine
           </Link>
+          <Link
+            to="/watched"
+            onClick={() => setMenuOpen(false)}
+            style={{
+              fontFamily: "'JetBrains Mono', monospace", fontSize: '0.83rem',
+              color: onWatched ? 'var(--accent)' : 'var(--text-muted)',
+              textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '6px',
+            }}
+          >
+            <Clapperboard size={13} />
+            ./watched
+          </Link>
         </div>
       )}
 
       <style>{`
-        @media (max-width: 768px) {
+        @media (max-width: ${NAV_BREAKPOINT}px) {
           .nav-desktop { display: none !important; }
           .nav-mobile { display: flex !important; }
         }
