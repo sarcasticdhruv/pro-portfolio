@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { getPost, formatDate } from '../lib/blog';
+import { extractFaqPairs } from '../lib/extractFaq.mjs';
 import MarkdownRenderer from '../components/blog/MarkdownRenderer';
 import ReadingProgress from '../components/blog/ReadingProgress';
 import TagPill from '../components/blog/TagPill';
@@ -9,6 +10,59 @@ import AuthorBio from '../components/blog/AuthorBio';
 import RelatedPosts from '../components/blog/RelatedPosts';
 import { useSEO } from '../hooks/useSEO';
 import { ArrowLeft, Clock, CalendarDays } from 'lucide-react';
+
+const SITE_URL = 'https://dhruv-choudhary.tech';
+
+// FAQPage (rich results + GEO citation shape) and BreadcrumbList JSON-LD are
+// blog-post-specific, so they're injected here rather than folded into the
+// generic useSEO hook. Removed on unmount like useSEO's own article schema.
+function useArticleExtras(post: ReturnType<typeof getPost>) {
+  useEffect(() => {
+    if (!post) return;
+
+    const pairs = extractFaqPairs(post.content);
+    if (pairs.length > 0) {
+      let script = document.getElementById('faq-jsonld') as HTMLScriptElement | null;
+      if (!script) {
+        script = document.createElement('script');
+        script.id = 'faq-jsonld';
+        script.type = 'application/ld+json';
+        document.head.appendChild(script);
+      }
+      script.textContent = JSON.stringify({
+        '@context': 'https://schema.org',
+        '@type': 'FAQPage',
+        mainEntity: pairs.map(p => ({
+          '@type': 'Question',
+          name: p.question,
+          acceptedAnswer: { '@type': 'Answer', text: p.answer },
+        })),
+      });
+    }
+
+    let crumbs = document.getElementById('breadcrumb-jsonld') as HTMLScriptElement | null;
+    if (!crumbs) {
+      crumbs = document.createElement('script');
+      crumbs.id = 'breadcrumb-jsonld';
+      crumbs.type = 'application/ld+json';
+      document.head.appendChild(crumbs);
+    }
+    crumbs.textContent = JSON.stringify({
+      '@context': 'https://schema.org',
+      '@type': 'BreadcrumbList',
+      itemListElement: [
+        { '@type': 'ListItem', position: 1, name: 'Home', item: `${SITE_URL}/` },
+        { '@type': 'ListItem', position: 2, name: 'Blog', item: `${SITE_URL}/blog` },
+        { '@type': 'ListItem', position: 3, name: post.title, item: `${SITE_URL}/blog/${post.slug}` },
+      ],
+    });
+
+    return () => {
+      document.getElementById('faq-jsonld')?.remove();
+      document.getElementById('breadcrumb-jsonld')?.remove();
+    };
+  }, [post]);
+}
 
 export default function BlogPostPage() {
   const { slug } = useParams<{ slug: string }>();
@@ -20,7 +74,15 @@ export default function BlogPostPage() {
     else window.scrollTo(0, 0);
   }, [post, navigate]);
 
-  useSEO({ title: post?.title, description: post?.excerpt });
+  useSEO({
+    title: post?.title,
+    description: post?.excerpt,
+    image: post?.coverImage,
+    type: 'article',
+    publishedTime: post?.date,
+    tags: post?.tags,
+  });
+  useArticleExtras(post);
 
   if (!post) return null;
 
@@ -77,7 +139,7 @@ export default function BlogPostPage() {
           {/* ── Tags ── */}
           {post.tags.length > 0 && (
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '20px' }}>
-              {post.tags.map(tag => <TagPill key={tag} tag={tag} />)}
+              {post.tags.map(tag => <TagPill key={tag} tag={tag} linkable />)}
             </div>
           )}
 
@@ -149,7 +211,7 @@ export default function BlogPostPage() {
             {/* Tags */}
             {post.tags.length > 0 && (
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                {post.tags.map(tag => <TagPill key={tag} tag={tag} />)}
+                {post.tags.map(tag => <TagPill key={tag} tag={tag} linkable />)}
               </div>
             )}
 

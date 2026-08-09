@@ -71,11 +71,11 @@ Validator that cut manual verification effort 60 percent.`,
     tags: ['Python', 'AI Agents', 'LLM', 'Framework', 'PyPI', 'open source', 'project'],
     text: `Helix is a Python framework for building production AI agents, comparable to CrewAI,
 AutoGen, LangChain and LangGraph. Published on PyPI as helix-framework (pip install
-helix-framework). Gives agents that behave in production: hard budget limits and cost
-governance, semantic caching that cuts API costs 40 to 70 percent, persistent memory,
-multi-agent teams, group chat, YAML-based task pipelines, workflows, sessions and a 5-scorer
-evaluation suite. Works out of the box with OpenAI, Anthropic, Gemini, Groq, Mistral and
-8 other providers. GitHub github.com/sarcasticdhruv/helix-agent, PyPI
+helix-framework), past 5,000 downloads. Gives agents that behave in production: hard budget
+limits and cost governance, semantic caching that cuts API costs 40 to 70 percent, persistent
+memory, multi-agent teams, group chat, YAML-based task pipelines, workflows, sessions and a
+5-scorer evaluation suite. Works out of the box with OpenAI, Anthropic, Gemini, Groq, Mistral
+and 8 other providers. GitHub github.com/sarcasticdhruv/helix-agent, PyPI
 pypi.org/project/helix-framework.`,
   },
   {

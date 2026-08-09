@@ -10,8 +10,12 @@ const EXPERIENCE = [{
       projects: [
         {
           name: 'Franke Faber - Warehouse Automation',
-          tools: ['Python', 'FastAPI', 'TypeScript', 'AI/ML Classification'],
-          description: 'Led a team of 4 engineers, owning the entire project lifecycle from requirements through production deployment, to architect and ship a full warehouse automation platform from zero to production. Built an AI-driven defective-returns classification engine and intelligent workflow routing layer processing 2,000+ return units across an 8,000+ SKU catalogue.',
+          tools: ['Python', 'FastAPI', 'TypeScript', 'Docker', 'GitHub Actions'],
+          caseStudy: {
+            problem: 'Franke Faber needed to automate manual triage of defective product returns across a large, fragmented 60,000+ SKU catalogue that was slowing down warehouse operations.',
+            approach: 'Led a team of 4 engineers, owning the project lifecycle from requirements through production deployment. Built a defective-returns classification engine and an intelligent workflow routing layer in Python (FastAPI), TypeScript, and Node.js, containerized with Docker and deployed via GitHub Actions CI/CD.',
+            impact: 'Processing 2,000+ return units across the 60,000+ SKU catalogue, with automated classification and routing replacing manual handling.',
+          },
         },
         {
           name: 'Bajrang Ispat / Goel Pipes - NLP Quotation Engine',
@@ -21,22 +25,30 @@ const EXPERIENCE = [{
         {
           name: 'KISAAN KIOSK - Voice-First AI Smart-Farming',
           link: 'https://kisaan-kiosk.services.ailifebot.com',
-          tools: ['Satellite Imagery', 'CNN', 'NLP'],
-          description: 'Architected and engineered a 10+ language voice-first smart-farming platform featuring a custom-built live farmer avatar that autonomously navigates the full website via spoken interaction. Integrated ESA Copernicus satellite imagery for real-time NDVI-based crop health monitoring, a CNN-based crop disease classifier via image upload, and NLP-driven retrieval of live mandi prices and government schemes. Showcased to the Madhya Pradesh Government and the Gujarat Chief Minister.',
+          tools: ['LangChain', 'LlamaIndex', 'Vertex AI', 'Satellite Imagery', 'CNN'],
+          caseStudy: {
+            problem: 'Farmers across Madhya Pradesh needed an accessible, multilingual way to get real-time crop health insights, disease diagnosis, and market and scheme information without literacy or app-navigation barriers.',
+            approach: 'Architected and engineered a 10+ language voice-first platform with a custom live farmer avatar that navigates the site through spoken interaction. Integrated ESA Copernicus satellite imagery for NDVI-based crop health monitoring, a CNN-based crop disease classifier, and LLM-driven retrieval of live mandi prices and government schemes, deployed on GCP via GitLab CI.',
+            impact: 'Showcased to the Madhya Pradesh Government and the Gujarat Chief Minister as a flagship AI-for-agriculture initiative.',
+          },
         },
         {
           name: 'CRIME INTEL',
           link: 'https://crimeintel-ai.services.ailifebot.com',
-          tools: ['Speech-to-Text', 'Semantic Search'],
-          description: 'Led solution delivery in direct collaboration with Telangana Police stakeholders, building the backend infrastructure, database layer, audio processing pipeline, and AI copilot for a law enforcement intelligence platform. Engineered speech-to-text ingestion, semantic FIR indexing, and an NL query interface for multi-district case retrieval and investigation assistance.',
+          tools: ['FAISS', 'Elasticsearch', 'LangChain', 'Speech-to-Text'],
+          description: 'Built backend infrastructure, database layer, audio processing pipeline, and an LLM-powered AI copilot for a law enforcement intelligence platform, in direct collaboration with Telangana Police stakeholders. Engineered speech-to-text ingestion, semantic FIR indexing via FAISS and Elasticsearch, and a RAG-based natural-language query interface for multi-district case retrieval and investigation assistance.',
         },
         {
           name: 'CGMSCL - RAG Enterprise Knowledge System',
-          tools: ['AWS Lambda', 'RAG'],
-          description: 'Deployed a RAG-based enterprise knowledge system for Chhattisgarh Medical Services Corporation Limited on AWS Lambda. Engineered serverless orchestration over large-scale structured and unstructured healthcare data, enabling sub-second natural-language query resolution across drug procurement and distribution records.',
+          tools: ['AWS Lambda', 'AWS Bedrock', 'Pinecone'],
+          caseStudy: {
+            problem: 'Chhattisgarh Medical Services Corporation Limited needed sub-second natural-language access to large volumes of structured and unstructured drug procurement and distribution records.',
+            approach: 'Deployed a RAG-based enterprise knowledge system on AWS Lambda and AWS Bedrock with a Pinecone vector database for semantic search. Built serverless orchestration, prompt engineering, and output evaluation with hallucination-mitigation guardrails, integrated with the client\'s existing IAM and internal APIs.',
+            impact: 'Sub-second natural-language querying across drug procurement and distribution records for a state medical services corporation.',
+          },
         },
         {
-          name: 'MIRA - Live Avatar AI Receptionist (NASCOM)',
+          name: 'MIRA - Live Avatar AI Receptionist (NASSCOM)',
           tools: ['DeepFace/FaceNet', 'WebSocket'],
           description: 'Engineered and deployed a real-time face recognition service supporting simultaneous detection of 18 faces against a 10,000-face database. Integrated directly with the live chatbot interface for automated visitor identification and personalized check-in.',
         },
@@ -57,9 +69,9 @@ const EXPERIENCE = [{
         'Contributed to the frontend of the AI SDR, an automated outbound sales outreach tool, building UI components for lead management, outreach sequencing, and response tracking dashboards.',
         'Assisted in developing the Request for Action Agent, a workflow automation agent that parses incoming requests, classifies action types, and routes them to downstream handlers via an orchestrated agent pipeline.',
         "Contributed to building a Chatbot Agent framework, a modular conversational agent supporting dynamic intent handling and context management, integrated with the AiLifeBot platform's omnichannel deployment layer.",
-        'Built an AI SEO Automation Agent using Playwright and Puppeteer, expanding lead coverage by 35% over the Google Places API alone and automating large-scale multi-source scraping end to end.',
-        'Developed client-specific data ingestion pipelines for EIE Instruments and built a lead automation agent, enabling scalable data collection, automated processing, and improved lead generation efficiency.',
-        'Collaborated on an OCR-based Invoice Validator Agent, automating invoice parsing, entity extraction, and PO cross-validation, reducing manual verification effort by 60%.',
+        'Expanded lead coverage by 35% over the Google Places API alone with an AI SEO Automation Agent built on Playwright and Puppeteer, automating large-scale multi-source scraping end to end.',
+        'Developed client-specific data ingestion pipelines for EIE Instruments and built a lead automation agent, enabling scalable data collection and automated processing that improved lead generation efficiency.',
+        'Reduced manual invoice-verification effort by 60% with an OCR-based Invoice Validator Agent, automating invoice parsing, entity extraction, and PO cross-validation.',
       ],
       tags: ['Python', 'React', 'RAG', 'LLM', 'Playwright', 'Puppeteer', 'OCR', 'Automation'],
     },
@@ -170,9 +182,25 @@ export default function Experience() {
                               </a>
                             )}
                           </div>
-                          <p style={{ color: 'var(--text-muted)', fontSize: '0.88rem', lineHeight: 1.68, marginBottom: p.tools.length ? '9px' : 0 }}>
-                            {p.description}
-                          </p>
+                          {p.caseStudy ? (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '7px', marginBottom: p.tools.length ? '11px' : 0 }}>
+                              {([['problem', p.caseStudy.problem], ['approach', p.caseStudy.approach], ['impact', p.caseStudy.impact]] as const).map(([label, text]) => (
+                                <div key={label} style={{ display: 'flex', gap: '10px' }}>
+                                  <span style={{
+                                    flexShrink: 0, width: '68px',
+                                    fontFamily: "'JetBrains Mono', monospace", fontSize: '0.62rem',
+                                    color: 'var(--accent)', letterSpacing: '0.06em', textTransform: 'uppercase',
+                                    paddingTop: '2px',
+                                  }}>{label}</span>
+                                  <p style={{ color: 'var(--text-muted)', fontSize: '0.88rem', lineHeight: 1.68, margin: 0, flex: 1 }}>{text}</p>
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <p style={{ color: 'var(--text-muted)', fontSize: '0.88rem', lineHeight: 1.68, marginBottom: p.tools.length ? '9px' : 0 }}>
+                              {p.description}
+                            </p>
+                          )}
                           {p.tools.length > 0 && (
                             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px' }}>
                               {p.tools.map(t => <span key={t} className="tag" style={{ fontSize: '0.65rem', padding: '2px 8px' }}>{t}</span>)}

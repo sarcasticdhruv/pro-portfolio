@@ -1,6 +1,19 @@
-import { useState } from 'react';
-import { Mail, Github, Linkedin, Twitter, Link, ArrowUpRight, Copy, Check } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Mail, Github, Linkedin, Twitter, Link, ArrowUpRight, Copy, Check, Globe2 } from 'lucide-react';
 import { useScrollReveal } from '../hooks/useScrollReveal';
+
+const IST_TZ = 'Asia/Kolkata';
+
+// IST business hours the recruiter can expect a reply in, used to color the
+// live dot green/amber/red the same way the Hero "available" badge does.
+function istAvailability(now: Date): { label: string; color: 'green' | 'amber' | 'red' } {
+  const hour = Number(
+    new Intl.DateTimeFormat('en-US', { hour: 'numeric', hour12: false, timeZone: IST_TZ }).format(now),
+  );
+  if (hour >= 9 && hour < 22) return { label: 'likely online now', color: 'green' };
+  if (hour >= 7 && hour < 9) return { label: 'usually up soon', color: 'amber' };
+  return { label: 'probably asleep', color: 'red' };
+}
 
 const LINKS = [
   { label: 'Email', value: 'nrdhruv654@gmail.com', href: 'mailto:nrdhruv654@gmail.com', Icon: Mail },
@@ -36,8 +49,9 @@ export default function Contact() {
               Open to AI/ML engineering roles, research collaborations, and interesting problems.
             </p>
             <p style={{ color: 'var(--text-muted)', marginBottom: '32px', lineHeight: 1.8, fontSize: '0.91rem' }}>
-              Currently between Raipur and Hyderabad. Will relocate. Will debug your production
-              incident at 2am if the problem is interesting enough.
+              Currently between Raipur and Hyderabad. Open to relocating worldwide - will need
+              visa sponsorship for UK/US/EU roles. Will debug your production incident at 2am
+              if the problem is interesting enough.
             </p>
 
             <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
@@ -60,10 +74,10 @@ export default function Contact() {
               <p style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '0.68rem', color: 'var(--accent)', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: '7px' }}>
                 status
               </p>
-              <p style={{ fontSize: '0.86rem', color: 'var(--text-muted)', lineHeight: 1.7 }}>
-                Available for <span style={{ color: 'var(--text)' }}>full-time AI/ML/SWE roles</span> and <span style={{ color: 'var(--text)' }}>freelance collaborations</span>.<br />
-                Open to research, and collaborations now.
+              <p style={{ fontSize: '0.86rem', color: 'var(--text-muted)', lineHeight: 1.7, marginBottom: '14px' }}>
+                Available for <span style={{ color: 'var(--text)' }}>full-time AI/ML/SWE roles</span> (relocation + sponsorship OK) and <span style={{ color: 'var(--text)' }}>freelance collaborations</span>.
               </p>
+              <TimezoneWidget />
             </div>
           </div>
         </div>
@@ -72,6 +86,61 @@ export default function Contact() {
         @media (max-width: 768px) { .contact-grid { grid-template-columns: 1fr !important; gap: 36px !important; } }
       `}</style>
     </section>
+  );
+}
+
+// Shows my current IST time next to the visitor's own local time, computed
+// from the same Date so a UK/US recruiter can see actual overlap at a glance
+// instead of doing timezone math themselves.
+function TimezoneWidget() {
+  const [now, setNow] = useState(() => new Date());
+
+  useEffect(() => {
+    const t = setInterval(() => setNow(new Date()), 30_000);
+    return () => clearInterval(t);
+  }, []);
+
+  const { label, color } = istAvailability(now);
+  const myTime = new Intl.DateTimeFormat('en-US', {
+    hour: 'numeric', minute: '2-digit', timeZone: IST_TZ,
+  }).format(now);
+  const visitorTz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  const visitorTime = new Intl.DateTimeFormat('en-US', {
+    hour: 'numeric', minute: '2-digit',
+  }).format(now);
+  const dotColor = color === 'green' ? '#34d399' : color === 'amber' ? '#fbbf24' : 'var(--text-dim)';
+  const dotGlow = color === 'green' ? '0 0 6px #34d399' : color === 'amber' ? '0 0 6px #fbbf24' : 'none';
+
+  return (
+    <div style={{ display: 'flex', gap: '8px' }}>
+      <div style={{ flex: 1, minWidth: 0, padding: '10px 12px', background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: '8px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '5px', marginBottom: '4px' }}>
+          <Globe2 size={10} style={{ color: 'var(--text-dim)', flexShrink: 0 }} />
+          <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '0.62rem', color: 'var(--text-dim)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+            me · IST
+          </span>
+        </div>
+        <div style={{ fontFamily: "'Syne', sans-serif", fontWeight: 700, fontSize: '1.15rem', color: 'var(--text)', lineHeight: 1.15 }}>
+          {myTime}
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '5px', marginTop: '4px' }}>
+          <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: dotColor, boxShadow: dotGlow, flexShrink: 0 }} />
+          <span style={{ fontSize: '0.68rem', color: 'var(--text-dim)' }}>{label}</span>
+        </div>
+      </div>
+
+      {visitorTz && (
+        <div style={{ flex: 1, minWidth: 0, padding: '10px 12px', background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: '8px' }}>
+          <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '0.62rem', color: 'var(--text-dim)', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: '4px' }}>
+            you
+          </div>
+          <div style={{ fontFamily: "'Syne', sans-serif", fontWeight: 700, fontSize: '1.15rem', color: 'var(--text)', lineHeight: 1.15 }}>
+            {visitorTime}
+          </div>
+          <div style={{ fontSize: '0.68rem', color: 'var(--text-dim)', marginTop: '4px' }}>your local time</div>
+        </div>
+      )}
+    </div>
   );
 }
 

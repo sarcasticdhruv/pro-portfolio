@@ -1,7 +1,10 @@
-import { Code2, Brain, Server, Cloud, Layout, Award } from 'lucide-react';
+import { Code2, Brain, Server, Cloud, Layout, Award, ExternalLink } from 'lucide-react';
 import { useScrollReveal } from '../hooks/useScrollReveal';
 
-const SKILL_GROUPS = [
+interface Skill { name: string; level: number | null; href?: string }
+interface SkillGroup { category: string; code: string; Icon: typeof Code2; skills: Skill[] }
+
+const SKILL_GROUPS: SkillGroup[] = [
   {
     category: 'Languages', code: 'lang', Icon: Code2,
     skills: [
@@ -40,9 +43,11 @@ const SKILL_GROUPS = [
   {
     category: 'Certifications', code: 'cert', Icon: Award,
     skills: [
-      { name: 'Google Cloud Compute', level: null }, { name: 'Cloud Vision API', level: null },
-      { name: 'GenAI with Gemini', level: null }, { name: 'Google Cyber Security', level: null },
-      { name: 'Kaggle ML', level: null },
+      { name: 'Google Cloud Compute', level: null, href: 'https://www.cloudskillsboost.google/public_profiles/f4781dc9-39ae-4cad-bbec-1af1c156096b' },
+      { name: 'Cloud Vision API', level: null, href: 'https://www.cloudskillsboost.google/public_profiles/f4781dc9-39ae-4cad-bbec-1af1c156096b' },
+      { name: 'GenAI with Gemini', level: null, href: 'https://www.cloudskillsboost.google/public_profiles/9351e952-cf3b-4591-a105-57fcfe03bd4f' },
+      { name: 'Google Cyber Security - 96.83%', level: null, href: 'https://www.coursera.org/account/accomplishments/verify/MV29HHPD8TNC' },
+      { name: 'Kaggle ML', level: null, href: 'https://www.kaggle.com/learn/certification/sarcasticdhruv/intro-to-machine-learning' },
     ],
   },
 ];
@@ -82,7 +87,16 @@ export default function Skills() {
                 {group.skills.map(skill => (
                   <div key={skill.name}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px' }}>
-                      <span style={{ fontSize: '0.86rem', color: 'var(--text-muted)' }}>{skill.name}</span>
+                      {skill.href ? (
+                        <a href={skill.href} target="_blank" rel="noopener noreferrer" title="Verify credential"
+                          style={{ fontSize: '0.86rem', color: 'var(--text-muted)', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                          onMouseEnter={e => ((e.currentTarget as HTMLElement).style.color = 'var(--accent)')}
+                          onMouseLeave={e => ((e.currentTarget as HTMLElement).style.color = 'var(--text-muted)')}>
+                          {skill.name} <ExternalLink size={10} />
+                        </a>
+                      ) : (
+                        <span style={{ fontSize: '0.86rem', color: 'var(--text-muted)' }}>{skill.name}</span>
+                      )}
                       {skill.level !== null && (
                         <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '0.68rem', color: 'var(--text-dim)' }}>
                           {skill.level}%

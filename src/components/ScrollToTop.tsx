@@ -18,11 +18,20 @@ export default function ScrollToTop() {
   const { pathname, hash } = useLocation();
   const [visible, setVisible] = useState(false);
 
-  // Reset to top on route change - but not on a same-page hash jump
-  // (/#about, /#contact), which should keep its native anchor-scroll.
+  // On a route change with a hash (e.g. a nav link to /#projects clicked from
+  // /blog/some-post), React Router does a client-side transition - the
+  // browser never sees a real navigation, so it never runs its native
+  // scroll-to-fragment behavior. Do that scroll ourselves. Without this,
+  // the effect below would just reset to top, landing on the wrong section.
   useEffect(() => {
-    if (hash) return;
-    window.scrollTo(0, 0);
+    if (!hash) {
+      window.scrollTo(0, 0);
+      return;
+    }
+    const el = document.getElementById(hash.slice(1));
+    if (!el) return;
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    el.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth' });
   }, [pathname, hash]);
 
   useEffect(() => {

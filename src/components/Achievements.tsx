@@ -1,7 +1,12 @@
-import { Cpu, FileText, Zap, Cloud, Shield, Trophy } from 'lucide-react';
+import { Cpu, FileText, Zap, Cloud, Shield, Trophy, ExternalLink } from 'lucide-react';
 import { useScrollReveal } from '../hooks/useScrollReveal';
 
-const ACHIEVEMENTS = [
+interface Achievement {
+  Icon: typeof Cpu; title: string; subtitle: string; date: string;
+  description: string; tags: string[]; highlight: boolean; href?: string;
+}
+
+const ACHIEVEMENTS: Achievement[] = [
   {
     Icon: Cpu,
     title: 'IMC 2025 - Union Minister Demo',
@@ -37,6 +42,7 @@ const ACHIEVEMENTS = [
     description: 'Cloud Compute, Cloud Vision API, GenAI with Gemini & Streamlit, Gen AI Study Jams (Batches 1 & 2). Active hands-on practitioner on GCP.',
     tags: ['Google', 'Cloud', 'Certified'],
     highlight: false,
+    href: 'https://www.cloudskillsboost.google/public_profiles/f4781dc9-39ae-4cad-bbec-1af1c156096b',
   },
   {
     Icon: Shield,
@@ -46,6 +52,7 @@ const ACHIEVEMENTS = [
     description: "Completed Google's professional Cybersecurity certificate with a 96.83% grade. Covers network security, threat detection, SIEM, and incident response.",
     tags: ['Cybersecurity', 'Google', '96.83%'],
     highlight: false,
+    href: 'https://www.coursera.org/account/accomplishments/verify/MV29HHPD8TNC',
   },
   {
     Icon: Trophy,
@@ -92,8 +99,16 @@ export default function Achievements() {
                 <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '0.68rem', color: 'var(--text-dim)' }}>{a.date}</span>
               </div>
 
-              <h3 style={{ fontFamily: "'Syne', sans-serif", fontWeight: 700, fontSize: '0.95rem', color: 'var(--text)', marginBottom: '3px' }}>
+              <h3 style={{ fontFamily: "'Syne', sans-serif", fontWeight: 700, fontSize: '0.95rem', color: 'var(--text)', marginBottom: '3px', display: 'flex', alignItems: 'center', gap: '6px' }}>
                 {a.title}
+                {a.href && (
+                  <a href={a.href} target="_blank" rel="noopener noreferrer" title="Verify credential"
+                    style={{ display: 'inline-flex', color: 'var(--text-dim)' }}
+                    onMouseEnter={e => ((e.currentTarget as HTMLElement).style.color = 'var(--accent)')}
+                    onMouseLeave={e => ((e.currentTarget as HTMLElement).style.color = 'var(--text-dim)')}>
+                    <ExternalLink size={12} />
+                  </a>
+                )}
               </h3>
               <p style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '0.68rem', color: 'var(--accent)', marginBottom: '10px' }}>
                 {a.subtitle}

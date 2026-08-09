@@ -61,6 +61,7 @@ export default function About() {
                 ['CGPA', '8.94 / 10'],
                 ['Location', 'Bhopal → Raipur / Hyderabad'],
                 ['Role', 'AI Engineer @ Ignited Wings'],
+                ['Relocation', 'Worldwide · sponsorship OK'],
                 ['Paper', 'IEEE MPCON-2025'],
               ].map(([k, v]) => (
                 <div key={k} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '9px', fontSize: '0.87rem', gap: '14px' }}>

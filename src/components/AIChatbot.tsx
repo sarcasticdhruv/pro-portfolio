@@ -55,7 +55,7 @@ AI Engineer @ AI LifeBOT - Oct 2024 - Oct 2025, Noida
 - OCR Invoice Validator Agent: -60% manual verification effort
 
 === PROJECTS ===
-1. Helix Framework - Production-grade AI agent framework on PyPI (pip install helix-framework). Like CrewAI/LangGraph but with the production layer built in: hard budget limits, semantic caching (cuts API costs 40-70%), persistent memory, multi-agent teams, YAML pipelines, 5-scorer eval suite. Supports OpenAI, Anthropic, Gemini, Groq, Mistral + more. GitHub: github.com/sarcasticdhruv/helix-agent
+1. Helix Framework - Production-grade AI agent framework on PyPI (pip install helix-framework), past 5,000 downloads. Like CrewAI/LangGraph but with the production layer built in: hard budget limits, semantic caching (cuts API costs 40-70%), persistent memory, multi-agent teams, YAML pipelines, 5-scorer eval suite. Supports OpenAI, Anthropic, Gemini, Groq, Mistral + more. GitHub: github.com/sarcasticdhruv/helix-agent
 2. AI Kisaan Sahayak - Multilingual agri AI assistant for farmers (voice + LLM + RAG)
 3. Brain Tumor Detection - Deep learning classification, IEEE MPCON-2025 published paper
 4. BoardBrief - AI board meeting summariser with action-item extraction

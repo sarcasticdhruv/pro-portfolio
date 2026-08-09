@@ -99,15 +99,16 @@ export default function Navbar({ theme, onToggleTheme }: Props) {
         {/* Desktop */}
         <div className="nav-desktop" style={{ display: 'flex', alignItems: 'center', gap: NAV_GAP }}>
           {NAV_LINKS.map(link => (
-            <a key={link.label} href={link.href} style={{
+            <Link key={link.label} to={link.href} style={{
               fontFamily: "'JetBrains Mono', monospace", fontSize: NAV_FONT,
               color: 'var(--text-muted)', letterSpacing: '0.04em',
+              textDecoration: 'none',
               transition: 'color 0.18s ease',
             }}
-              onMouseEnter={e => (e.currentTarget.style.color = 'var(--accent)')}
-              onMouseLeave={e => (e.currentTarget.style.color = 'var(--text-muted)')}>
+              onMouseEnter={e => ((e.currentTarget as HTMLElement).style.color = 'var(--accent)')}
+              onMouseLeave={e => ((e.currentTarget as HTMLElement).style.color = 'var(--text-muted)')}>
               {link.label}
-            </a>
+            </Link>
           ))}
 
           {/* Blog link */}
@@ -227,11 +228,12 @@ export default function Navbar({ theme, onToggleTheme }: Props) {
           padding: '20px 20px', display: 'flex', flexDirection: 'column', gap: '18px',
         }}>
           {NAV_LINKS.map(link => (
-            <a key={link.label} href={link.href} onClick={() => setMenuOpen(false)} style={{
+            <Link key={link.label} to={link.href} onClick={() => setMenuOpen(false)} style={{
               fontFamily: "'JetBrains Mono', monospace", fontSize: '0.83rem', color: 'var(--text-muted)',
+              textDecoration: 'none',
             }}>
               ./{link.label}
-            </a>
+            </Link>
           ))}
           <Link
             to="/blog"

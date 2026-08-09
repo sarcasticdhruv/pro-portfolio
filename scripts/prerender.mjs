@@ -24,9 +24,18 @@ const SAME_AS = [
 ];
 const AUTHOR = { '@type': 'Person', name: 'Dhruv Choudhary', url: SITE_URL, jobTitle: 'AI Engineer', sameAs: SAME_AS };
 
+// Cover images can be a site-root-relative path (e.g. generated art saved to
+// public/blog/) or a full external URL (e.g. Unsplash). og:image and JSON-LD
+// image both require a fully-qualified URL - a bare "/blog/x.webp" is invalid
+// per the Open Graph spec and silently fails to unfurl on LinkedIn/Twitter.
+function absoluteUrl(url) {
+  return url.startsWith('http') ? url : `${SITE_URL}${url}`;
+}
+
 const { SEARCH_EXAMPLES } = await import(pathToFileURL(path.join(ROOT, 'src/content/searchExamples.mjs')));
 const { IMAGINE_EXAMPLES } = await import(pathToFileURL(path.join(ROOT, 'src/content/imagineExamples.mjs')));
 const { getRelatedPosts } = await import(pathToFileURL(path.join(ROOT, 'src/lib/relatedPosts.mjs')));
+const { extractFaqPairs } = await import(pathToFileURL(path.join(ROOT, 'src/lib/extractFaq.mjs')));
 
 marked.use({ gfm: true, breaks: false });
 
@@ -119,7 +128,7 @@ function escapeHtml(s) {
 // ── Shell patching ───────────────────────────────────────────────────────
 const SHELL = readFileSync(path.join(DIST, 'index.html'), 'utf-8');
 
-function patchShell({ path: routePath, title, description, ogType = 'website', image, jsonLd, bodyHtml }) {
+function patchShell({ path: routePath, title, description, ogType = 'website', image, datePublished, jsonLd, bodyHtml }) {
   const fullTitle = `${title} · Dhruv Choudhary`;
   const canonicalUrl = `${SITE_URL}${routePath}`;
   let html = SHELL;
@@ -131,12 +140,19 @@ function patchShell({ path: routePath, title, description, ogType = 'website', i
   html = html.replace(/(<meta property="og:url" content=")[^"]*(")/, `$1${canonicalUrl}$2`);
   html = html.replace(/(<meta property="og:title" content=")[^"]*(")/, `$1${escapeHtml(fullTitle)}$2`);
   html = html.replace(/(<meta property="og:description" content=")[^"]*(")/, `$1${escapeHtml(description)}$2`);
-  if (image) html = html.replace(/(<meta property="og:image" content=")[^"]*(")/, `$1${image}$2`);
+  if (image) {
+    html = html.replace(/(<meta property="og:image" content=")[^"]*(")/, `$1${image}$2`);
+    html = html.replace(/(<meta name="twitter:image" content=")[^"]*(")/, `$1${image}$2`);
+  }
   html = html.replace(/(<meta name="twitter:title" content=")[^"]*(")/, `$1${escapeHtml(fullTitle)}$2`);
   html = html.replace(/(<meta name="twitter:description" content=")[^"]*(")/, `$1${escapeHtml(description)}$2`);
+  if (ogType === 'article' && datePublished) {
+    html = html.replace(/<\/head>/, `<meta property="article:published_time" content="${datePublished}" />\n  </head>`);
+  }
 
   if (jsonLd) {
-    const ldScript = `<script type="application/ld+json">\n${JSON.stringify(jsonLd, null, 2)}\n</script>\n  </head>`;
+    const blocks = Array.isArray(jsonLd) ? jsonLd : [jsonLd];
+    const ldScript = blocks.map(block => `<script type="application/ld+json">\n${JSON.stringify(block, null, 2)}\n</script>`).join('\n') + '\n  </head>';
     html = html.replace(/<\/head>/, ldScript);
   }
   if (bodyHtml !== undefined) {
@@ -185,13 +201,10 @@ pages.push({
 // /blog/<slug> - one per published post
 for (const post of posts) {
   const canonicalUrl = `${SITE_URL}/blog/${post.slug}`;
-  pages.push({
-    path: `/blog/${post.slug}`,
-    title: post.title,
-    description: post.excerpt,
-    ogType: 'article',
-    image: post.coverImage || undefined,
-    jsonLd: {
+  const faqPairs = extractFaqPairs(post.content);
+
+  const jsonLd = [
+    {
       '@context': 'https://schema.org',
       '@type': 'BlogPosting',
       headline: post.title,
@@ -199,19 +212,95 @@ for (const post of posts) {
       datePublished: post.date,
       dateModified: post.date,
       author: AUTHOR,
-      image: post.coverImage || undefined,
+      image: post.coverImage ? absoluteUrl(post.coverImage) : undefined,
+      keywords: post.tags.join(', '),
       mainEntityOfPage: canonicalUrl,
     },
+    {
+      '@context': 'https://schema.org',
+      '@type': 'BreadcrumbList',
+      itemListElement: [
+        { '@type': 'ListItem', position: 1, name: 'Home', item: `${SITE_URL}/` },
+        { '@type': 'ListItem', position: 2, name: 'Blog', item: `${SITE_URL}/blog` },
+        { '@type': 'ListItem', position: 3, name: post.title, item: canonicalUrl },
+      ],
+    },
+  ];
+  // FAQPage schema, when the post has one: this is the shape both Google's
+  // FAQ rich results and generative answer engines (Perplexity, ChatGPT
+  // browsing) pull from almost verbatim when citing a source.
+  if (faqPairs.length > 0) {
+    jsonLd.push({
+      '@context': 'https://schema.org',
+      '@type': 'FAQPage',
+      mainEntity: faqPairs.map(p => ({
+        '@type': 'Question',
+        name: p.question,
+        acceptedAnswer: { '@type': 'Answer', text: p.answer },
+      })),
+    });
+  }
+
+  pages.push({
+    path: `/blog/${post.slug}`,
+    title: post.title,
+    description: post.excerpt,
+    ogType: 'article',
+    image: post.coverImage ? absoluteUrl(post.coverImage) : undefined,
+    datePublished: post.date,
+    jsonLd,
     bodyHtml: `
       <main>
         <article>
           <h1>${escapeHtml(post.title)}</h1>
           <p>${formatDate(post.date)} &middot; ${readingTime(post.content)} min read</p>
-          ${post.tags.length ? `<ul>${post.tags.map(t => `<li>${escapeHtml(t)}</li>`).join('')}</ul>` : ''}
+          ${post.tags.length ? `<ul>${post.tags.map(t => `<li><a href="/blog/tag/${encodeURIComponent(t.toLowerCase())}">${escapeHtml(t)}</a></li>`).join('')}</ul>` : ''}
           <div class="md-body">${marked.parse(post.content)}</div>
           ${authorBioHtml()}
         </article>
         ${relatedPostsHtml(post, posts)}
+      </main>`,
+  });
+}
+
+// /blog/tag/<tag> - one hub page per subject/tag, so posts on the same
+// subject surface together for both search engines and AI crawlers instead
+// of only being cross-linked ad hoc via "related posts".
+const tagSlugs = new Map();
+for (const post of posts) {
+  for (const tag of post.tags) {
+    const slug = tag.toLowerCase();
+    if (!tagSlugs.has(slug)) tagSlugs.set(slug, { label: tag, posts: [] });
+    tagSlugs.get(slug).posts.push(post);
+  }
+}
+for (const [slug, { label, posts: tagged }] of tagSlugs) {
+  const canonicalUrl = `${SITE_URL}/blog/tag/${slug}`;
+  const sorted = [...tagged].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  pages.push({
+    path: `/blog/tag/${slug}`,
+    title: `${label} posts`,
+    description: `${sorted.length} post${sorted.length === 1 ? '' : 's'} tagged ${label}, by Dhruv Choudhary.`,
+    jsonLd: {
+      '@context': 'https://schema.org',
+      '@type': 'CollectionPage',
+      name: `${label} posts`,
+      url: canonicalUrl,
+      isPartOf: { '@type': 'Blog', name: 'Blog', url: `${SITE_URL}/blog` },
+      hasPart: sorted.map(p => ({ '@type': 'BlogPosting', headline: p.title, url: `${SITE_URL}/blog/${p.slug}` })),
+    },
+    bodyHtml: `
+      <main>
+        <h1>${escapeHtml(label)}</h1>
+        <p>${sorted.length} post${sorted.length === 1 ? '' : 's'} tagged ${escapeHtml(label)}</p>
+        <ul>
+          ${sorted.map(p => `
+          <li>
+            <a href="/blog/${p.slug}">${escapeHtml(p.title)}</a>
+            <p>${escapeHtml(p.excerpt)}</p>
+            <span>${formatDate(p.date)} &middot; ${readingTime(p.content)} min read</span>
+          </li>`).join('')}
+        </ul>
       </main>`,
   });
 }

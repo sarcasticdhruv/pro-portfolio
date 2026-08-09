@@ -17,8 +17,12 @@ function parseFrontmatter(raw) {
     const idx = line.indexOf(':');
     if (idx === -1) continue;
     const key = line.slice(0, idx).trim();
-    const val = line.slice(idx + 1).trim().replace(/^["']|["']$/g, '');
-    data[key] = val;
+    const val = line.slice(idx + 1).trim();
+    if (val.startsWith('[') && val.endsWith(']')) {
+      data[key] = val.slice(1, -1).split(',').map(t => t.trim().replace(/^["']|["']$/g, '')).filter(Boolean);
+      continue;
+    }
+    data[key] = val.replace(/^["']|["']$/g, '');
   }
   return data;
 }
@@ -29,7 +33,12 @@ function loadPublishedPosts() {
     .map(f => {
       const raw = readFileSync(path.join(BLOG_DIR, f), 'utf-8');
       const data = parseFrontmatter(raw);
-      return { slug: f.replace(/\.md$/, ''), date: data.date || '', published: data.published === 'true' };
+      return {
+        slug: f.replace(/\.md$/, ''),
+        date: data.date || '',
+        published: data.published === 'true',
+        tags: Array.isArray(data.tags) ? data.tags : [],
+      };
     })
     .filter(p => p.published);
 }
@@ -51,7 +60,17 @@ const postRoutes = posts.map(p => ({
   changefreq: 'monthly',
 }));
 
-const urls = [...staticRoutes, ...postRoutes];
+// One hub page per subject/tag, so topically-clustered posts are indexable
+// as a set, not just individually.
+const tagSlugs = new Set();
+for (const p of posts) for (const t of p.tags) tagSlugs.add(t.toLowerCase());
+const tagRoutes = [...tagSlugs].map(slug => ({
+  loc: `/blog/tag/${slug}`,
+  priority: '0.5',
+  changefreq: 'monthly',
+}));
+
+const urls = [...staticRoutes, ...postRoutes, ...tagRoutes];
 
 const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">

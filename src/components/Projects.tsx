@@ -10,8 +10,8 @@ const FEATURED = [
   {
     name: 'helix-agent',
     displayName: 'Helix Framework',
-    tagline: 'Production AI agent framework · live on PyPI',
-    description: 'Python framework for building production AI agents, in the space of CrewAI and LangGraph. Hard budget limits, semantic caching that cuts API costs 40-70%, persistent memory, multi-agent teams, YAML task pipelines and a 5-scorer eval suite. Works with OpenAI, Anthropic, Gemini, Groq, Mistral and more. pip install helix-framework.',
+    tagline: 'Production AI agent framework · 5,000+ PyPI downloads',
+    description: 'Python framework for building production AI agents, in the space of CrewAI and LangGraph. Hard budget limits, semantic caching that cuts API costs 40-70%, persistent memory, multi-agent teams, YAML task pipelines and a 5-scorer eval suite. Works with OpenAI, Anthropic, Gemini, Groq, Mistral and more. Past 5,000 downloads on PyPI. pip install helix-framework.',
     tags: ['Python', 'AI Agents', 'LLM', 'Framework', 'PyPI'],
     github: 'https://github.com/sarcasticdhruv/helix-agent',
     highlight: true,

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Github, Linkedin, Mail, MapPin, ArrowRight, Circle } from 'lucide-react';
+import { Github, Linkedin, Mail, MapPin, Globe2, ArrowRight, Circle } from 'lucide-react';
 import Terminal from './Terminal';
 import BootRedirect from './BootRedirect';
 import { trackEvent } from '../lib/track';
@@ -142,12 +142,25 @@ export default function Hero({ github }: Props) {
           {/* Location */}
           <div style={{
             display: 'flex', alignItems: 'center', gap: '6px',
-            marginBottom: '24px',
+            marginBottom: '10px',
             fontFamily: "'JetBrains Mono', monospace",
             fontSize: '0.75rem', color: 'var(--text-dim)',
           }}>
             <MapPin size={12} />
             Bhopal → Raipur / Hyderabad
+          </div>
+
+          {/* Work authorization - explicit for UK/US/MNC recruiters screening
+              international candidates, since this is usually the first filter
+              before skills get read at all. */}
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: '6px',
+            marginBottom: '24px',
+            fontFamily: "'JetBrains Mono', monospace",
+            fontSize: '0.75rem', color: 'var(--text-dim)',
+          }}>
+            <Globe2 size={12} />
+            Open to relocation worldwide · visa sponsorship required
           </div>
 
           {/* CTAs */}
