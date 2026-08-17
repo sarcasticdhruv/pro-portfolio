@@ -67,6 +67,23 @@ marked.use({
   breaks: false,
 });
 
+// In-body post images are pasted URLs with no known intrinsic size, so
+// without explicit width/height attributes Lighthouse flags them as a CLS
+// risk (the browser can't reserve their box before the image loads). The
+// .md-body img CSS already reserves a 16/9 box via aspect-ratio, so these
+// attributes just need to carry that same ratio - the exact pixel values
+// don't need to match the source image, only the ratio the CSS already
+// commits to.
+marked.use({
+  renderer: {
+    image({ href, title, text }) {
+      const alt = text ? ` alt="${text}"` : '';
+      const titleAttr = title ? ` title="${title}"` : '';
+      return `<img src="${href}"${alt}${titleAttr} width="1600" height="900" loading="lazy" decoding="async">`;
+    },
+  },
+});
+
 interface Props {
   content: string;
 }

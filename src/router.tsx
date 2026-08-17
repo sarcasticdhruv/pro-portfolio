@@ -5,12 +5,23 @@ import App from './App';
 // Route-level code splitting: each page ships as its own chunk instead of
 // all being bundled into one ~1.8MB entry (Lighthouse's "reduce unused
 // JavaScript" flag - visiting "/" was downloading chess.js, marked, and
-// every other page's code that a single route never uses). HomePage stays
-// eager since it's what almost every visit loads first.
+// every other page's code that a single route never uses).
+//
+// HomePage and the blog pages stay eager (not lazy). scripts/prerender.mjs
+// generates real static HTML for these specifically (post body, tag lists,
+// FAQ/JSON-LD) for SEO and non-JS crawlers, but src/main.tsx uses
+// createRoot(), not hydrateRoot() - React wipes that prerendered markup
+// immediately on mount regardless of Suspense. Lazy-loading these routes
+// stacked a *second* delay on top (waiting for the chunk to download before
+// anything replaces the wiped DOM), which measured as a real blank-page gap
+// of several seconds under throttled conditions, then a 0.11+ CLS jump once
+// content finally landed. Secondary pages below (games/search/imagine/
+// watched/admin) have no prerendered content to lose, so lazy-loading them
+// is a clean win with no such tradeoff.
 import HomePage from './pages/HomePage';
-const BlogListPage = lazy(() => import('./pages/BlogListPage'));
-const BlogPostPage = lazy(() => import('./pages/BlogPostPage'));
-const BlogTagPage = lazy(() => import('./pages/BlogTagPage'));
+import BlogListPage from './pages/BlogListPage';
+import BlogPostPage from './pages/BlogPostPage';
+import BlogTagPage from './pages/BlogTagPage';
 const GamesPage = lazy(() => import('./pages/GamesPage'));
 const SearchPage = lazy(() => import('./pages/SearchPage'));
 const ImaginePage = lazy(() => import('./pages/ImaginePage'));
@@ -35,10 +46,10 @@ const router = createBrowserRouter([
     element: <App />,
     children: [
       { index: true, element: <HomePage /> },
-      { path: 'blog', element: withSuspense(<BlogListPage />) },
-      { path: 'blogs', element: withSuspense(<BlogListPage />) },
-      { path: 'blog/tag/:tag', element: withSuspense(<BlogTagPage />) },
-      { path: 'blog/:slug', element: withSuspense(<BlogPostPage />) },
+      { path: 'blog', element: <BlogListPage /> },
+      { path: 'blogs', element: <BlogListPage /> },
+      { path: 'blog/tag/:tag', element: <BlogTagPage /> },
+      { path: 'blog/:slug', element: <BlogPostPage /> },
       { path: 'games', element: withSuspense(<GamesPage />) },
       { path: 'search', element: withSuspense(<SearchPage />) },
       { path: 'imagine', element: withSuspense(<ImaginePage />) },

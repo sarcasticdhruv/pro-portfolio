@@ -39,6 +39,23 @@ const { extractFaqPairs } = await import(pathToFileURL(path.join(ROOT, 'src/lib/
 
 marked.use({ gfm: true, breaks: false });
 
+// Mirrors the same override in MarkdownRenderer.tsx: in-body post images are
+// pasted URLs with no known intrinsic size, so without explicit width/height
+// they're a CLS risk on first paint (before any CSS aspect-ratio applies) -
+// exactly what PageSpeed/Lighthouse measure here, since this prerendered
+// markup is what they (and non-JS crawlers) actually see. The two renderers
+// need to stay in sync; there's no shared module because this file is a
+// plain Node script and MarkdownRenderer.tsx is a browser component.
+marked.use({
+  renderer: {
+    image({ href, title, text }) {
+      const alt = text ? ` alt="${text}"` : '';
+      const titleAttr = title ? ` title="${title}"` : '';
+      return `<img src="${href}"${alt}${titleAttr} width="1600" height="900" loading="lazy" decoding="async">`;
+    },
+  },
+});
+
 // ── Frontmatter parsing (mirrors src/lib/blog.ts's coercion rules, in
 // plain JS so this plays as a Node script - can't import a .ts module
 // without a loader) ──────────────────────────────────────────────────────
