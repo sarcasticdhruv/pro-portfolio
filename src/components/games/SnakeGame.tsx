@@ -264,11 +264,11 @@ export default function SnakeGame() {
       {/* Mobile D-pad */}
       <div className="snake-dpad">
         <div style={{ display: 'grid', gridTemplateColumns: '44px 44px 44px', gridTemplateRows: '44px 44px 44px', gap: '4px' }}>
-          <div /><DpadBtn onClick={() => turn('up')}>↑</DpadBtn><div />
-          <DpadBtn onClick={() => turn('left')}>←</DpadBtn>
+          <div /><DpadBtn label="Move up" onClick={() => turn('up')}>↑</DpadBtn><div />
+          <DpadBtn label="Move left" onClick={() => turn('left')}>←</DpadBtn>
           <div style={{ background: 'var(--surface-2)', borderRadius: '8px', border: '1px solid var(--border)' }} />
-          <DpadBtn onClick={() => turn('right')}>→</DpadBtn>
-          <div /><DpadBtn onClick={() => turn('down')}>↓</DpadBtn><div />
+          <DpadBtn label="Move right" onClick={() => turn('right')}>→</DpadBtn>
+          <div /><DpadBtn label="Move down" onClick={() => turn('down')}>↓</DpadBtn><div />
         </div>
       </div>
 
@@ -280,12 +280,13 @@ export default function SnakeGame() {
   );
 }
 
-function DpadBtn({ onClick, children }: { onClick: () => void; children: React.ReactNode }) {
+function DpadBtn({ label, onClick, children }: { label: string; onClick: () => void; children: React.ReactNode }) {
   return (
     <button
       className="dpad-btn"
       onClick={onClick}
       onTouchStart={e => e.stopPropagation()}
+      aria-label={label}
     >{children}</button>
   );
 }

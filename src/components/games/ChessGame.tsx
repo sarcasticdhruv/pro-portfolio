@@ -12,6 +12,10 @@ const PIECE_GLYPH: Record<string, string> = {
   bp: '♟', bn: '♞', bb: '♝', br: '♜', bq: '♛', bk: '♚',
 };
 
+const PIECE_NAME: Record<string, string> = {
+  p: 'pawn', n: 'knight', b: 'bishop', r: 'rook', q: 'queen', k: 'king',
+};
+
 const VALUES: Record<string, number> = { p: 1, n: 3, b: 3, r: 5, q: 9, k: 0 };
 // Depth 3 with alpha-beta: measured up to ~450ms worst case on an opening
 // position - noticeable but tolerable with a "thinking" delay, same idea as
@@ -246,6 +250,7 @@ export default function ChessGame() {
               key={sq}
               onClick={() => squareClick(sq)}
               disabled={!canClick && !isSelected}
+              aria-label={cell ? `${sq}, ${cell.color === 'w' ? 'white' : 'black'} ${PIECE_NAME[cell.type]}` : `${sq}, empty`}
               style={{
                 position: 'relative',
                 background: isSelected

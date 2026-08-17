@@ -926,6 +926,7 @@ Be direct. Max 15 lines.`;
         {/* Fullscreen toggle */}
         <button
           onClick={(e) => { e.stopPropagation(); setIsFullscreen(v => !v); }}
+          aria-label={isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
           style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#6E8C76', padding: '2px', display: 'flex' }}
         >
           {isFullscreen ? <Minimize2 size={13} /> : <Maximize2 size={13} />}

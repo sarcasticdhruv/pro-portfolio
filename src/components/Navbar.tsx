@@ -212,10 +212,14 @@ export default function Navbar({ theme, onToggleTheme }: Props) {
         {/* Mobile */}
         <div className="nav-mobile" style={{ display: 'none', alignItems: 'center', gap: '12px' }}>
           <ThemeBtn theme={theme} onToggle={onToggleTheme} />
-          <button onClick={() => setMenuOpen(o => !o)} style={{
-            background: 'none', border: 'none', cursor: 'pointer',
-            color: 'var(--text)', padding: '4px', display: 'flex',
-          }}>
+          <button
+            onClick={() => setMenuOpen(o => !o)}
+            aria-label={menuOpen ? 'Close menu' : 'Open menu'}
+            aria-expanded={menuOpen}
+            style={{
+              background: 'none', border: 'none', cursor: 'pointer',
+              color: 'var(--text)', padding: '4px', display: 'flex',
+            }}>
             {menuOpen ? <X size={18} /> : <Menu size={18} />}
           </button>
         </div>

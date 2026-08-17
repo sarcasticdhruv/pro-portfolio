@@ -148,6 +148,7 @@ export default function TicTacToe() {
               key={i}
               onClick={() => play(i)}
               disabled={!canPlay}
+              aria-label={c ? `Cell ${i + 1}, ${c}` : `Play in cell ${i + 1}`}
               style={{
                 background: hl
                   ? (win?.who === 'X' ? 'var(--accent-glow-strong)' : 'rgba(255,107,107,0.15)')
