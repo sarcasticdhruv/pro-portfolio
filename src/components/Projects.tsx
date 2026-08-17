@@ -114,7 +114,25 @@ export default function Projects({ github }: Props) {
         </div>
 
         {github.loading ? (
-          <div style={{ color: 'var(--text-dim)', fontFamily: "'JetBrains Mono', monospace", fontSize: '0.82rem' }}>Loading repositories...</div>
+          // Reserves roughly the same height as 6 loaded RepoRows (the
+          // default page size before "show more") so the GitHub API
+          // resolving doesn't yank everything below this section down -
+          // a real, measured layout shift on slow connections since the
+          // API call can take 1-2s+ and this section sits below the fold.
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1px' }} aria-hidden="true">
+            {Array.from({ length: 6 }, (_, i) => (
+              <div key={i} style={{
+                display: 'flex', alignItems: 'center', gap: '14px',
+                padding: '12px 14px', borderRadius: '6px',
+              }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ height: '0.83rem', width: `${140 + (i % 3) * 30}px`, background: 'var(--surface-2)', borderRadius: '4px' }} />
+                  <div style={{ height: '0.78rem', width: `${220 + (i % 4) * 40}px`, background: 'var(--surface-2)', borderRadius: '4px', marginTop: '7px', opacity: 0.6 }} />
+                </div>
+                <div style={{ height: '0.69rem', width: '90px', background: 'var(--surface-2)', borderRadius: '4px', flexShrink: 0 }} />
+              </div>
+            ))}
+          </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1px' }}>
             {otherRepos.map(repo => <RepoRow key={repo.id} repo={repo} />)}
@@ -185,6 +203,12 @@ function FeaturedCard({ project }: { project: typeof FEATURED[number] & { ghRepo
         {project.tags.map(t => <span key={t} className="tag" style={{ fontSize: '0.67rem' }}>{t}</span>)}
       </div>
 
+      {!ghRepo && (
+        // Reserves the stats footer's space before GitHub data resolves -
+        // without this, the footer (border + row of stats) pops in and
+        // pushes/resizes every featured card in the grid at once.
+        <div style={{ height: '9px', borderTop: '1px solid var(--border)', paddingTop: '11px' }} aria-hidden="true" />
+      )}
       {ghRepo && (
         <div style={{ display: 'flex', gap: '14px', color: 'var(--text-dim)', fontFamily: "'JetBrains Mono', monospace", fontSize: '0.68rem', borderTop: '1px solid var(--border)', paddingTop: '11px', alignItems: 'center' }}>
           {ghRepo.stargazers_count > 0 && (
