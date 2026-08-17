@@ -133,30 +133,35 @@ function patchShell({ path: routePath, title, description, ogType = 'website', i
   const canonicalUrl = `${SITE_URL}${routePath}`;
   let html = SHELL;
 
-  html = html.replace(/<title>[^<]*<\/title>/, `<title>${escapeHtml(fullTitle)}</title>`);
-  html = html.replace(/(<meta name="description" content=")[^"]*(")/, `$1${escapeHtml(description)}$2`);
-  html = html.replace(/(<link rel="canonical" href=")[^"]*(")/, `$1${canonicalUrl}$2`);
-  html = html.replace(/(<meta property="og:type" content=")[^"]*(")/, `$1${ogType}$2`);
-  html = html.replace(/(<meta property="og:url" content=")[^"]*(")/, `$1${canonicalUrl}$2`);
-  html = html.replace(/(<meta property="og:title" content=")[^"]*(")/, `$1${escapeHtml(fullTitle)}$2`);
-  html = html.replace(/(<meta property="og:description" content=")[^"]*(")/, `$1${escapeHtml(description)}$2`);
+  // NOTE: always pass the replacement as a FUNCTION, never a template string.
+  // String.prototype.replace() treats "$1", "$&", "$$" etc. in a string
+  // replacement as special patterns (backreferences), so any title/excerpt
+  // containing e.g. "$1 billion" silently corrupts the surrounding HTML
+  // (this broke the meta description on posts with dollar amounts).
+  html = html.replace(/<title>[^<]*<\/title>/, () => `<title>${escapeHtml(fullTitle)}</title>`);
+  html = html.replace(/(<meta name="description" content=")[^"]*(")/, (_, a, b) => `${a}${escapeHtml(description)}${b}`);
+  html = html.replace(/(<link rel="canonical" href=")[^"]*(")/, (_, a, b) => `${a}${canonicalUrl}${b}`);
+  html = html.replace(/(<meta property="og:type" content=")[^"]*(")/, (_, a, b) => `${a}${ogType}${b}`);
+  html = html.replace(/(<meta property="og:url" content=")[^"]*(")/, (_, a, b) => `${a}${canonicalUrl}${b}`);
+  html = html.replace(/(<meta property="og:title" content=")[^"]*(")/, (_, a, b) => `${a}${escapeHtml(fullTitle)}${b}`);
+  html = html.replace(/(<meta property="og:description" content=")[^"]*(")/, (_, a, b) => `${a}${escapeHtml(description)}${b}`);
   if (image) {
-    html = html.replace(/(<meta property="og:image" content=")[^"]*(")/, `$1${image}$2`);
-    html = html.replace(/(<meta name="twitter:image" content=")[^"]*(")/, `$1${image}$2`);
+    html = html.replace(/(<meta property="og:image" content=")[^"]*(")/, (_, a, b) => `${a}${image}${b}`);
+    html = html.replace(/(<meta name="twitter:image" content=")[^"]*(")/, (_, a, b) => `${a}${image}${b}`);
   }
-  html = html.replace(/(<meta name="twitter:title" content=")[^"]*(")/, `$1${escapeHtml(fullTitle)}$2`);
-  html = html.replace(/(<meta name="twitter:description" content=")[^"]*(")/, `$1${escapeHtml(description)}$2`);
+  html = html.replace(/(<meta name="twitter:title" content=")[^"]*(")/, (_, a, b) => `${a}${escapeHtml(fullTitle)}${b}`);
+  html = html.replace(/(<meta name="twitter:description" content=")[^"]*(")/, (_, a, b) => `${a}${escapeHtml(description)}${b}`);
   if (ogType === 'article' && datePublished) {
-    html = html.replace(/<\/head>/, `<meta property="article:published_time" content="${datePublished}" />\n  </head>`);
+    html = html.replace(/<\/head>/, () => `<meta property="article:published_time" content="${datePublished}" />\n  </head>`);
   }
 
   if (jsonLd) {
     const blocks = Array.isArray(jsonLd) ? jsonLd : [jsonLd];
     const ldScript = blocks.map(block => `<script type="application/ld+json">\n${JSON.stringify(block, null, 2)}\n</script>`).join('\n') + '\n  </head>';
-    html = html.replace(/<\/head>/, ldScript);
+    html = html.replace(/<\/head>/, () => ldScript);
   }
   if (bodyHtml !== undefined) {
-    html = html.replace('<div id="root"></div>', `<div id="root">${bodyHtml}</div>`);
+    html = html.replace('<div id="root"></div>', () => `<div id="root">${bodyHtml}</div>`);
   }
   return html;
 }
