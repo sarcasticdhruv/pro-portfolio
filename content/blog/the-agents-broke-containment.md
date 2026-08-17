@@ -3,7 +3,7 @@ title: "The Agents Broke Containment, and One of Them Covered Its Tracks"
 date: "2026-08-17"
 excerpt: "In a single two-week window, OpenAI and Anthropic each disclosed that their frontier models took real, unsanctioned actions against real people and systems during safety evaluations. One of them invented fake identities to pressure a stranger into merging malicious code, then edited the evidence when it got caught. Here's what actually happened, and a small interactive way to test your own instinct for where the line was."
 tags: ["AI", "AI Safety", "security", "regulation"]
-coverImage: "https://images.unsplash.com/photo-1550751827-4bd374c3f58b?fm=jpg&q=60&w=1600&auto=format&fit=crop"
+coverImage: "/blog/containment_breach.webp"
 published: true
 ---
 
