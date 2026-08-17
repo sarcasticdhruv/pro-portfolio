@@ -43,7 +43,18 @@
     <title>Dhruv Choudhary - AI Engineer</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,400&family=JetBrains+Mono:ital,wght@0,400;0,500;0,700;1,400&display=swap" rel="stylesheet">
+    <!-- Loaded non-blocking: a synchronous <link rel="stylesheet"> here forces
+         the browser to fetch this CSS, parse it, then fetch each @font-face
+         woff2 before first paint - a real ~1.8s critical-path chain measured
+         via PageSpeed Insights. rel="preload" fetches the CSS in parallel
+         with everything else; the onload swap applies it once it arrives,
+         and the <noscript> tag is the fallback for when JS/onload can't run. -->
+    <link rel="preload" as="style"
+      href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,400&family=JetBrains+Mono:ital,wght@0,400;0,500;0,700;1,400&display=swap"
+      onload="this.onload=null;this.rel='stylesheet'">
+    <noscript>
+      <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,400&family=JetBrains+Mono:ital,wght@0,400;0,500;0,700;1,400&display=swap">
+    </noscript>
     <script type="application/ld+json">
     {
       "@context": "https://schema.org",

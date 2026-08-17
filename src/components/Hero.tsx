@@ -171,10 +171,10 @@ export default function Hero({ github }: Props) {
             <a href="https://github.com/sarcasticdhruv" target="_blank" rel="noopener noreferrer" className="btn btn-outline" onClick={() => trackEvent('click', 'GitHub')}>
               <Github size={14} /> GitHub
             </a>
-            <a href="https://linkedin.com/in/dhruv-choudhary-india" target="_blank" rel="noopener noreferrer" className="btn btn-outline btn-icon" onClick={() => trackEvent('click', 'LinkedIn')}>
+            <a href="https://linkedin.com/in/dhruv-choudhary-india" target="_blank" rel="noopener noreferrer" className="btn btn-outline btn-icon" aria-label="LinkedIn" onClick={() => trackEvent('click', 'LinkedIn')}>
               <Linkedin size={14} />
             </a>
-            <a href="mailto:nrdhruv654@gmail.com" className="btn btn-outline btn-icon" onClick={() => trackEvent('click', 'email')}>
+            <a href="mailto:nrdhruv654@gmail.com" className="btn btn-outline btn-icon" aria-label="Email" onClick={() => trackEvent('click', 'email')}>
               <Mail size={14} />
             </a>
           </div>

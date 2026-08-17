@@ -4,4 +4,7 @@ import { devApiPlugin } from './vite-dev-api'
 
 export default defineConfig({
   plugins: [react(), devApiPlugin()],
+  build: {
+    sourcemap: true,
+  },
 })

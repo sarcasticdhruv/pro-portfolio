@@ -12,10 +12,10 @@ export default function Footer() {
         maxWidth: '1200px',
         margin: '0 auto',
       }}>
-        <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '0.73rem', color: 'var(--text-dim)' }}>
+        <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '0.73rem', color: 'var(--text-muted)' }}>
           <span style={{ color: 'var(--accent)' }}>~/</span>dhruv - built with a lot of coffee
         </span>
-        <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '0.7rem', color: 'var(--text-dim)' }}>
+        <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '0.7rem', color: 'var(--text-muted)' }}>
           © {new Date().getFullYear()} Dhruv Choudhary
         </span>
       </footer>
