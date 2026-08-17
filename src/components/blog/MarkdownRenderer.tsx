@@ -1,7 +1,9 @@
-import { useEffect, useMemo, useRef } from 'react';
+import { Suspense, useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { marked } from 'marked';
 import { markedHighlight } from 'marked-highlight';
 import hljs from 'highlight.js';
+import { WIDGETS } from './widgets';
 
 // Configure marked once (module-level, runs once)
 marked.use(
@@ -23,8 +25,13 @@ interface Props {
   content: string;
 }
 
+// Inline embed syntax: a paragraph containing only {{widget:some-slug}}
+// becomes a mount point for a registered interactive React widget.
+const WIDGET_TOKEN = /^\{\{widget:([\w-]+)\}\}$/;
+
 export default function MarkdownRenderer({ content }: Props) {
   const ref = useRef<HTMLDivElement>(null);
+  const [widgetMounts, setWidgetMounts] = useState<{ el: HTMLElement; slug: string }[]>([]);
 
   const html = useMemo(() => marked.parse(content) as string, [content]);
 
@@ -106,6 +113,29 @@ export default function MarkdownRenderer({ content }: Props) {
       table.replaceWith(wrap);
       wrap.append(table);
     });
+
+    // Widget embeds: a lone paragraph like {{widget:containment-check}}
+    // becomes a mount point that a portal renders the registered React
+    // component into (see ./widgets/index.ts). Existing mounts are collected
+    // too (not just newly-created ones) so StrictMode's double effect
+    // invocation in dev doesn't wipe out the first pass's mounts.
+    const mounts: { el: HTMLElement; slug: string }[] = [];
+    el.querySelectorAll('.widget-mount').forEach(mount => {
+      const slug = (mount as HTMLElement).dataset.widgetSlug;
+      if (slug) mounts.push({ el: mount as HTMLElement, slug });
+    });
+    el.querySelectorAll('p').forEach(p => {
+      const match = p.textContent?.trim().match(WIDGET_TOKEN);
+      if (!match) return;
+      const slug = match[1];
+      if (!WIDGETS[slug]) return;
+      const mount = document.createElement('div');
+      mount.className = 'widget-mount';
+      mount.dataset.widgetSlug = slug;
+      p.replaceWith(mount);
+      mounts.push({ el: mount, slug });
+    });
+    setWidgetMounts(mounts);
   }, [html]);
 
   return (
@@ -115,6 +145,16 @@ export default function MarkdownRenderer({ content }: Props) {
         className="md-body"
         dangerouslySetInnerHTML={{ __html: html }}
       />
+      {widgetMounts.map(({ el, slug }) => {
+        const Widget = WIDGETS[slug];
+        return createPortal(
+          <Suspense fallback={null}>
+            <Widget />
+          </Suspense>,
+          el,
+          slug,
+        );
+      })}
       <style>{`
         /* ── Markdown body ─────────────────────────────────────── */
         .md-body {

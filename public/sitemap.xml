@@ -31,6 +31,12 @@
     <priority>0.5</priority>
   </url>
   <url>
+    <loc>https://dhruv-choudhary.tech/blog/25-million-call-no-one-real</loc>
+    <lastmod>2026-08-10</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
     <loc>https://dhruv-choudhary.tech/blog/ai-kisaan-sahayak</loc>
     <lastmod>2025-10-15</lastmod>
     <changefreq>monthly</changefreq>
@@ -81,6 +87,12 @@
   <url>
     <loc>https://dhruv-choudhary.tech/blog/is-the-claude-mythos-real</loc>
     <lastmod>2026-04-14</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://dhruv-choudhary.tech/blog/jamie-dimon-forty-phone-calls</loc>
+    <lastmod>2026-08-09</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
@@ -145,6 +157,12 @@
     <priority>0.7</priority>
   </url>
   <url>
+    <loc>https://dhruv-choudhary.tech/blog/the-agents-broke-containment</loc>
+    <lastmod>2026-08-17</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
     <loc>https://dhruv-choudhary.tech/blog/the-deepseek-moment</loc>
     <lastmod>2026-06-18</lastmod>
     <changefreq>monthly</changefreq>
@@ -182,6 +200,21 @@
   </url>
   <url>
     <loc>https://dhruv-choudhary.tech/blog/tag/ai</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.5</priority>
+  </url>
+  <url>
+    <loc>https://dhruv-choudhary.tech/blog/tag/ai safety</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.5</priority>
+  </url>
+  <url>
+    <loc>https://dhruv-choudhary.tech/blog/tag/engineering</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.5</priority>
+  </url>
+  <url>
+    <loc>https://dhruv-choudhary.tech/blog/tag/finance</loc>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
@@ -261,11 +294,6 @@
     <priority>0.5</priority>
   </url>
   <url>
-    <loc>https://dhruv-choudhary.tech/blog/tag/engineering</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
-  </url>
-  <url>
     <loc>https://dhruv-choudhary.tech/blog/tag/python</loc>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
@@ -312,6 +340,16 @@
   </url>
   <url>
     <loc>https://dhruv-choudhary.tech/blog/tag/culture</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.5</priority>
+  </url>
+  <url>
+    <loc>https://dhruv-choudhary.tech/blog/tag/jpmorgan</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.5</priority>
+  </url>
+  <url>
+    <loc>https://dhruv-choudhary.tech/blog/tag/banking</loc>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
