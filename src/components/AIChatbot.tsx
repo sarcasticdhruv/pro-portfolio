@@ -643,7 +643,7 @@ export default function AIChatbot() {
         }}>
           <div style={{ position: 'relative', flexShrink: 0 }}>
             <img
-              src="/profile.png" alt="Dhruv"
+              src="/profile-avatar.webp" alt="Dhruv"
               width={34} height={34}
               style={{ borderRadius: '50%', border: '2px solid var(--accent)', objectFit: 'cover', display: 'block' }}
             />
@@ -1103,7 +1103,7 @@ export default function AIChatbot() {
           <X size={24} color="var(--accent)" />
         ) : (
           <img
-            src="/profile.png" alt="Chat with Dhruv's AI"
+            src="/profile-avatar.webp" alt="Chat with Dhruv's AI"
             width={64} height={64}
             style={{ objectFit: 'cover', borderRadius: '50%', display: 'block' }}
           />

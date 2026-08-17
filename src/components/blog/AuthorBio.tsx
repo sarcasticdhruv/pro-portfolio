@@ -20,7 +20,7 @@ export default function AuthorBio() {
       borderRadius: '12px',
     }}>
       <img
-        src="/profile.png"
+        src="/profile-avatar.webp"
         alt="Dhruv Choudhary"
         width={52}
         height={52}
