@@ -365,13 +365,21 @@ export default function MarkdownRenderer({ content }: Props) {
         }
         .md-body tr:nth-child(even) td { background: var(--surface-2); }
 
-        /* Images */
+        /* Images. In-body markdown images have no known intrinsic size (the
+           author just pastes a URL), so without a reserved aspect-ratio the
+           page collapses to zero height for that image and then jumps once
+           it loads, a real CLS hit on slow connections. 16/9 is a reasonable
+           default for editorial photography; images override it naturally
+           once loaded since height is auto beyond the reserved space. */
         .md-body img {
           max-width: 100%;
+          aspect-ratio: 16/9;
+          object-fit: cover;
           border-radius: 10px;
           display: block;
           margin: 1.8em auto;
           border: 1px solid var(--border);
+          background: var(--surface-2);
         }
 
         /* Resource link cards - used for curated "further reading" lists */
