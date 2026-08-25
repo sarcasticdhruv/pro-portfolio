@@ -70,16 +70,20 @@ marked.use({
 // In-body post images are pasted URLs with no known intrinsic size, so
 // without explicit width/height attributes Lighthouse flags them as a CLS
 // risk (the browser can't reserve their box before the image loads). The
-// .md-body img CSS already reserves a 16/9 box via aspect-ratio, so these
-// attributes just need to carry that same ratio - the exact pixel values
-// don't need to match the source image, only the ratio the CSS already
-// commits to.
+// .md-body img CSS reserves a 16/9 box via aspect-ratio and crops with
+// object-fit: cover, which is right for editorial photography but wrong
+// for a purpose-made diagram/graphic whose own composition doesn't match
+// 16/9 - cover then crops content off the edges. Writing `"fit"` as the
+// markdown title (`![alt](url "fit")`) opts that one image into
+// object-fit: contain via the .md-body-img-fit class instead, so the
+// full graphic is always visible, letterboxed rather than cropped.
 marked.use({
   renderer: {
     image({ href, title, text }) {
       const alt = text ? ` alt="${text}"` : '';
-      const titleAttr = title ? ` title="${title}"` : '';
-      return `<img src="${href}"${alt}${titleAttr} width="1600" height="900" loading="lazy" decoding="async">`;
+      const fit = title === 'fit';
+      const cls = fit ? ' class="md-body-img-fit"' : '';
+      return `<img src="${href}"${alt}${cls} width="1600" height="900" loading="lazy" decoding="async">`;
     },
   },
 });
@@ -442,6 +446,14 @@ export default function MarkdownRenderer({ content }: Props) {
           display: block;
           margin: 1.8em auto;
           border: 1px solid var(--border);
+          background: var(--surface-2);
+        }
+        /* Opt-out for purpose-made diagrams/graphics (title="fit" in the
+           markdown source): show the whole image letterboxed instead of
+           cropping it to 16/9, since every part of the composition matters. */
+        .md-body img.md-body-img-fit {
+          aspect-ratio: auto;
+          object-fit: contain;
           background: var(--surface-2);
         }
 
