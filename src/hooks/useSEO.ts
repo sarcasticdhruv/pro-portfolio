@@ -95,6 +95,7 @@ function setArticleJsonLd(article: ArticleMeta | null) {
     image: article.image,
     url: article.url,
     datePublished: article.datePublished,
+    dateModified: article.datePublished,
     keywords: article.tags.join(', '),
     author: { '@type': 'Person', name: 'Dhruv Choudhary', url: SITE_URL },
     publisher: { '@type': 'Person', name: 'Dhruv Choudhary', url: SITE_URL },

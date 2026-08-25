@@ -67,6 +67,18 @@
     <priority>0.7</priority>
   </url>
   <url>
+    <loc>https://dhruv-choudhary.tech/blog/eu-ai-act-august-2026-what-solo-devs-need-to-log</loc>
+    <lastmod>2026-08-25</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://dhruv-choudhary.tech/blog/gdpr-blocked-bias-testing-june-2026-fix</loc>
+    <lastmod>2026-08-25</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
     <loc>https://dhruv-choudhary.tech/blog/helix-crossed-4800-downloads</loc>
     <lastmod>2026-07-31</lastmod>
     <changefreq>monthly</changefreq>
@@ -75,6 +87,12 @@
   <url>
     <loc>https://dhruv-choudhary.tech/blog/how-i-actually-learned-llms-and-agentic-ai</loc>
     <lastmod>2026-06-25</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://dhruv-choudhary.tech/blog/i-gave-my-portfolio-a-lighthouse-audit-it-was-not-flattering</loc>
+    <lastmod>2026-08-25</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
@@ -294,6 +312,31 @@
     <priority>0.5</priority>
   </url>
   <url>
+    <loc>https://dhruv-choudhary.tech/blog/tag/ai regulation</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.5</priority>
+  </url>
+  <url>
+    <loc>https://dhruv-choudhary.tech/blog/tag/eu ai act</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.5</priority>
+  </url>
+  <url>
+    <loc>https://dhruv-choudhary.tech/blog/tag/compliance</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.5</priority>
+  </url>
+  <url>
+    <loc>https://dhruv-choudhary.tech/blog/tag/policy</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.5</priority>
+  </url>
+  <url>
+    <loc>https://dhruv-choudhary.tech/blog/tag/gdpr</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.5</priority>
+  </url>
+  <url>
     <loc>https://dhruv-choudhary.tech/blog/tag/python</loc>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
@@ -320,6 +363,26 @@
   </url>
   <url>
     <loc>https://dhruv-choudhary.tech/blog/tag/guide</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.5</priority>
+  </url>
+  <url>
+    <loc>https://dhruv-choudhary.tech/blog/tag/performance</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.5</priority>
+  </url>
+  <url>
+    <loc>https://dhruv-choudhary.tech/blog/tag/core web vitals</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.5</priority>
+  </url>
+  <url>
+    <loc>https://dhruv-choudhary.tech/blog/tag/react</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.5</priority>
+  </url>
+  <url>
+    <loc>https://dhruv-choudhary.tech/blog/tag/vite</loc>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
