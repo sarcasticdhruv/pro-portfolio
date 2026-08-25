@@ -23,7 +23,7 @@ On May 7, 2026, the EU Council and Parliament reached a provisional agreement on
 
 That's the debiasing exception. It doesn't touch GDPR's general rule, GDPR Article 9 still locks that data down for every other purpose. It carves out one specific hole, shaped exactly like "I need this data to check if my model is unfair," and nothing wider than that.
 
-![A grid of gray squares with one small cluster highlighted green, annotated "delete this the moment you're done"](/blog/gdpr.webp "fit")
+![A grid of gray squares with one small cluster highlighted green, annotated "delete this the moment you're done"](/blog/gdpr.webp "fit:1896/830")
 
 ## The conditions attached, because of course there are conditions
 

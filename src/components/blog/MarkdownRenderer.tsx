@@ -73,17 +73,24 @@ marked.use({
 // .md-body img CSS reserves a 16/9 box via aspect-ratio and crops with
 // object-fit: cover, which is right for editorial photography but wrong
 // for a purpose-made diagram/graphic whose own composition doesn't match
-// 16/9 - cover then crops content off the edges. Writing `"fit"` as the
-// markdown title (`![alt](url "fit")`) opts that one image into
-// object-fit: contain via the .md-body-img-fit class instead, so the
-// full graphic is always visible, letterboxed rather than cropped.
+// 16/9 - cover then crops content off the edges, and reserving a generic
+// 16/9 box for a much wider image also leaves a tall dead-space gap above
+// it while the page loads.
+//
+// Writing the image's own aspect ratio as the markdown title
+// (`![alt](url "fit:1896/830")`) opts it into object-fit: contain via the
+// .md-body-img-fit class *and* reserves a box at that exact ratio (browsers
+// derive the intrinsic aspect-ratio from width/height attributes directly),
+// so the full graphic is always visible, letterboxed, with no oversized
+// placeholder and no layout shift once it loads.
 marked.use({
   renderer: {
     image({ href, title, text }) {
       const alt = text ? ` alt="${text}"` : '';
-      const fit = title === 'fit';
-      const cls = fit ? ' class="md-body-img-fit"' : '';
-      return `<img src="${href}"${alt}${cls} width="1600" height="900" loading="lazy" decoding="async">`;
+      const fitMatch = /^fit:(\d+)\/(\d+)$/.exec(title ?? '');
+      const cls = fitMatch ? ' class="md-body-img-fit"' : '';
+      const [width, height] = fitMatch ? [fitMatch[1], fitMatch[2]] : ['1600', '900'];
+      return `<img src="${href}"${alt}${cls} width="${width}" height="${height}" loading="lazy" decoding="async">`;
     },
   },
 });
@@ -448,10 +455,19 @@ export default function MarkdownRenderer({ content }: Props) {
           border: 1px solid var(--border);
           background: var(--surface-2);
         }
-        /* Opt-out for purpose-made diagrams/graphics (title="fit" in the
+        /* Opt-out for purpose-made diagrams/graphics (title="fit:W/H" in the
            markdown source): show the whole image letterboxed instead of
-           cropping it to 16/9, since every part of the composition matters. */
+           cropping it to 16/9. aspect-ratio: auto overrides the default
+           .md-body img rule's 16/9 (a more-specific selector doesn't drop
+           a value from a less-specific one unless it's reset explicitly) -
+           with auto, the browser derives the box straight from this img's
+           width/height HTML attributes (set by MarkdownRenderer's image
+           renderer to the image's real ratio), so the reserved space
+           matches the actual graphic instead of an oversized placeholder,
+           with no layout shift once it loads. */
         .md-body img.md-body-img-fit {
+          width: 100%;
+          height: auto;
           aspect-ratio: auto;
           object-fit: contain;
           background: var(--surface-2);
