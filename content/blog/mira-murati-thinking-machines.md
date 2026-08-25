@@ -37,7 +37,7 @@ Then, and this is basically breaking news as I write this, on **July 15, 2026** 
 
 Here's the funniest part. They said, in their own blog post, that Inkling is "not the strongest overall model available today, open or closed." Which is a wild thing to publicly announce about your own $12 billion company's first baby. Most companies would spin that into "revolutionary" or "groundbreaking." Murati's team just shrugged and said yeah, it's fine, it's not the best, but you can make it yours. Respect the honesty. Still a kind of unhinged strategy though.
 
-![Abstract network of glowing blue nodes and connections representing a neural network](https://images.unsplash.com/photo-1620712943543-bcc4688e7485?fm=jpg&q=80&w=1600&auto=format&fit=crop)
+![Abstract network of glowing blue nodes and connections representing a neural network](https://images.unsplash.com/photo-1620712943543-bcc4688e7485?fm=jpg&q=80&w=1600&auto=format&fit=crop "portrait:1600/2000")
 
 ## Inkling vs. everyone else, in actual numbers
 

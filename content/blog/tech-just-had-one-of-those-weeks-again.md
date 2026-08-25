@@ -4,6 +4,8 @@ date: "2026-07-09"
 excerpt: "Microsoft playing landlord with its own AI vendors, Apple losing to the EU, Claude Fable getting banned then un-banned, agentic browsers becoming a hacker's favorite toy, and regulators calling AI a financial stability risk. One week, five stories, all the same underlying shift."
 tags: ["AI", "Big Tech", "regulation", "security", "tech news"]
 coverImage: "https://images.unsplash.com/photo-1745015446589-7ee6f702d8c1?fm=jpg&q=60&w=1600&auto=format&fit=crop"
+coverBg: "#20344a"
+coverFit: true
 published: true
 ---
 

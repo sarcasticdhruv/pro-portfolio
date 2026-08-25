@@ -82,12 +82,26 @@ marked.use({
 // .md-body-img-fit class *and* reserves a box at that exact ratio (browsers
 // derive the intrinsic aspect-ratio from width/height attributes directly),
 // so the full graphic is always visible, letterboxed, with no oversized
-// placeholder and no layout shift once it loads.
+// placeholder and no layout shift once it loads. That's the right fix for a
+// WIDE diagram that's merely off from 16/9 - it still reads fine full-width.
+//
+// A genuinely PORTRAIT image (a photo of people, a tall infographic) is a
+// different problem: full-width contain would leave big empty bars on both
+// sides, since the box height would have to match a width-scaled box far
+// taller than the article column wants to reserve. `portrait:768/1024`
+// instead caps the image at 60% of the column width and centers it, like a
+// framed figure in editorial writing, and reserves exactly that box (via
+// inline style using the real ratio) so there's still no layout shift.
 marked.use({
   renderer: {
     image({ href, title, text }) {
       const alt = text ? ` alt="${text}"` : '';
       const fitMatch = /^fit:(\d+)\/(\d+)$/.exec(title ?? '');
+      const portraitMatch = /^portrait:(\d+)\/(\d+)$/.exec(title ?? '');
+      if (portraitMatch) {
+        const [, w, h] = portraitMatch;
+        return `<img src="${href}"${alt} class="md-body-img-portrait" width="${w}" height="${h}" loading="lazy" decoding="async">`;
+      }
       const cls = fitMatch ? ' class="md-body-img-fit"' : '';
       const [width, height] = fitMatch ? [fitMatch[1], fitMatch[2]] : ['1600', '900'];
       return `<img src="${href}"${alt}${cls} width="${width}" height="${height}" loading="lazy" decoding="async">`;
@@ -467,6 +481,23 @@ export default function MarkdownRenderer({ content }: Props) {
            with no layout shift once it loads. */
         .md-body img.md-body-img-fit {
           width: 100%;
+          height: auto;
+          aspect-ratio: auto;
+          object-fit: contain;
+          background: var(--surface-2);
+        }
+        /* Opt-in for genuinely portrait images (title="portrait:W/H" in the
+           markdown source): a photo of people or a tall infographic looks
+           wrong either cropped to 16/9 (cuts off heads/content) or shown
+           full-width contain (huge empty bars on both sides, since the
+           reserved box height would have to match a width-scaled box far
+           taller than the column wants). Capping the width instead - like a
+           framed figure in editorial writing - keeps the image at a natural
+           size with no empty space and no crop. aspect-ratio: auto same as
+           .md-body-img-fit, for the same reason: derive the box from this
+           img's real width/height attributes, not the 16/9 default. */
+        .md-body img.md-body-img-portrait {
+          width: min(60%, 420px);
           height: auto;
           aspect-ratio: auto;
           object-fit: contain;

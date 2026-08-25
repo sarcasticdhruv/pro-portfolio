@@ -13,7 +13,7 @@ Here's a sentence I had to read three times before it stopped sounding fake: a c
 
 The company is Safe Superintelligence, SSI for short, founded in 2024 by Ilya Sutskever, formerly OpenAI's chief scientist and one of the small group of board members who voted to remove Sam Altman that November before the whole thing reversed inside a week. Since founding, SSI has raised roughly $6 billion at that $32 billion valuation, shipped nothing you can go touch, and published nothing you can go read. Then on July 27, 2026, [Nvidia announced](https://nvidianews.nvidia.com/news/ilya-sutskevers-safe-superintelligence-inc-and-nvidia-announce-long-term-strategic-partnership) it's adding another $5 billion on top of that, for a company whose entire public output remains a one-line mission statement and a closed door.
 
-![Ilya Sutskever and Sam Altman together at Tel Aviv University in 2023](https://upload.wikimedia.org/wikipedia/commons/d/de/Ilya_Sutskever_and_Sam_Altman_in_TAU.jpg)
+![Ilya Sutskever and Sam Altman together at Tel Aviv University in 2023](https://upload.wikimedia.org/wikipedia/commons/d/de/Ilya_Sutskever_and_Sam_Altman_in_TAU.jpg "portrait:768/1024")
 *Ilya Sutskever (left) and Sam Altman, photographed together at Tel Aviv University in June 2023, five months before Sutskever voted to remove Altman as OpenAI's CEO. Photo by [Eladkarmel](https://commons.wikimedia.org/wiki/File:Ilya_Sutskever_and_Sam_Altman_in_TAU.jpg), licensed under [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/).*
 
 I don't think the number is actually the interesting part, even though it's the part every headline leads with. The interesting part is what the number is paying for.
