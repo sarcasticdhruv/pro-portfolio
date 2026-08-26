@@ -457,10 +457,19 @@ export default function MarkdownRenderer({ content }: Props) {
            author just pastes a URL), so without a reserved aspect-ratio the
            page collapses to zero height for that image and then jumps once
            it loads, a real CLS hit on slow connections. 16/9 is a reasonable
-           default for editorial photography; images override it naturally
-           once loaded since height is auto beyond the reserved space. */
+           default for editorial photography.
+           height: auto below is load-bearing here, not decorative: every
+           <img> the renderer emits carries a literal width="1600"
+           height="900" HTML attribute pair (for the CLS reservation
+           itself). Without an explicit height: auto in CSS, the browser
+           honors that height attribute as a literal 900px box once
+           max-width: 100% shrinks the width below 1600px - aspect-ratio
+           then has nothing left to resize, since height is already
+           pinned, and any image narrower than 1600px renders
+           squashed/tall instead of at 16/9. */
         .md-body img {
           max-width: 100%;
+          height: auto;
           aspect-ratio: 16/9;
           object-fit: cover;
           border-radius: 10px;

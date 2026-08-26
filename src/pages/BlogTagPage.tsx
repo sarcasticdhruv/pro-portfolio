@@ -19,6 +19,13 @@ export default function BlogTagPage() {
   useSEO({
     title: `${label} posts`,
     description: `${posts.length} post${posts.length === 1 ? '' : 's'} tagged ${label}, by Dhruv Choudhary.`,
+    // A single-post tag hub's only unique content is "1 post tagged X" plus
+    // that one post's own card - thin/near-duplicate at scale (see
+    // prerender.mjs's matching noindex for the prerendered version of this
+    // same page). Mirrors that server-side signal for the client-rendered
+    // path too, so a direct client-side nav to a single-post tag doesn't
+    // silently drop back to index,follow.
+    noindex: posts.length < 2,
   });
 
   if (posts.length === 0) return null;

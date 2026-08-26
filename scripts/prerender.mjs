@@ -145,7 +145,7 @@ function escapeHtml(s) {
 // ── Shell patching ───────────────────────────────────────────────────────
 const SHELL = readFileSync(path.join(DIST, 'index.html'), 'utf-8');
 
-function patchShell({ path: routePath, title, description, ogType = 'website', image, datePublished, jsonLd, bodyHtml }) {
+function patchShell({ path: routePath, title, description, ogType = 'website', image, datePublished, jsonLd, bodyHtml, noindex = false }) {
   const fullTitle = `${title} · Dhruv Choudhary`;
   const canonicalUrl = `${SITE_URL}${routePath}`;
   let html = SHELL;
@@ -168,6 +168,15 @@ function patchShell({ path: routePath, title, description, ogType = 'website', i
   }
   html = html.replace(/(<meta name="twitter:title" content=")[^"]*(")/, (_, a, b) => `${a}${escapeHtml(fullTitle)}${b}`);
   html = html.replace(/(<meta name="twitter:description" content=")[^"]*(")/, (_, a, b) => `${a}${escapeHtml(description)}${b}`);
+  // Belt-and-suspenders on top of the sitemap already omitting these pages:
+  // a single-post tag hub's only unique content is "1 post tagged X" plus
+  // that one post's own card - explicitly telling Google not to index it
+  // (still `follow`, so link equity still flows through to the real post)
+  // means even a stray crawl (an inbound link Google finds some other way)
+  // won't get indexed as a thin/near-duplicate page.
+  if (noindex) {
+    html = html.replace(/(<meta name="robots" content=")[^"]*(")/, (_, a, b) => `${a}noindex,follow${b}`);
+  }
   if (ogType === 'article' && datePublished) {
     html = html.replace(/<\/head>/, () => `<meta property="article:published_time" content="${datePublished}" />\n  </head>`);
   }
@@ -297,12 +306,20 @@ for (const post of posts) {
   }
 }
 for (const [slug, { label, posts: tagged }] of tagSlugs) {
-  const canonicalUrl = `${SITE_URL}/blog/tag/${slug}`;
+  // encodeURIComponent so multi-word tags ("ai safety") produce a real,
+  // spec-valid URL/path segment ("ai%20safety") - the directory this
+  // writes to disk must match exactly what /blog/${slug} links point to
+  // (see the in-body tag links above), and a literal space in either the
+  // written path or a sitemap <loc> is invalid outside a browser's own
+  // auto-normalization.
+  const encodedSlug = encodeURIComponent(slug);
+  const canonicalUrl = `${SITE_URL}/blog/tag/${encodedSlug}`;
   const sorted = [...tagged].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   pages.push({
-    path: `/blog/tag/${slug}`,
+    path: `/blog/tag/${encodedSlug}`,
     title: `${label} posts`,
     description: `${sorted.length} post${sorted.length === 1 ? '' : 's'} tagged ${label}, by Dhruv Choudhary.`,
+    noindex: sorted.length < 2,
     jsonLd: {
       '@context': 'https://schema.org',
       '@type': 'CollectionPage',

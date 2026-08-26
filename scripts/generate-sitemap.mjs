@@ -61,14 +61,29 @@ const postRoutes = posts.map(p => ({
 }));
 
 // One hub page per subject/tag, so topically-clustered posts are indexable
-// as a set, not just individually.
-const tagSlugs = new Set();
-for (const p of posts) for (const t of p.tags) tagSlugs.add(t.toLowerCase());
-const tagRoutes = [...tagSlugs].map(slug => ({
-  loc: `/blog/tag/${slug}`,
-  priority: '0.5',
-  changefreq: 'monthly',
-}));
+// as a set, not just individually. Only tags shared by 2+ posts are listed
+// here - a single-post tag page's only unique content is "1 post tagged X"
+// plus that one post's own card, which reads to Google as thin/near-
+// duplicate content at scale (dozens of near-empty hub pages diluted a much
+// smaller set of real posts, a likely contributor to mass "Discovered -
+// currently not indexed" in Search Console). The pages themselves still
+// exist and stay linked from each post for site visitors; this only
+// controls what gets submitted to Google for crawling/indexing priority.
+// encodeURIComponent matches prerender.mjs's on-disk path exactly, so a
+// multi-word tag ("ai safety") produces a real percent-encoded URL segment
+// instead of the literal, spec-invalid space previously written to <loc>.
+const tagCounts = new Map();
+for (const p of posts) for (const t of p.tags) {
+  const slug = t.toLowerCase();
+  tagCounts.set(slug, (tagCounts.get(slug) ?? 0) + 1);
+}
+const tagRoutes = [...tagCounts.entries()]
+  .filter(([, count]) => count >= 2)
+  .map(([slug]) => ({
+    loc: `/blog/tag/${encodeURIComponent(slug)}`,
+    priority: '0.5',
+    changefreq: 'monthly',
+  }));
 
 const urls = [...staticRoutes, ...postRoutes, ...tagRoutes];
 

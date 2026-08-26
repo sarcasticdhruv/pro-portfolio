@@ -222,17 +222,12 @@
     <priority>0.5</priority>
   </url>
   <url>
-    <loc>https://dhruv-choudhary.tech/blog/tag/ai safety</loc>
+    <loc>https://dhruv-choudhary.tech/blog/tag/ai%20safety</loc>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://dhruv-choudhary.tech/blog/tag/engineering</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
-  </url>
-  <url>
-    <loc>https://dhruv-choudhary.tech/blog/tag/finance</loc>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
@@ -247,11 +242,6 @@
     <priority>0.5</priority>
   </url>
   <url>
-    <loc>https://dhruv-choudhary.tech/blog/tag/product</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
-  </url>
-  <url>
     <loc>https://dhruv-choudhary.tech/blog/tag/film</loc>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
@@ -262,77 +252,17 @@
     <priority>0.5</priority>
   </url>
   <url>
-    <loc>https://dhruv-choudhary.tech/blog/tag/kubrick</loc>
+    <loc>https://dhruv-choudhary.tech/blog/tag/ai%20agents</loc>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
-    <loc>https://dhruv-choudhary.tech/blog/tag/product engineering</loc>
+    <loc>https://dhruv-choudhary.tech/blog/tag/ai%20regulation</loc>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
-    <loc>https://dhruv-choudhary.tech/blog/tag/nlp</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
-  </url>
-  <url>
-    <loc>https://dhruv-choudhary.tech/blog/tag/deep learning</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
-  </url>
-  <url>
-    <loc>https://dhruv-choudhary.tech/blog/tag/research</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
-  </url>
-  <url>
-    <loc>https://dhruv-choudhary.tech/blog/tag/ieee</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
-  </url>
-  <url>
-    <loc>https://dhruv-choudhary.tech/blog/tag/computer vision</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
-  </url>
-  <url>
-    <loc>https://dhruv-choudhary.tech/blog/tag/bun</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
-  </url>
-  <url>
-    <loc>https://dhruv-choudhary.tech/blog/tag/rust</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
-  </url>
-  <url>
-    <loc>https://dhruv-choudhary.tech/blog/tag/ai agents</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
-  </url>
-  <url>
-    <loc>https://dhruv-choudhary.tech/blog/tag/ai regulation</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
-  </url>
-  <url>
-    <loc>https://dhruv-choudhary.tech/blog/tag/eu ai act</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
-  </url>
-  <url>
-    <loc>https://dhruv-choudhary.tech/blog/tag/compliance</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
-  </url>
-  <url>
-    <loc>https://dhruv-choudhary.tech/blog/tag/policy</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
-  </url>
-  <url>
-    <loc>https://dhruv-choudhary.tech/blog/tag/gdpr</loc>
+    <loc>https://dhruv-choudhary.tech/blog/tag/eu%20ai%20act</loc>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
@@ -342,47 +272,7 @@
     <priority>0.5</priority>
   </url>
   <url>
-    <loc>https://dhruv-choudhary.tech/blog/tag/open source</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
-  </url>
-  <url>
-    <loc>https://dhruv-choudhary.tech/blog/tag/helix</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
-  </url>
-  <url>
-    <loc>https://dhruv-choudhary.tech/blog/tag/agentic ai</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
-  </url>
-  <url>
-    <loc>https://dhruv-choudhary.tech/blog/tag/learning</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
-  </url>
-  <url>
-    <loc>https://dhruv-choudhary.tech/blog/tag/guide</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
-  </url>
-  <url>
-    <loc>https://dhruv-choudhary.tech/blog/tag/performance</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
-  </url>
-  <url>
-    <loc>https://dhruv-choudhary.tech/blog/tag/core web vitals</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
-  </url>
-  <url>
-    <loc>https://dhruv-choudhary.tech/blog/tag/react</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
-  </url>
-  <url>
-    <loc>https://dhruv-choudhary.tech/blog/tag/vite</loc>
+    <loc>https://dhruv-choudhary.tech/blog/tag/open%20source</loc>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
@@ -392,52 +282,7 @@
     <priority>0.5</priority>
   </url>
   <url>
-    <loc>https://dhruv-choudhary.tech/blog/tag/nvidia</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
-  </url>
-  <url>
     <loc>https://dhruv-choudhary.tech/blog/tag/opinion</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
-  </url>
-  <url>
-    <loc>https://dhruv-choudhary.tech/blog/tag/culture</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
-  </url>
-  <url>
-    <loc>https://dhruv-choudhary.tech/blog/tag/jpmorgan</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
-  </url>
-  <url>
-    <loc>https://dhruv-choudhary.tech/blog/tag/banking</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
-  </url>
-  <url>
-    <loc>https://dhruv-choudhary.tech/blog/tag/hardware</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
-  </url>
-  <url>
-    <loc>https://dhruv-choudhary.tech/blog/tag/science</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
-  </url>
-  <url>
-    <loc>https://dhruv-choudhary.tech/blog/tag/startups</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
-  </url>
-  <url>
-    <loc>https://dhruv-choudhary.tech/blog/tag/mira murati</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
-  </url>
-  <url>
-    <loc>https://dhruv-choudhary.tech/blog/tag/production</loc>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
@@ -447,52 +292,7 @@
     <priority>0.5</priority>
   </url>
   <url>
-    <loc>https://dhruv-choudhary.tech/blog/tag/machine learning</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
-  </url>
-  <url>
-    <loc>https://dhruv-choudhary.tech/blog/tag/tools</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
-  </url>
-  <url>
-    <loc>https://dhruv-choudhary.tech/blog/tag/programming</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
-  </url>
-  <url>
-    <loc>https://dhruv-choudhary.tech/blog/tag/ssh</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
-  </url>
-  <url>
-    <loc>https://dhruv-choudhary.tech/blog/tag/git</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
-  </url>
-  <url>
-    <loc>https://dhruv-choudhary.tech/blog/tag/dev tools</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
-  </url>
-  <url>
-    <loc>https://dhruv-choudhary.tech/blog/tag/tabular data</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
-  </url>
-  <url>
-    <loc>https://dhruv-choudhary.tech/blog/tag/foundation models</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
-  </url>
-  <url>
-    <loc>https://dhruv-choudhary.tech/blog/tag/google research</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
-  </url>
-  <url>
-    <loc>https://dhruv-choudhary.tech/blog/tag/big tech</loc>
+    <loc>https://dhruv-choudhary.tech/blog/tag/machine%20learning</loc>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
@@ -503,31 +303,6 @@
   </url>
   <url>
     <loc>https://dhruv-choudhary.tech/blog/tag/security</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
-  </url>
-  <url>
-    <loc>https://dhruv-choudhary.tech/blog/tag/tech news</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
-  </url>
-  <url>
-    <loc>https://dhruv-choudhary.tech/blog/tag/industry</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
-  </url>
-  <url>
-    <loc>https://dhruv-choudhary.tech/blog/tag/linux</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
-  </url>
-  <url>
-    <loc>https://dhruv-choudhary.tech/blog/tag/software</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
-  </url>
-  <url>
-    <loc>https://dhruv-choudhary.tech/blog/tag/career</loc>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
