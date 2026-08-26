@@ -15,7 +15,11 @@
 import { streamChat, type ChatMessage } from './providers';
 
 const GROQ_KEY = import.meta.env.VITE_GROQ_CHAT_KEY as string | undefined;
-const GROQ_MODEL = 'llama-3.3-70b-versatile'; // Groq's LPU hardware - fastest inference available
+// llama-3.3-70b-versatile shut down on Groq 2026-08-16 (announced 2026-06-17,
+// see console.groq.com/docs/deprecations). gpt-oss-120b is Groq's own
+// recommended replacement and stays on the same LPU hardware, so swapping
+// the model id is the only change needed - latency profile is unaffected.
+const GROQ_MODEL = 'openai/gpt-oss-120b'; // Groq's LPU hardware - fastest inference available
 const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions';
 const GROQ_TRANSCRIBE_URL = 'https://api.groq.com/openai/v1/audio/transcriptions';
 const WHISPER_MODEL = 'whisper-large-v3-turbo';

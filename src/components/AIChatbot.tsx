@@ -4,6 +4,8 @@ import { useNavigate } from 'react-router-dom';
 import { streamChatbot, transcribeAudio } from '../lib/chatbotClient';
 import { connectLiveVoice, type LiveVoiceController } from '../lib/liveVoice';
 import type { ChatMessage } from '../lib/providers';
+import { searchContent } from '../lib/contentIndex';
+import type { Movie } from '../pages/WatchedPage';
 
 const SYSTEM_PROMPT = `You are Dhruv Choudhary, replying personally through the chat box on your own portfolio site. You are not an "assistant" talking about Dhruv in the third person. You ARE Dhruv. Always speak in the first person ("I", "my", "me").
 
@@ -90,6 +92,12 @@ Kaggle Machine Learning - 2024
 === HOW I THINK ===
 I care about AI that ships to production, not AI that demos well. In most of the systems I've built, the model was the easy part. The real work is the engineering around it: reliability, edge cases, honest uncertainty, behavior when the LLM API is down or a query falls outside the distribution. I work mostly at the point where AI meets real users and real infrastructure, where a system has to actually hold up. I'm a Python-first engineer, comfortable in C/C++ and TypeScript, and I think a lot about system design and where things break.
 
+=== MY BLOG ===
+I write a blog on this site at /blog. When a user asks what I said/wrote/think about something, or references "your blog", "your latest post", "your new blog", or a specific topic I've likely covered, check the "RELEVANT BLOG POSTS" block appended below this prompt (if present) - it contains real excerpts pulled from my actual posts for this specific question. Answer using those excerpts, in my own voice, like I'm recalling something I wrote. Cite the post by title naturally in the sentence (not as a link/footnote) and point them to it with a navigate action. If no relevant post was found for their question, say so plainly rather than guessing or inventing what a post might say - I never fabricate what I "wrote" if I don't actually have it in front of me.
+
+=== FILMS I'VE WATCHED ===
+I keep a running log of films at /watched - what I watched, my rating, and a short review for some of them. When a user asks what I've watched, whether I've seen a specific film, what I thought of something, or for a recommendation based on my taste, check the "FILMS WATCHED/WATCHLISTED" block appended below this prompt (if present) - it's the real, current list. Answer from it directly and in my own voice. If the list hasn't loaded yet or a film they asked about isn't on it, say so honestly rather than guessing whether I've seen it. Point them to /watched with a navigate action when it fits.
+
 === NAVIGATION ACTIONS ===
 You can guide the user to different parts of the portfolio by appending action tags at the very end of your reply. Only do this when it genuinely helps the user get somewhere they want to go.
 
@@ -99,7 +107,9 @@ Format: [ACTION|type|target|label]
 - label is what the button says (3-5 words max)
 
 Available internal routes:
-  /blog           → Blog posts
+  /blog           → Blog posts (listing)
+  /blog/<slug>    → A specific blog post - use the exact URL given in a RELEVANT BLOG POSTS excerpt when citing that post
+  /watched        → Films I've watched, with ratings and reviews
   /games          → Games page
   /#projects      → Projects section on homepage
   /#experience    → Experience section on homepage
@@ -120,6 +130,7 @@ Examples:
   User: "what skills do you have?" → reply ending with [ACTION|navigate|/#skills|View skills]
   User: "where do you work?" → reply ending with [ACTION|navigate|/#experience|See experience]
   User: "show me github" → reply ending with [ACTION|open|https://github.com/sarcasticdhruv|GitHub profile]
+  User: "what did you say about the EU AI Act?" (with a matching RELEVANT BLOG POSTS excerpt) → answer from the excerpt, ending with [ACTION|navigate|/blog/eu-ai-act-august-2026-what-solo-devs-need-to-log|Read the full post]
 
 You can include up to 2 actions. Do not include actions for general knowledge questions that don't need navigation. Never put action tags anywhere except the very end of your reply.
 `;
@@ -157,6 +168,27 @@ function stripTrailingPartialAction(s: string): string {
 // without the visitor having actually tapped the input themselves.
 function isCoarsePointer(): boolean {
   return typeof window !== 'undefined' && window.matchMedia('(pointer: coarse)').matches;
+}
+
+// Watched-movies context for the system prompt, same spirit as the blog
+// retrieval above but simpler: the whole list (title/year/rating/review) is
+// small enough (a few hundred films at most, one line each) to just always
+// include it once movies are loaded and the message looks film-related,
+// rather than needing per-message keyword scoring like the much larger blog
+// corpus does. Returns '' (no-op) if movies haven't loaded yet or the
+// message isn't about films, so the common case (a question about work/
+// projects) never pays for this context at all.
+const MOVIE_KEYWORDS = /\b(movie|movies|film|films|watch(ed|list)?|cinema|director|rating|rated|review(ed)?)\b/i;
+
+function matchMovies(query: string, movies: Movie[] | null): string {
+  if (!movies || movies.length === 0 || !MOVIE_KEYWORDS.test(query)) return '';
+  const lines = movies.map(m => {
+    const bits = [m.title, m.year ? `(${m.year})` : '', m.director ? `dir. ${m.director}` : ''].filter(Boolean).join(' ');
+    const status = m.status === 'watchlist' ? 'on watchlist' : `watched${m.rating ? `, rated ${m.rating}/5` : ''}`;
+    const review = m.review ? ` - "${m.review}"` : '';
+    return `${bits}: ${status}${review}`;
+  });
+  return `\n\n=== FILMS WATCHED/WATCHLISTED (from /watched, real data) ===\n${lines.join('\n')}`;
 }
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -236,6 +268,12 @@ export default function AIChatbot() {
   const voiceBoxRef = useRef<HTMLDivElement>(null);
   const inputLevelRef = useRef(0);
   const outputLevelRef = useRef(0);
+  // Watched-movies list, for questions like "what have you watched" or "did
+  // you like <film>". Fetched once lazily (on first panel open, not on every
+  // page load) and cached here rather than in state - it's read-only lookup
+  // data for prompt-building, not something that should re-render the panel
+  // when it arrives.
+  const moviesRef = useRef<Movie[] | null>(null);
 
   // Measured: the full string needs ~148px but only ~122px is available at
   // 360px and ~85px at 320px, so it truncated on small phones. Shortening the
@@ -296,6 +334,18 @@ export default function AIChatbot() {
           content: "Hey it's Dhruv. Well, an AI that answers the way I would. Ask me about my work, my projects, the stack I use, or how to reach me.",
         }]);
       }
+      // Fire-and-forget: warms moviesRef so a later "what have you watched"
+      // question doesn't pay fetch latency on top of the LLM call. /api/movies
+      // is a public GET (no admin key needed) - see api/movies.ts. Silently
+      // no-ops if Postgres isn't configured (503) or the request fails; the
+      // chatbot just won't have watched-movies context for that session,
+      // same as if the user never asks about it.
+      if (moviesRef.current === null) {
+        fetch('/api/movies')
+          .then(r => (r.ok ? r.json() : null))
+          .then(data => { if (Array.isArray(data?.movies)) moviesRef.current = data.movies; })
+          .catch(() => {});
+      }
     }
   }, [open]);
 
@@ -353,7 +403,25 @@ export default function AIChatbot() {
         ? [{ type: 'text', text: userMsg.content }, { type: 'image_url', image_url: { url: image } }]
         : userMsg.content;
       const history: ChatMessage[] = [...priorHistory, { role: 'user', content: latestContent }];
-      await streamChatbot([{ role: 'system', content: SYSTEM_PROMPT }, ...history], {
+
+      // Blog-aware retrieval: pull real excerpts for THIS message only (not
+      // cached across turns - a follow-up question deserves its own search)
+      // instead of inlining the whole ~45K-token blog corpus into every
+      // request. searchContent() is pure sync keyword scoring over content
+      // already bundled client-side (see contentIndex.ts), so this costs
+      // nothing extra over the network - only a few hundred extra tokens of
+      // system-prompt context on the requests that actually need it.
+      const blogMatches = content
+        ? searchContent(content, 3).filter(m => m.record.kind === 'blog')
+        : [];
+      const blogContext = blogMatches.length
+        ? `\n\n=== RELEVANT BLOG POSTS (real excerpts, for this question only) ===\n${blogMatches
+            .map(m => `Title: "${m.record.title}"\nURL: ${m.record.url}\nExcerpt: ${m.record.text.slice(0, 1200)}`)
+            .join('\n\n')}`
+        : '';
+      const movieContext = content ? matchMovies(content, moviesRef.current) : '';
+
+      await streamChatbot([{ role: 'system', content: SYSTEM_PROMPT + blogContext + movieContext }, ...history], {
         maxTokens: 500,
         temperature: 0.72,
         hasImage: !!image,

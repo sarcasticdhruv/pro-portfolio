@@ -30,9 +30,27 @@ function json(data: unknown, status = 200): Response {
 const HF_MODEL = 'stabilityai/stable-diffusion-3-medium-diffusers';
 const HF_URL = `https://router.huggingface.co/hf-inference/models/${HF_MODEL}`;
 
+// Vercel Edge Functions must START a response within 25s or the whole
+// invocation dies with EDGE_FUNCTION_INVOCATION_TIMEOUT - and an aborted
+// function never reaches the Pollinations fallback below, since it's dead
+// before that code even runs. SD3 is a diffusion model, not Groq's LPU-
+// accelerated text models, so a cold or loaded backend can genuinely take
+// longer than that. HF_ATTEMPT_TIMEOUT_MS bounds each individual key's
+// attempt; HF_TOTAL_TIMEOUT_MS caps the whole multi-key loop (up to 4 keys
+// configured, see .env.example) well under the 25s ceiling, leaving real
+// headroom for the Pollinations attempt afterward - 4 sequential 12s
+// timeouts alone would already exceed Vercel's limit before Pollinations
+// ever got a turn.
+const HF_ATTEMPT_TIMEOUT_MS = 8000;
+const HF_TOTAL_TIMEOUT_MS = 15000;
+
 async function fromHuggingFace(prompt: string): Promise<Response | null> {
+  const loopDeadline = Date.now() + HF_TOTAL_TIMEOUT_MS;
   for (const key of hfKeys()) {
+    if (Date.now() >= loopDeadline) break;
     const keyLabel = `...${key.slice(-4)}`;
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), HF_ATTEMPT_TIMEOUT_MS);
     try {
       const r = await fetch(HF_URL, {
         method: 'POST',
@@ -42,7 +60,9 @@ async function fromHuggingFace(prompt: string): Promise<Response | null> {
           Accept: 'image/png',
         },
         body: JSON.stringify({ inputs: prompt }),
+        signal: controller.signal,
       });
+      clearTimeout(timer);
       const type = r.headers.get('content-type') ?? '';
       if (r.ok && r.body && type.startsWith('image')) {
         return new Response(r.body, {
@@ -59,19 +79,30 @@ async function fromHuggingFace(prompt: string): Promise<Response | null> {
       const bodyText = await r.text().catch(() => '');
       console.error(`hf-inference key ${keyLabel} failed: ${r.status} ${type} ${bodyText.slice(0, 300)}`);
     } catch (err) {
+      clearTimeout(timer);
       console.error(`hf-inference key ${keyLabel} threw:`, err);
     }
   }
   return null;
 }
 
+// Same reasoning as the HF timeouts above: HF_TOTAL_TIMEOUT_MS (15s) plus
+// this leaves ~2s of margin under Vercel's 25s response deadline, so a slow
+// Pollinations response still fails cleanly into the final "image
+// generation failed" error instead of silently taking the whole request
+// past Vercel's own timeout.
+const POLLINATIONS_TIMEOUT_MS = 8000;
+
 async function fromPollinations(prompt: string, width: number, height: number): Promise<Response | null> {
   const seed = Math.floor(Math.random() * 1_000_000_000);
   const url =
     `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}` +
     `?width=${width}&height=${height}&nologo=true&seed=${seed}`;
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), POLLINATIONS_TIMEOUT_MS);
   try {
-    const r = await fetch(url);
+    const r = await fetch(url, { signal: controller.signal });
+    clearTimeout(timer);
     if (r.ok && r.body) {
       return new Response(r.body, {
         headers: {
@@ -82,6 +113,7 @@ async function fromPollinations(prompt: string, width: number, height: number): 
       });
     }
   } catch {
+    clearTimeout(timer);
     // give up below
   }
   return null;

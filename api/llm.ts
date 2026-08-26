@@ -47,9 +47,13 @@ function buildPool(): Provider[] {
       url: 'https://api.groq.com/openai/v1/chat/completions',
       keys: groq,
       models: {
-        fast: 'llama-3.1-8b-instant',
-        synth: 'llama-3.3-70b-versatile',
-        chat: 'llama-3.3-70b-versatile',
+        // llama-3.1-8b-instant and llama-3.3-70b-versatile both shut down on
+        // Groq 2026-08-16 (announced 2026-06-17, see
+        // console.groq.com/docs/deprecations). Swapped to Groq's own
+        // recommended replacements - same LPU hardware, no latency change.
+        fast: 'openai/gpt-oss-20b',
+        synth: 'openai/gpt-oss-120b',
+        chat: 'openai/gpt-oss-120b',
         // Full `compound` 413s on every key on our plan (Request Entity Too
         // Large, i.e. plan-tier restriction, not transient) - verified live,
         // so trying it first just burns 2 guaranteed-dead attempts on every
