@@ -9,6 +9,7 @@
 // yet (POSTGRES_URL unset) so a missing DB never breaks the site itself.
 
 import { sql } from '@vercel/postgres';
+import { classifyVisitor } from '../src/lib/visitorNature';
 
 export const config = { runtime: 'edge' };
 
@@ -35,6 +36,7 @@ async function ensureTable(): Promise<void> {
   // Columns added after the table's first deployment - safe no-ops once applied.
   await sql`ALTER TABLE visits ADD COLUMN IF NOT EXISTS event TEXT NOT NULL DEFAULT 'pageview'`;
   await sql`ALTER TABLE visits ADD COLUMN IF NOT EXISTS detail TEXT`;
+  await sql`ALTER TABLE visits ADD COLUMN IF NOT EXISTS nature TEXT NOT NULL DEFAULT 'human'`;
 }
 
 export default async function handler(req: Request): Promise<Response> {
@@ -60,12 +62,16 @@ export default async function handler(req: Request): Promise<Response> {
   const userAgent = req.headers.get('user-agent');
   const event = (body.event ?? 'pageview').slice(0, 60);
   const detail = body.detail ? body.detail.slice(0, 300) : null;
+  const nature = classifyVisitor(userAgent, {
+    acceptLanguage: req.headers.get('accept-language'),
+    accept: req.headers.get('accept'),
+  });
 
   try {
     await ensureTable();
     await sql`
-      INSERT INTO visits (visitor_id, ip, country, city, user_agent, referrer, path, event, detail)
-      VALUES (${visitorId}, ${ip}, ${country}, ${city}, ${userAgent}, ${body.referrer ?? null}, ${body.path ?? null}, ${event}, ${detail})
+      INSERT INTO visits (visitor_id, ip, country, city, user_agent, referrer, path, event, detail, nature)
+      VALUES (${visitorId}, ${ip}, ${country}, ${city}, ${userAgent}, ${body.referrer ?? null}, ${body.path ?? null}, ${event}, ${detail}, ${nature})
     `;
     return json({ ok: true });
   } catch (e) {

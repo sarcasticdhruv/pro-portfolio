@@ -42,6 +42,28 @@ export function Bar({ label, count, max, labelWidth = '92px', suffix }: BarProps
   );
 }
 
+const PILL_TONES: Record<'accent' | 'info' | 'warning' | 'danger', { bg: string; fg: string }> = {
+  accent: { bg: 'var(--accent-dim)', fg: 'var(--accent)' },
+  info: { bg: 'rgba(96, 165, 250, 0.15)', fg: '#60A5FA' },
+  warning: { bg: 'rgba(245, 158, 11, 0.15)', fg: '#F59E0B' },
+  danger: { bg: 'rgba(255, 107, 107, 0.15)', fg: '#FF6B6B' },
+};
+
+// Small colored status badge - reused for visitor "nature" (human/crawler/
+// script/suspicious) and any future single-word categorical tag.
+export function Pill({ label, tone }: { label: string; tone: keyof typeof PILL_TONES }) {
+  const { bg, fg } = PILL_TONES[tone];
+  return (
+    <span style={{
+      display: 'inline-block', padding: '3px 10px', borderRadius: '100px',
+      background: bg, color: fg, fontFamily: "'JetBrains Mono', monospace",
+      fontSize: '0.66rem', fontWeight: 600, whiteSpace: 'nowrap',
+    }}>
+      {label}
+    </span>
+  );
+}
+
 // Vertical column chart - the right form for a dense time series where the
 // x-axis is ordered and the label per column would not fit horizontally.
 export function Columns({ data, height = 90 }: { data: [string, number][]; height?: number }) {

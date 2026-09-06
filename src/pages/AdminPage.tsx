@@ -2,6 +2,8 @@ import { Fragment, useEffect, useState } from 'react';
 import { Lock, RotateCw, Users, Activity, ChevronDown, ChevronRight } from 'lucide-react';
 import { useSEO } from '../hooks/useSEO';
 import VisitorAnalytics, { type Analytics } from '../components/admin/VisitorAnalytics';
+import { Pill } from '../components/charts/Charts';
+import { NATURE_LABELS, type VisitorNature } from '../lib/visitorNature';
 
 const SESSION_KEY = 'admin_key';
 
@@ -11,6 +13,7 @@ interface VisitorRow {
   country: string | null;
   city: string | null;
   userAgent: string | null;
+  nature: VisitorNature;
   lastPath: string | null;
   lastReferrer: string | null;
   lastSeen: string;
@@ -57,6 +60,15 @@ function parseUA(ua: string | null): string {
   return `${browser} · ${os}`;
 }
 
+function natureTone(nature: VisitorNature): 'accent' | 'info' | 'warning' | 'danger' {
+  switch (nature) {
+    case 'human': return 'accent';
+    case 'crawler': return 'info';
+    case 'script': return 'warning';
+    case 'suspicious': return 'danger';
+  }
+}
+
 function timeAgo(iso: string): string {
   const diffMs = Date.now() - new Date(iso).getTime();
   const mins = Math.floor(diffMs / 60000);
@@ -94,6 +106,7 @@ export default function AdminPage() {
   const [expanded, setExpanded] = useState<string | null>(null);
   const [timelines, setTimelines] = useState<Record<string, TimelineEvent[]>>({});
   const [timelineLoading, setTimelineLoading] = useState<string | null>(null);
+  const [natureFilter, setNatureFilter] = useState<VisitorNature | 'all'>('all');
 
   async function load(k: string) {
     setLoading(true);
@@ -149,6 +162,10 @@ export default function AdminPage() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const filteredVisitors = natureFilter === 'all'
+    ? visitors
+    : visitors.filter(v => v.nature === natureFilter);
 
   if (!authed) {
     return (
@@ -237,8 +254,25 @@ export default function AdminPage() {
         <div style={{ display: 'flex', alignItems: 'center', gap: '7px', marginBottom: '10px' }}>
           <Users size={14} style={{ color: 'var(--accent)' }} />
           <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '0.75rem', color: 'var(--text-dim)', letterSpacing: '0.04em', textTransform: 'uppercase' }}>
-            {visitors.length} known visitor{visitors.length === 1 ? '' : 's'} · click a row for full activity
+            {filteredVisitors.length} known visitor{filteredVisitors.length === 1 ? '' : 's'} · click a row for full activity
           </span>
+        </div>
+        <div style={{ display: 'flex', gap: '6px', marginBottom: '14px', flexWrap: 'wrap' }}>
+          {(['all', 'human', 'crawler', 'script', 'suspicious'] as const).map(f => (
+            <button
+              key={f}
+              onClick={() => setNatureFilter(f)}
+              style={{
+                background: natureFilter === f ? 'var(--accent)' : 'var(--surface-2)',
+                color: natureFilter === f ? 'var(--chat-user-text)' : 'var(--text-muted)',
+                border: '1px solid var(--border)', borderRadius: '100px',
+                padding: '5px 14px', fontFamily: "'JetBrains Mono', monospace",
+                fontSize: '0.7rem', cursor: 'pointer', textTransform: 'capitalize',
+              }}
+            >
+              {f}
+            </button>
+          ))}
         </div>
         <div style={{
           overflowX: 'auto', border: '1px solid var(--border)', borderRadius: '12px',
@@ -247,13 +281,13 @@ export default function AdminPage() {
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.78rem', fontFamily: "'JetBrains Mono', monospace" }}>
             <thead>
               <tr style={{ borderBottom: '1px solid var(--border)', textAlign: 'left', color: 'var(--text-dim)' }}>
-                {['', 'visitor', 'ip', 'location', 'device', 'visits', 'events', 'first seen', 'last seen', 'last page'].map(h => (
+                {['', 'visitor', 'ip', 'location', 'device', 'nature', 'visits', 'events', 'first seen', 'last seen', 'last page'].map(h => (
                   <th key={h} style={{ padding: '10px 14px', fontWeight: 600, whiteSpace: 'nowrap' }}>{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
-              {visitors.map(v => {
+              {filteredVisitors.map(v => {
                 const isOpen = expanded === v.visitorId;
                 return (
                   <Fragment key={v.visitorId}>
@@ -270,6 +304,9 @@ export default function AdminPage() {
                         {[v.city, v.country].filter(Boolean).join(', ') || '-'}
                       </td>
                       <td style={{ padding: '10px 14px', color: 'var(--text)' }}>{parseUA(v.userAgent)}</td>
+                      <td style={{ padding: '10px 14px' }}>
+                        <Pill label={NATURE_LABELS[v.nature]} tone={natureTone(v.nature)} />
+                      </td>
                       <td style={{ padding: '10px 14px', color: 'var(--text)' }}>{v.visitCount}</td>
                       <td style={{ padding: '10px 14px', color: 'var(--text-muted)' }}>{v.eventCount}</td>
                       <td style={{ padding: '10px 14px', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>{timeAgo(v.firstSeen)}</td>
@@ -278,7 +315,7 @@ export default function AdminPage() {
                     </tr>
                     {isOpen && (
                       <tr key={`${v.visitorId}-detail`} style={{ borderBottom: '1px solid var(--border)' }}>
-                        <td colSpan={10} style={{ padding: '0 14px 14px 40px', background: 'var(--surface-2)' }}>
+                        <td colSpan={11} style={{ padding: '0 14px 14px 40px', background: 'var(--surface-2)' }}>
                           {timelineLoading === v.visitorId ? (
                             <p style={{ color: 'var(--text-dim)', padding: '10px 0' }}>loading...</p>
                           ) : (
@@ -303,8 +340,8 @@ export default function AdminPage() {
                   </Fragment>
                 );
               })}
-              {visitors.length === 0 && (
-                <tr><td colSpan={10} style={{ padding: '20px 14px', color: 'var(--text-dim)', textAlign: 'center' }}>no visits recorded yet</td></tr>
+              {filteredVisitors.length === 0 && (
+                <tr><td colSpan={11} style={{ padding: '20px 14px', color: 'var(--text-dim)', textAlign: 'center' }}>no visits recorded yet</td></tr>
               )}
             </tbody>
           </table>

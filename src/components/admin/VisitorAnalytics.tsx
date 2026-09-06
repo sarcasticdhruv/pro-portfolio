@@ -6,6 +6,7 @@ export interface Analytics {
   topReferrers: { label: string; n: number }[];
   topEvents: { label: string; n: number }[];
   byHour: { hour: string; n: number }[];
+  natureBreakdown: { human: number; crawler: number; script: number; suspicious: number };
 }
 
 interface VisitorLike {
@@ -63,6 +64,16 @@ export default function VisitorAnalytics({ analytics, visitors }: {
   const totalEvents = visitors.reduce((s, v) => s + v.eventCount, 0);
   const avgEvents = visitors.length ? (totalEvents / visitors.length).toFixed(1) : '0';
 
+  const natureTotal = Object.values(analytics.natureBreakdown).reduce((s, n) => s + n, 0);
+  const humanPct = natureTotal ? Math.round((analytics.natureBreakdown.human / natureTotal) * 100) : 0;
+  const natureRows: [string, number][] = [
+    ['human', analytics.natureBreakdown.human],
+    ['crawler', analytics.natureBreakdown.crawler],
+    ['script', analytics.natureBreakdown.script],
+    ['suspicious', analytics.natureBreakdown.suspicious],
+  ];
+  const natureMax = Math.max(1, ...natureRows.map(r => r[1]));
+
   const countries = topCounts(visitors.map(v => v.country), 8);
   const cities = topCounts(visitors.map(v => v.city), 6);
   const browsers = topCounts(visitors.map(v => browserOf(v.userAgent)), 5);
@@ -86,6 +97,7 @@ export default function VisitorAnalytics({ analytics, visitors }: {
         <StatTile value={totalViews} label="views (30d)" />
         <StatTile value={totalEvents} label="events" />
         <StatTile value={returning} label="returning" />
+        <StatTile value={`${humanPct}%`} label="human traffic" />
         <StatTile value={avgEvents} label="events / visitor" />
       </StatRow>
 
@@ -140,6 +152,12 @@ export default function VisitorAnalytics({ analytics, visitors }: {
 
         <ChartCard title="activity by hour" note="UTC, all time" wide>
           <Columns data={hours} height={80} />
+        </ChartCard>
+
+        <ChartCard title="traffic by nature" note="all time">
+          {natureRows.map(([label, n]) => (
+            <Bar key={label} label={label} count={n} max={natureMax} />
+          ))}
         </ChartCard>
       </ChartGrid>
     </div>

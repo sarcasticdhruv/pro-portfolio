@@ -43,10 +43,10 @@ export default async function handler(req: Request): Promise<Response> {
       });
     }
 
-    const [latestPerVisitor, aggregates, recent, daily, topPaths, topReferrers, topEvents, byHour] = await Promise.all([
+    const [latestPerVisitor, aggregates, recent, daily, topPaths, topReferrers, topEvents, byHour, natureCounts] = await Promise.all([
       sql`
         SELECT DISTINCT ON (visitor_id)
-          visitor_id, ip, country, city, user_agent, path AS last_path,
+          visitor_id, ip, country, city, user_agent, nature, path AS last_path,
           referrer AS last_referrer, created_at AS last_seen
         FROM visits
         ORDER BY visitor_id, created_at DESC
@@ -98,6 +98,9 @@ export default async function handler(req: Request): Promise<Response> {
         SELECT to_char(created_at AT TIME ZONE 'UTC', 'HH24') AS hour, COUNT(*) AS n
         FROM visits GROUP BY 1 ORDER BY 1
       `,
+      sql`
+        SELECT nature, COUNT(*) AS n FROM visits GROUP BY 1
+      `,
     ]);
 
     const aggByVisitor = new Map(aggregates.rows.map(r => [r.visitor_id, r]));
@@ -110,6 +113,7 @@ export default async function handler(req: Request): Promise<Response> {
           country: v.country,
           city: v.city,
           userAgent: v.user_agent,
+          nature: v.nature,
           lastPath: v.last_path,
           lastReferrer: v.last_referrer,
           lastSeen: v.last_seen,
@@ -120,6 +124,12 @@ export default async function handler(req: Request): Promise<Response> {
       })
       .sort((a, b) => new Date(b.lastSeen).getTime() - new Date(a.lastSeen).getTime());
 
+    const natureBreakdown = { human: 0, crawler: 0, script: 0, suspicious: 0 };
+    for (const row of natureCounts.rows) {
+      const key = row.nature as keyof typeof natureBreakdown;
+      if (key in natureBreakdown) natureBreakdown[key] = Number(row.n);
+    }
+
     return json({
       visitors,
       analytics: {
@@ -128,6 +138,7 @@ export default async function handler(req: Request): Promise<Response> {
         topReferrers: topReferrers.rows.map(r => ({ label: r.referrer, n: Number(r.n) })),
         topEvents: topEvents.rows.map(r => ({ label: r.event, n: Number(r.n) })),
         byHour: byHour.rows.map(r => ({ hour: r.hour, n: Number(r.n) })),
+        natureBreakdown,
       },
       recent: recent.rows.map(r => ({
         visitorId: r.visitor_id,
