@@ -7,6 +7,19 @@ import { NATURE_LABELS, type VisitorNature } from '../lib/visitorNature';
 
 const SESSION_KEY = 'admin_key';
 
+interface IpIntel {
+  region: string | null;
+  postal: string | null;
+  lat: number | null;
+  lon: number | null;
+  timezone: string | null;
+  isp: string | null;
+  org: string | null;
+  asn: string | null;
+  isProxy: boolean | null;
+  isHosting: boolean | null;
+}
+
 interface VisitorRow {
   visitorId: string;
   ip: string | null;
@@ -20,6 +33,7 @@ interface VisitorRow {
   firstSeen: string;
   visitCount: number;
   eventCount: number;
+  ipIntel: IpIntel | null;
 }
 
 interface RecentRow {
@@ -87,6 +101,20 @@ function ActionCell({ event, detail, path }: { event: string; detail: string | n
     <span>
       <span style={{ color: 'var(--accent)' }}>{event}</span>
       {(detail || path) && <span style={{ color: 'var(--text-muted)' }}> · {detail ?? path}</span>}
+    </span>
+  );
+}
+
+// ISP/org name plus a proxy/hosting flag, from the free-tier IP intel cache
+// (see src/lib/ipIntel.ts) - null when that IP hasn't been enriched yet.
+function NetworkCell({ intel }: { intel: IpIntel | null }) {
+  if (!intel) return <span style={{ color: 'var(--text-dim)' }}>-</span>;
+  const label = intel.isp || intel.org || intel.asn || '-';
+  return (
+    <span title={intel.asn ?? undefined} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+      {label}
+      {intel.isProxy && <Pill label="proxy" tone="warning" />}
+      {intel.isHosting && <Pill label="hosting" tone="info" />}
     </span>
   );
 }
@@ -281,7 +309,7 @@ export default function AdminPage() {
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.78rem', fontFamily: "'JetBrains Mono', monospace" }}>
             <thead>
               <tr style={{ borderBottom: '1px solid var(--border)', textAlign: 'left', color: 'var(--text-dim)' }}>
-                {['', 'visitor', 'ip', 'location', 'device', 'nature', 'visits', 'events', 'first seen', 'last seen', 'last page'].map(h => (
+                {['', 'visitor', 'ip', 'location', 'network', 'device', 'nature', 'visits', 'events', 'first seen', 'last seen', 'last page'].map(h => (
                   <th key={h} style={{ padding: '10px 14px', fontWeight: 600, whiteSpace: 'nowrap' }}>{h}</th>
                 ))}
               </tr>
@@ -303,6 +331,9 @@ export default function AdminPage() {
                       <td style={{ padding: '10px 14px', color: 'var(--text)' }}>
                         {[v.city, v.country].filter(Boolean).join(', ') || '-'}
                       </td>
+                      <td style={{ padding: '10px 14px', color: 'var(--text)' }}>
+                        <NetworkCell intel={v.ipIntel} />
+                      </td>
                       <td style={{ padding: '10px 14px', color: 'var(--text)' }}>{parseUA(v.userAgent)}</td>
                       <td style={{ padding: '10px 14px' }}>
                         <Pill label={NATURE_LABELS[v.nature]} tone={natureTone(v.nature)} />
@@ -315,7 +346,7 @@ export default function AdminPage() {
                     </tr>
                     {isOpen && (
                       <tr key={`${v.visitorId}-detail`} style={{ borderBottom: '1px solid var(--border)' }}>
-                        <td colSpan={11} style={{ padding: '0 14px 14px 40px', background: 'var(--surface-2)' }}>
+                        <td colSpan={12} style={{ padding: '0 14px 14px 40px', background: 'var(--surface-2)' }}>
                           {timelineLoading === v.visitorId ? (
                             <p style={{ color: 'var(--text-dim)', padding: '10px 0' }}>loading...</p>
                           ) : (
@@ -341,7 +372,7 @@ export default function AdminPage() {
                 );
               })}
               {filteredVisitors.length === 0 && (
-                <tr><td colSpan={11} style={{ padding: '20px 14px', color: 'var(--text-dim)', textAlign: 'center' }}>no visits recorded yet</td></tr>
+                <tr><td colSpan={12} style={{ padding: '20px 14px', color: 'var(--text-dim)', textAlign: 'center' }}>no visits recorded yet</td></tr>
               )}
             </tbody>
           </table>

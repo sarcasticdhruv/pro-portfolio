@@ -9,7 +9,9 @@
 // yet (POSTGRES_URL unset) so a missing DB never breaks the site itself.
 
 import { sql } from '@vercel/postgres';
+import { waitUntil } from '@vercel/functions';
 import { classifyVisitor } from '../src/lib/visitorNature';
+import { fetchIpIntel } from '../src/lib/ipIntel';
 
 export const config = { runtime: 'edge' };
 
@@ -37,6 +39,48 @@ async function ensureTable(): Promise<void> {
   await sql`ALTER TABLE visits ADD COLUMN IF NOT EXISTS event TEXT NOT NULL DEFAULT 'pageview'`;
   await sql`ALTER TABLE visits ADD COLUMN IF NOT EXISTS detail TEXT`;
   await sql`ALTER TABLE visits ADD COLUMN IF NOT EXISTS nature TEXT NOT NULL DEFAULT 'human'`;
+
+  // Cache of merged free-tier IP intel (geo, ISP/org/ASN, proxy/hosting
+  // flags), keyed by IP so repeat visits from the same address never
+  // re-query the providers - see src/lib/ipIntel.ts.
+  await sql`
+    CREATE TABLE IF NOT EXISTS ip_intel (
+      ip TEXT PRIMARY KEY,
+      country TEXT,
+      region TEXT,
+      city TEXT,
+      postal TEXT,
+      lat DOUBLE PRECISION,
+      lon DOUBLE PRECISION,
+      timezone TEXT,
+      isp TEXT,
+      org TEXT,
+      asn TEXT,
+      is_proxy BOOLEAN,
+      is_hosting BOOLEAN,
+      fetched_at TIMESTAMPTZ NOT NULL DEFAULT now()
+    )
+  `;
+}
+
+// Best-effort, fire-and-forget: looks up the IP in the cache table, and if
+// missing, queries the free providers and stores the result. Runs after the
+// response is sent (via waitUntil) so a slow or rate-limited provider never
+// delays the pageview write itself.
+async function enrichIpInBackground(ip: string): Promise<void> {
+  try {
+    const cached = await sql`SELECT ip FROM ip_intel WHERE ip = ${ip}`;
+    if (cached.rows.length > 0) return;
+
+    const intel = await fetchIpIntel(ip);
+    await sql`
+      INSERT INTO ip_intel (ip, country, region, city, postal, lat, lon, timezone, isp, org, asn, is_proxy, is_hosting, fetched_at)
+      VALUES (${intel.ip}, ${intel.country}, ${intel.region}, ${intel.city}, ${intel.postal}, ${intel.lat}, ${intel.lon}, ${intel.timezone}, ${intel.isp}, ${intel.org}, ${intel.asn}, ${intel.isProxy}, ${intel.isHosting}, ${intel.fetchedAt})
+      ON CONFLICT (ip) DO NOTHING
+    `;
+  } catch {
+    // Best-effort only - a failed enrichment must never surface to the client.
+  }
 }
 
 export default async function handler(req: Request): Promise<Response> {
@@ -73,6 +117,7 @@ export default async function handler(req: Request): Promise<Response> {
       INSERT INTO visits (visitor_id, ip, country, city, user_agent, referrer, path, event, detail, nature)
       VALUES (${visitorId}, ${ip}, ${country}, ${city}, ${userAgent}, ${body.referrer ?? null}, ${body.path ?? null}, ${event}, ${detail}, ${nature})
     `;
+    if (ip) waitUntil(enrichIpInBackground(ip));
     return json({ ok: true });
   } catch (e) {
     return json({ ok: false, error: e instanceof Error ? e.message : 'db error' });

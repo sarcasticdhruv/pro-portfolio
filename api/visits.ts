@@ -43,13 +43,30 @@ export default async function handler(req: Request): Promise<Response> {
       });
     }
 
+    // ip_intel may not exist yet on a database that predates this feature -
+    // the join below degrades to all-null intel fields rather than erroring.
+    await sql`
+      CREATE TABLE IF NOT EXISTS ip_intel (
+        ip TEXT PRIMARY KEY,
+        country TEXT, region TEXT, city TEXT, postal TEXT,
+        lat DOUBLE PRECISION, lon DOUBLE PRECISION, timezone TEXT,
+        isp TEXT, org TEXT, asn TEXT,
+        is_proxy BOOLEAN, is_hosting BOOLEAN,
+        fetched_at TIMESTAMPTZ NOT NULL DEFAULT now()
+      )
+    `;
+
     const [latestPerVisitor, aggregates, recent, daily, topPaths, topReferrers, topEvents, byHour, natureCounts] = await Promise.all([
       sql`
-        SELECT DISTINCT ON (visitor_id)
-          visitor_id, ip, country, city, user_agent, nature, path AS last_path,
-          referrer AS last_referrer, created_at AS last_seen
-        FROM visits
-        ORDER BY visitor_id, created_at DESC
+        SELECT DISTINCT ON (v.visitor_id)
+          v.visitor_id, v.ip, v.country, v.city, v.user_agent, v.nature, v.path AS last_path,
+          v.referrer AS last_referrer, v.created_at AS last_seen,
+          i.region AS ip_region, i.postal AS ip_postal, i.lat AS ip_lat, i.lon AS ip_lon,
+          i.timezone AS ip_timezone, i.isp AS ip_isp, i.org AS ip_org, i.asn AS ip_asn,
+          i.is_proxy AS ip_is_proxy, i.is_hosting AS ip_is_hosting
+        FROM visits v
+        LEFT JOIN ip_intel i ON i.ip = v.ip
+        ORDER BY v.visitor_id, v.created_at DESC
       `,
       // visit_count/first_seen only count real page loads, not every click -
       // event_count is the total including interaction events.
@@ -120,6 +137,18 @@ export default async function handler(req: Request): Promise<Response> {
           firstSeen: agg?.first_seen ?? v.last_seen,
           visitCount: Number(agg?.visit_count ?? 1),
           eventCount: Number(agg?.event_count ?? 1),
+          ipIntel: v.ip_isp || v.ip_org || v.ip_asn || v.ip_lat != null ? {
+            region: v.ip_region,
+            postal: v.ip_postal,
+            lat: v.ip_lat != null ? Number(v.ip_lat) : null,
+            lon: v.ip_lon != null ? Number(v.ip_lon) : null,
+            timezone: v.ip_timezone,
+            isp: v.ip_isp,
+            org: v.ip_org,
+            asn: v.ip_asn,
+            isProxy: v.ip_is_proxy,
+            isHosting: v.ip_is_hosting,
+          } : null,
         };
       })
       .sort((a, b) => new Date(b.lastSeen).getTime() - new Date(a.lastSeen).getTime());
