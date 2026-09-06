@@ -43,7 +43,7 @@ export function Bar({ label, count, max, labelWidth = '92px', suffix }: BarProps
 }
 
 const PILL_TONES: Record<'accent' | 'info' | 'warning' | 'danger', { bg: string; fg: string }> = {
-  accent: { bg: 'var(--accent-dim)', fg: 'var(--accent)' },
+  accent: { bg: 'var(--accent)', fg: 'var(--chat-user-text)' },
   info: { bg: 'rgba(96, 165, 250, 0.15)', fg: '#60A5FA' },
   warning: { bg: 'rgba(245, 158, 11, 0.15)', fg: '#F59E0B' },
   danger: { bg: 'rgba(255, 107, 107, 0.15)', fg: '#FF6B6B' },
