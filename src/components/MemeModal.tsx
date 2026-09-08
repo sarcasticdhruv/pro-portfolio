@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ChevronLeft, ChevronRight, Shuffle, ExternalLink, Link2, Check, X, ImageOff, ZoomIn, ZoomOut, Loader2 } from 'lucide-react';
 
 export interface Meme { url: string; title: string; subreddit: string }
@@ -33,6 +33,12 @@ export default function MemeModal({ meme, index, total, onPrev, onNext, onShuffl
   const [loaded, setLoaded] = useState(false);
   // 1 = fit to viewport. Zooming switches the frame to scrollable natural size.
   const [zoom, setZoom] = useState(1);
+  // A trackpad flick emits a long stream of wheel events; this latches on the
+  // first one that crosses the threshold and clears once the stream goes quiet,
+  // so one physical gesture advances exactly one meme.
+  const swipeLatch = useRef(false);
+  const swipeTimer = useRef<number | undefined>(undefined);
+  const touchStart = useRef<{ x: number; y: number } | null>(null);
   // Clipboard is unavailable on insecure origins - hide the control instead of
   // offering a button that silently does nothing.
   const canCopy = typeof navigator !== 'undefined' && !!navigator.clipboard;
@@ -53,12 +59,46 @@ export default function MemeModal({ meme, index, total, onPrev, onNext, onShuffl
     return () => window.removeEventListener('keydown', onKey);
   }, [onClose, onPrev, onNext]);
 
+  useEffect(() => () => window.clearTimeout(swipeTimer.current), []);
+
   // Lock body scroll, restoring whatever was there before rather than assuming ''.
   useEffect(() => {
     const prev = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
     return () => { document.body.style.overflow = prev; };
   }, []);
+
+  // Horizontal trackpad swipe: right-to-left (deltaX > 0) goes to the next
+  // meme. Only while fit to the viewport - zoomed, the frame scrolls instead.
+  function onWheel(e: React.WheelEvent) {
+    if (zoom !== 1) return;
+    if (Math.abs(e.deltaX) < Math.abs(e.deltaY) || Math.abs(e.deltaX) < 30) return;
+    e.preventDefault();
+    window.clearTimeout(swipeTimer.current);
+    swipeTimer.current = window.setTimeout(() => { swipeLatch.current = false; }, 220);
+    if (swipeLatch.current) return;
+    swipeLatch.current = true;
+    if (e.deltaX > 0) onNext?.();
+    else onPrev?.();
+  }
+
+  // Touchscreen equivalent, so the same gesture works on a phone.
+  function onTouchStart(e: React.TouchEvent) {
+    const t = e.touches[0];
+    touchStart.current = { x: t.clientX, y: t.clientY };
+  }
+
+  function onTouchEnd(e: React.TouchEvent) {
+    const start = touchStart.current;
+    touchStart.current = null;
+    if (!start || zoom !== 1) return;
+    const t = e.changedTouches[0];
+    const dx = t.clientX - start.x;
+    const dy = t.clientY - start.y;
+    if (Math.abs(dx) < 50 || Math.abs(dx) < Math.abs(dy)) return;
+    if (dx < 0) onNext?.();
+    else onPrev?.();
+  }
 
   async function copyLink() {
     try {
@@ -178,7 +218,14 @@ export default function MemeModal({ meme, index, total, onPrev, onNext, onShuffl
           padding: '14px',
           overflow: 'auto',
           overscrollBehavior: 'contain',
-        }}>
+          // At fit there is nothing to pan, so let the browser hand us
+          // horizontal gestures instead of treating them as scroll.
+          touchAction: zoom === 1 ? 'pan-y' : 'auto',
+        }}
+        onWheel={onWheel}
+        onTouchStart={onTouchStart}
+        onTouchEnd={onTouchEnd}
+        >
           {broken ? (
             <div style={{
               display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px',
