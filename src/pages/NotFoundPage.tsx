@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { Loader2, ImageOff, Shuffle } from 'lucide-react';
+import MemeModal from '../components/MemeModal';
 
 // a small list of playful/techy 404 messages; shuffled each render
 const messages = [
@@ -24,7 +25,7 @@ function pickRandom() {
 const MEME_SUBS = ['ProgrammerHumor', 'programmingmemes', 'wholesomememes', 'memes'];
 const FETCH_TIMEOUT_MS = 4000;
 
-interface Meme { url: string; title: string; subreddit: string }
+import type { Meme } from '../components/MemeModal';
 
 async function fetchOneMeme(sub: string, signal: AbortSignal): Promise<Meme | null> {
   try {
@@ -69,7 +70,10 @@ function fetchMeme(): Promise<Meme | null> {
 
 export default function NotFoundPage() {
   const [msg, setMsg] = useState(() => pickRandom());
-  const [meme, setMeme] = useState<Meme | null>(null);
+  // Every meme fetched this session, so shuffling forward never loses one.
+  const [memes, setMemes] = useState<Meme[]>([]);
+  const [index, setIndex] = useState(0);
+  const [modalOpen, setModalOpen] = useState(false);
   const [memeLoading, setMemeLoading] = useState(true);
   // Tracks the actual <img> finishing its download, not just the API call
   // that resolves the URL - without this the spinner vanished and left a
@@ -83,7 +87,12 @@ export default function NotFoundPage() {
     setImgReady(false);
     fetchMeme().then(m => {
       if (!mounted.current) return;
-      setMeme(m);
+      if (m) {
+        setMemes(prev => {
+          setIndex(prev.length);
+          return [...prev, m];
+        });
+      }
       setMemeLoading(false);
     });
   }, []);
@@ -93,6 +102,8 @@ export default function NotFoundPage() {
     loadMeme();
     return () => { mounted.current = false; };
   }, [loadMeme]);
+
+  const meme = memes[index] ?? null;
 
   function shuffleAll() {
     setMsg(pickRandom());
@@ -173,8 +184,11 @@ export default function NotFoundPage() {
             <img
               src={meme.url}
               alt={meme.title}
+              onClick={() => setModalOpen(true)}
+              title="Click to view full size"
               style={{
                 width: '100%',
+                cursor: 'zoom-in',
                 maxHeight: '360px',
                 // contain, not cover - cover crops anything taller than the
                 // box (a lot of memes are tall multi-panel images), which
@@ -185,7 +199,7 @@ export default function NotFoundPage() {
                 transition: 'opacity 0.2s ease',
               }}
               onLoad={() => setImgReady(true)}
-              onError={() => setMeme(null)}
+              onError={() => setMemes(prev => prev.filter((_, i) => i !== index))}
             />
           </div>
         ) : (
@@ -237,6 +251,18 @@ export default function NotFoundPage() {
           Take me home
         </Link>
       </div>
+
+      {modalOpen && meme && (
+        <MemeModal
+          meme={meme}
+          index={index}
+          total={memes.length}
+          onPrev={index > 0 ? () => setIndex(i => i - 1) : undefined}
+          onNext={index < memes.length - 1 ? () => setIndex(i => i + 1) : undefined}
+          onShuffle={shuffleAll}
+          onClose={() => setModalOpen(false)}
+        />
+      )}
 
       <style>{`
         @keyframes blogFadeIn {
