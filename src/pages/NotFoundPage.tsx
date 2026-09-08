@@ -81,9 +81,9 @@ export default function NotFoundPage() {
   // loading behind the scenes.
   const [imgReady, setImgReady] = useState(false);
   const mounted = useRef(true);
-  // Mirrors `memes` so loadMeme can compute the target index without
-  // depending on (and re-creating itself for) every history change.
-  const memesRef = useRef<Meme[]>([]);
+  // The url a fetch just delivered; an effect moves `index` onto it once the
+  // new history has actually rendered.
+  const pendingUrl = useRef<string | null>(null);
 
   const loadMeme = useCallback(() => {
     setMemeLoading(true);
@@ -91,14 +91,14 @@ export default function NotFoundPage() {
     fetchMeme().then(m => {
       if (!mounted.current) return;
       if (m) {
-        // Append and jump to the new meme, deduped by url - StrictMode
-        // double-invokes the mount effect, which would otherwise seed history
-        // with the same meme twice. Both setters are called directly rather
-        // than nested inside an updater, so neither runs twice.
-        setMemes(prev => (prev.some(x => x.url === m.url) ? prev : [...prev, m]));
-        setIndex(() => {
-          const seen = memesRef.current.findIndex(x => x.url === m.url);
-          return seen !== -1 ? seen : memesRef.current.length;
+        // Append deduped by url, then jump to whatever slot it landed in.
+        // StrictMode double-invokes the mount effect, so without the dedupe
+        // the first meme would enter history twice and the counter would
+        // open on "2 / 2".
+        setMemes(prev => {
+          const next = prev.some(x => x.url === m.url) ? prev : [...prev, m];
+          pendingUrl.current = m.url;
+          return next;
         });
       }
       setMemeLoading(false);
@@ -112,7 +112,14 @@ export default function NotFoundPage() {
   }, [loadMeme]);
 
   const meme = memes[index] ?? null;
-  memesRef.current = memes;
+
+  // Runs after `memes` commits, so the target slot definitely exists.
+  useEffect(() => {
+    if (!pendingUrl.current) return;
+    const i = memes.findIndex(x => x.url === pendingUrl.current);
+    pendingUrl.current = null;
+    if (i !== -1) setIndex(i);
+  }, [memes]);
 
   function shuffleAll() {
     setMsg(pickRandom());
