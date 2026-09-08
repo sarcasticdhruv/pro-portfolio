@@ -278,7 +278,13 @@ export default function NotFoundPage() {
           index={index}
           total={memes.length}
           onPrev={index > 0 ? () => setIndex(i => i - 1) : undefined}
-          onNext={index < memes.length - 1 ? () => setIndex(i => i + 1) : undefined}
+          // Next always advances: page forward through history, or fetch a
+          // fresh meme once at the end. Opening the modal lands on the newest
+          // meme, so without the fallthrough the common case did nothing.
+          onNext={() => {
+            if (index < memes.length - 1) setIndex(i => i + 1);
+            else loadMeme();
+          }}
           onShuffle={shuffleAll}
           onClose={() => setModalOpen(false)}
         />
