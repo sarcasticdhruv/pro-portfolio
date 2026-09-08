@@ -77,7 +77,7 @@ export default function MemeModal({ meme, index, total, onPrev, onNext, onShuffl
       aria-modal="true"
       aria-label={meme.title}
       style={{
-        position: 'fixed', inset: 0, zIndex: 8000,
+        position: 'fixed', inset: 0, zIndex: 9000,
         background: 'rgba(7,17,10,0.72)',
         backdropFilter: 'blur(6px)',
         WebkitBackdropFilter: 'blur(6px)',
@@ -106,6 +106,9 @@ export default function MemeModal({ meme, index, total, onPrev, onNext, onShuffl
           padding: '12px 14px',
           borderBottom: '1px solid var(--border)',
           flexShrink: 0,
+          position: 'relative',
+          zIndex: 1,
+          background: 'var(--surface)',
         }}>
           <div style={{ minWidth: 0, flex: 1, textAlign: 'left' }}>
             <div style={{
@@ -163,9 +166,18 @@ export default function MemeModal({ meme, index, total, onPrev, onNext, onShuffl
         <div style={{
           flex: 1, minHeight: 0,
           position: 'relative',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          // isolate + zIndex 0 keeps the zoomed, overflowing image painted
+          // strictly inside this frame instead of over the top bar.
+          isolation: 'isolate',
+          zIndex: 0,
+          display: 'flex',
+          // At fit, centre the image. Zoomed, start at top-left so scrolling
+          // reveals the whole meme instead of clipping its edges.
+          alignItems: zoom === 1 ? 'center' : 'flex-start',
+          justifyContent: zoom === 1 ? 'center' : 'flex-start',
           padding: '14px',
           overflow: 'auto',
+          overscrollBehavior: 'contain',
         }}>
           {broken ? (
             <div style={{
@@ -214,6 +226,9 @@ export default function MemeModal({ meme, index, total, onPrev, onNext, onShuffl
           padding: '12px 14px',
           borderTop: '1px solid var(--border)',
           flexShrink: 0,
+          position: 'relative',
+          zIndex: 1,
+          background: 'var(--surface)',
         }}>
           <button
             onClick={onPrev} disabled={!onPrev}

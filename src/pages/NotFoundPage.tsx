@@ -81,6 +81,9 @@ export default function NotFoundPage() {
   // loading behind the scenes.
   const [imgReady, setImgReady] = useState(false);
   const mounted = useRef(true);
+  // Mirrors `memes` so loadMeme can compute the target index without
+  // depending on (and re-creating itself for) every history change.
+  const memesRef = useRef<Meme[]>([]);
 
   const loadMeme = useCallback(() => {
     setMemeLoading(true);
@@ -88,9 +91,14 @@ export default function NotFoundPage() {
     fetchMeme().then(m => {
       if (!mounted.current) return;
       if (m) {
-        setMemes(prev => {
-          setIndex(prev.length);
-          return [...prev, m];
+        // Append and jump to the new meme, deduped by url - StrictMode
+        // double-invokes the mount effect, which would otherwise seed history
+        // with the same meme twice. Both setters are called directly rather
+        // than nested inside an updater, so neither runs twice.
+        setMemes(prev => (prev.some(x => x.url === m.url) ? prev : [...prev, m]));
+        setIndex(() => {
+          const seen = memesRef.current.findIndex(x => x.url === m.url);
+          return seen !== -1 ? seen : memesRef.current.length;
         });
       }
       setMemeLoading(false);
@@ -104,6 +112,7 @@ export default function NotFoundPage() {
   }, [loadMeme]);
 
   const meme = memes[index] ?? null;
+  memesRef.current = memes;
 
   function shuffleAll() {
     setMsg(pickRandom());
@@ -121,7 +130,11 @@ export default function NotFoundPage() {
         alignItems: 'center',
         justifyContent: 'center',
         textAlign: 'center',
-        animation: 'blogFadeIn 0.35s ease both',
+        // `backwards`, not `both` - `both` keeps the keyframe transform
+        // applied after the fade ends, which makes this <main> a permanent
+        // stacking context and traps the fixed-position meme modal under
+        // the navbar. `backwards` plays the same fade and leaves no transform.
+        animation: 'blogFadeIn 0.35s ease backwards',
       }}
     >
       <h1
