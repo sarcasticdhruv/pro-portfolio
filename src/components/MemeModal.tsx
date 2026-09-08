@@ -39,6 +39,7 @@ export default function MemeModal({ meme, index, total, onPrev, onNext, onShuffl
   const swipeLatch = useRef(false);
   const swipeTimer = useRef<number | undefined>(undefined);
   const touchStart = useRef<{ x: number; y: number } | null>(null);
+  const frameRef = useRef<HTMLDivElement | null>(null);
   // Clipboard is unavailable on insecure origins - hide the control instead of
   // offering a button that silently does nothing.
   const canCopy = typeof navigator !== 'undefined' && !!navigator.clipboard;
@@ -68,20 +69,6 @@ export default function MemeModal({ meme, index, total, onPrev, onNext, onShuffl
     return () => { document.body.style.overflow = prev; };
   }, []);
 
-  // Horizontal trackpad swipe: right-to-left (deltaX > 0) goes to the next
-  // meme. Only while fit to the viewport - zoomed, the frame scrolls instead.
-  function onWheel(e: React.WheelEvent) {
-    if (zoom !== 1) return;
-    if (Math.abs(e.deltaX) < Math.abs(e.deltaY) || Math.abs(e.deltaX) < 30) return;
-    e.preventDefault();
-    window.clearTimeout(swipeTimer.current);
-    swipeTimer.current = window.setTimeout(() => { swipeLatch.current = false; }, 220);
-    if (swipeLatch.current) return;
-    swipeLatch.current = true;
-    if (e.deltaX > 0) onNext?.();
-    else onPrev?.();
-  }
-
   // Touchscreen equivalent, so the same gesture works on a phone.
   function onTouchStart(e: React.TouchEvent) {
     const t = e.touches[0];
@@ -99,6 +86,28 @@ export default function MemeModal({ meme, index, total, onPrev, onNext, onShuffl
     if (dx < 0) onNext?.();
     else onPrev?.();
   }
+
+  // Horizontal trackpad swipe: right-to-left (deltaX > 0) goes to the next
+  // meme. Registered natively with passive:false so preventDefault actually
+  // suppresses the browser's swipe-to-go-back. Only while fit to the
+  // viewport - zoomed, the frame scrolls instead.
+  useEffect(() => {
+    const el = frameRef.current;
+    if (!el) return;
+    const onWheel = (e: WheelEvent) => {
+      if (zoom !== 1) return;
+      if (Math.abs(e.deltaX) < Math.abs(e.deltaY) || Math.abs(e.deltaX) < 30) return;
+      e.preventDefault();
+      window.clearTimeout(swipeTimer.current);
+      swipeTimer.current = window.setTimeout(() => { swipeLatch.current = false; }, 220);
+      if (swipeLatch.current) return;
+      swipeLatch.current = true;
+      if (e.deltaX > 0) onNext?.();
+      else onPrev?.();
+    };
+    el.addEventListener('wheel', onWheel, { passive: false });
+    return () => el.removeEventListener('wheel', onWheel);
+  }, [zoom, onNext, onPrev]);
 
   async function copyLink() {
     try {
@@ -222,7 +231,7 @@ export default function MemeModal({ meme, index, total, onPrev, onNext, onShuffl
           // horizontal gestures instead of treating them as scroll.
           touchAction: zoom === 1 ? 'pan-y' : 'auto',
         }}
-        onWheel={onWheel}
+        ref={frameRef}
         onTouchStart={onTouchStart}
         onTouchEnd={onTouchEnd}
         >
