@@ -13,6 +13,7 @@
 
 ## Blog posts
 
+- [OpenAI Dropped 722 Math Papers in One Night. The 3 It Pulled Back Tell You More.](https://dhruv-choudhary.tech/blog/openai-722-math-papers-sign-error): On October 6, OpenAI published 722 AI-written math manuscripts claiming progress on hundreds of open problems. A day later, one sign error took down three of them. Here's what actually happened, why mathematicians are split, and what it says about the real bottleneck in AI right now: not generating answers, but checking them.
 - [The EU AI Act's August 2026 Deadline: What Solo Devs Actually Need to Log](https://dhruv-choudhary.tech/blog/eu-ai-act-august-2026-what-solo-devs-need-to-log): August 2, 2026 is when the EU AI Act's transparency and high-risk obligations actually bite. Here's what that means if you're not a Fortune 500 compliance team, just one person shipping an AI feature.
 - [GDPR Blocked Bias Testing. The June 2026 Fix, Explained](https://dhruv-choudhary.tech/blog/gdpr-blocked-bias-testing-june-2026-fix): You can't fix AI bias without the exact demographic data GDPR tells you to lock away. That contradiction sat there for years. In June 2026 the EU actually resolved it, with conditions.
 - [I Ran Lighthouse on My Own Portfolio. It Was Not Flattering.](https://dhruv-choudhary.tech/blog/i-gave-my-portfolio-a-lighthouse-audit-it-was-not-flattering): My own site's CLS score was 0.31, which is the kind of number you'd roast a client for shipping. Here's the actual fix, the actual before/after numbers, and the one image that was quietly costing everyone 648KB for no reason.
