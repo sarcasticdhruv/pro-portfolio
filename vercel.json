@@ -21,6 +21,10 @@
   ],
   "rewrites": [
     {
+      "source": "/c/:file",
+      "destination": "/api/cv?f=:file"
+    },
+    {
       "source": "/((?!api/).*)",
       "destination": "/index.html"
     }
