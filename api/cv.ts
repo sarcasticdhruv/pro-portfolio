@@ -43,7 +43,8 @@ export default async function handler(req: Request): Promise<Response> {
   if (!/^[a-z0-9][a-z0-9-]*\.pdf$/i.test(file)) return new Response('Not found', { status: 404 });
 
   const upstream = await fetch(new URL(`/cv-files/${file}`, req.url));
-  if (!upstream.ok) return new Response('Not found', { status: 404 });
+  // A missing file falls through to the site's index.html (status 200), so check the type too.
+  if (!upstream.ok || !(upstream.headers.get('content-type') ?? '').includes('pdf')) return new Response('Not found', { status: 404 });
 
   if (req.method !== 'HEAD') waitUntil(record(req, file));
   return new Response(upstream.body, {

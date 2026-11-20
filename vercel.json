@@ -21,6 +21,10 @@
   ],
   "rewrites": [
     {
+      "source": "/cv/:file",
+      "destination": "/api/cv?f=:file"
+    },
+    {
       "source": "/c/:file",
       "destination": "/api/cv?f=:file"
     },
