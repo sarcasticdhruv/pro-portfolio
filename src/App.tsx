@@ -9,6 +9,7 @@ import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import AIChatbot from './components/AIChatbot';
 import ScrollToTop from './components/ScrollToTop';
+import GridBackdrop from './components/GridBackdrop';
 
 export default function App() {
   const { theme, toggleTheme, transition } = useTheme();
@@ -28,6 +29,7 @@ export default function App() {
   return (
     <>
       <ThemeTransition transition={transition} />
+      <GridBackdrop />
       <Navbar theme={theme} onToggleTheme={handleToggleTheme} />
       <Outlet />
       <Footer />

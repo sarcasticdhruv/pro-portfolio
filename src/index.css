@@ -276,12 +276,17 @@ a:hover {
   box-shadow: var(--shadow-sm);
 }
 
-/* Alternating section backgrounds */
+/* Alternating section backgrounds. Plain sections stay transparent and the
+   alternating bands are slightly see-through, so the site-wide grid
+   backdrop (GridBackdrop.tsx) shows on every section, not just the hero. */
 [data-theme="light"] .section {
-  background: var(--bg);
+  background: transparent;
 }
 [data-theme="light"] .section[style*="background: var(--surface)"] {
-  background: #EEECEA !important;
+  background: rgba(238, 236, 234, 0.75) !important;
+}
+:root:not([data-theme="light"]) .section[style*="background: var(--surface)"] {
+  background: color-mix(in srgb, var(--surface) 75%, transparent) !important;
 }
 
 /* Nav gets a real shadow when scrolled */
