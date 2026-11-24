@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, type MouseEvent } from 'react';
 import { Github, Linkedin, Mail, MapPin, Globe2, ArrowRight, Circle } from 'lucide-react';
 import Terminal from './Terminal';
 import BootRedirect from './BootRedirect';
@@ -52,9 +52,40 @@ export default function Hero({ github }: Props) {
     }
   }, [charIndex, typing, titleIndex]);
 
+  // Cursor spotlight on the background grid: the accent-colored grid copy is
+  // revealed in a soft circle around the pointer. Position goes straight to
+  // CSS variables (one rAF per frame, no React re-render), and the effect is
+  // skipped on touch screens and for reduced-motion users.
+  const sectionRef = useRef<HTMLElement>(null);
+  const rafRef = useRef(0);
+  const spotlightOn = typeof window !== 'undefined'
+    && window.matchMedia('(hover: hover) and (pointer: fine)').matches
+    && !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  function onGridMove(e: MouseEvent<HTMLElement>) {
+    if (!spotlightOn || !sectionRef.current) return;
+    const el = sectionRef.current;
+    const { clientX, clientY } = e;
+    cancelAnimationFrame(rafRef.current);
+    rafRef.current = requestAnimationFrame(() => {
+      const r = el.getBoundingClientRect();
+      el.style.setProperty('--gx', `${clientX - r.left}px`);
+      el.style.setProperty('--gy', `${clientY - r.top}px`);
+      el.style.setProperty('--gspot', '1');
+    });
+  }
+  function onGridLeave() {
+    cancelAnimationFrame(rafRef.current);
+    sectionRef.current?.style.setProperty('--gspot', '0');
+  }
+  useEffect(() => () => cancelAnimationFrame(rafRef.current), []);
+
   return (
     <section
       id="hero"
+      ref={sectionRef}
+      onMouseMove={onGridMove}
+      onMouseLeave={onGridLeave}
       style={{
         minHeight: '100vh',
         display: 'flex',
@@ -73,10 +104,23 @@ export default function Hero({ github }: Props) {
         position: 'absolute', inset: 0, pointerEvents: 'none',
         backgroundImage: `linear-gradient(var(--border) 1px, transparent 1px), linear-gradient(90deg, var(--border) 1px, transparent 1px)`,
         backgroundSize: '64px 64px',
-        opacity: 0.3,
+        opacity: 0.45,
         maskImage: 'radial-gradient(ellipse 80% 80% at 30% 50%, black 30%, transparent 100%)',
         WebkitMaskImage: 'radial-gradient(ellipse 80% 80% at 30% 50%, black 30%, transparent 100%)',
       }} />
+      {/* Grid spotlight: same 64px grid in the accent color, visible only in
+          a soft circle around the cursor, with a faint glow underneath. */}
+      {spotlightOn && (
+        <div aria-hidden style={{
+          position: 'absolute', inset: 0, pointerEvents: 'none',
+          backgroundImage: `radial-gradient(220px circle at var(--gx, -999px) var(--gy, -999px), var(--accent-glow), transparent 70%), linear-gradient(var(--accent) 1px, transparent 1px), linear-gradient(90deg, var(--accent) 1px, transparent 1px)`,
+          backgroundSize: '100% 100%, 64px 64px, 64px 64px',
+          opacity: 'calc(var(--gspot, 0) * 0.55)',
+          transition: 'opacity 0.45s ease',
+          maskImage: 'radial-gradient(200px circle at var(--gx, -999px) var(--gy, -999px), black 0%, rgba(0,0,0,0.35) 45%, transparent 100%)',
+          WebkitMaskImage: 'radial-gradient(200px circle at var(--gx, -999px) var(--gy, -999px), black 0%, rgba(0,0,0,0.35) 45%, transparent 100%)',
+        }} />
+      )}
 
       {/* TOP: Status badge + Name + Typewriter - full width */}
       <div style={{ position: 'relative', zIndex: 1, marginBottom: '24px', maxWidth: '100%', overflow: 'hidden' }}>

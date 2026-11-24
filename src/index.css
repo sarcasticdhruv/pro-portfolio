@@ -429,3 +429,40 @@ a:hover {
     min-height: 42px;
   }
 }
+
+/* ─────────────────────────────────────────────
+   BLOG PAPER TEXTURE (only on /blog pages, toggled by App.tsx)
+   Four layers, all inline SVG / CSS, no image requests:
+   fine grain + soft tonal mottling + faint horizontal fibers + an edge
+   vignette, over a warm paper base. Fixed to the viewport so the paper
+   stays put while the text scrolls over it.
+──────────────────────────────────────────────── */
+body.paper-bg {
+  --paper-base: #F3EEE2;
+  background-color: var(--paper-base);
+}
+body.paper-bg::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-image:
+    radial-gradient(ellipse 120% 90% at 50% 40%, transparent 55%, rgba(110, 86, 48, 0.10) 100%),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='600' height='600'%3E%3Cfilter id='m'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.008' numOctaves='3' seed='7'/%3E%3CfeColorMatrix values='0 0 0 0 0.45 0 0 0 0 0.36 0 0 0 0 0.2 0 0 0 0.11 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23m)'/%3E%3C/svg%3E"),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='400'%3E%3Cfilter id='f'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.012 0.55' numOctaves='2' seed='3'/%3E%3CfeColorMatrix values='0 0 0 0 0.4 0 0 0 0 0.32 0 0 0 0 0.2 0 0 0 0.07 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23f)'/%3E%3C/svg%3E"),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.3 0 0 0 0 0.24 0 0 0 0 0.16 0 0 0 0.16 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)'/%3E%3C/svg%3E");
+  background-size: 100% 100%, 600px 600px, 400px 400px, 220px 220px;
+}
+
+/* Dark mode: a deep, inky stock with lighter grain instead of brown. */
+:root:not([data-theme="light"]) body.paper-bg {
+  --paper-base: #0B140E;
+}
+:root:not([data-theme="light"]) body.paper-bg::after {
+  background-image:
+    radial-gradient(ellipse 120% 90% at 50% 40%, transparent 50%, rgba(0, 0, 0, 0.35) 100%),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='600' height='600'%3E%3Cfilter id='m'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.008' numOctaves='3' seed='7'/%3E%3CfeColorMatrix values='0 0 0 0 0.75 0 0 0 0 0.85 0 0 0 0 0.78 0 0 0 0.05 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23m)'/%3E%3C/svg%3E"),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='400'%3E%3Cfilter id='f'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.012 0.55' numOctaves='2' seed='3'/%3E%3CfeColorMatrix values='0 0 0 0 0.8 0 0 0 0 0.9 0 0 0 0 0.82 0 0 0 0.03 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23f)'/%3E%3C/svg%3E"),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.85 0 0 0 0 0.95 0 0 0 0 0.88 0 0 0 0.07 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)'/%3E%3C/svg%3E");
+}
