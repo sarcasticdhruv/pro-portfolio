@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, type KeyboardEvent } from 'react';
 import { Link } from 'react-router-dom';
-import { Download, Loader2, RotateCw, ImageIcon, History, Trash2, X } from 'lucide-react';
+import { Download, Loader2, RotateCw, ImageIcon, History, Trash2, X, Sparkles } from 'lucide-react';
 import { useSEO } from '../hooks/useSEO';
 import { chat } from '../lib/providers';
 import { trackEvent } from '../lib/track';
@@ -26,6 +26,42 @@ a minimalist poster for an AI engineering blog, deep green and black
 a retro terminal glowing in a dark room, cinematic
 Mix themes across the 4: engineering/tech, nature or animals, abstract/artistic, sci-fi or retro. Be genuinely different each time - avoid defaulting to "robot" or "circuit board" every time.`;
 
+// Style presets: each adds concrete style keywords that FLUX responds to.
+const STYLES: { key: string; label: string; hint: string }[] = [
+  { key: 'none', label: 'auto', hint: '' },
+  { key: 'photo', label: 'photoreal', hint: 'photorealistic, 35mm photo, natural lighting, sharp focus, high detail' },
+  { key: 'cinematic', label: 'cinematic', hint: 'cinematic still, dramatic lighting, shallow depth of field, anamorphic, film grain' },
+  { key: 'anime', label: 'anime', hint: 'anime illustration, clean line art, vibrant colors, detailed background' },
+  { key: 'art', label: 'illustration', hint: 'digital illustration, painterly, rich textures, concept art' },
+  { key: '3d', label: '3d render', hint: '3D render, soft studio lighting, octane render, smooth materials' },
+  { key: 'minimal', label: 'minimal', hint: 'minimalist, flat design, bold shapes, limited color palette, lots of negative space' },
+];
+
+const ENHANCE_SYSTEM_PROMPT = `You rewrite short image ideas into one rich prompt for the FLUX text-to-image model. Keep the user's subject and intent exactly - never swap or add a different main subject. Add concrete visual detail: setting, lighting, composition, camera or medium, color mood. 35-60 words, one paragraph, plain text. Output ONLY the prompt: no quotes, no preface, no explanation.`;
+
+// Returns the original text if the model is slow or fails - generation must
+// never be blocked by the optional enhancement step.
+async function enhancePrompt(text: string, styleHint: string): Promise<string> {
+  try {
+    const out = await Promise.race([
+      chat({
+        tier: 'chat',
+        maxTokens: 220,
+        temperature: 0.8,
+        messages: [
+          { role: 'system', content: ENHANCE_SYSTEM_PROMPT + (styleHint ? ` Style to apply: ${styleHint}.` : '') },
+          { role: 'user', content: text },
+        ],
+      }),
+      new Promise<string>((_, rej) => setTimeout(() => rej(new Error('timeout')), 5000)),
+    ]);
+    const cleaned = out.replace(/^["'\s]+|["'\s]+$/g, '').replace(/\s+/g, ' ');
+    return cleaned.length >= 10 && cleaned.length <= 700 ? cleaned : text;
+  } catch {
+    return styleHint ? `${text}, ${styleHint}` : text;
+  }
+}
+
 function parseExamples(raw: string): string[] {
   const lines = raw
     .split('\n')
@@ -40,6 +76,9 @@ export default function ImaginePage() {
   const [src, setSrc] = useState('');
   const [status, setStatus] = useState<Status>('idle');
   const [source, setSource] = useState('');
+  const [enhance, setEnhance] = useState(true);
+  const [style, setStyle] = useState('none');
+  const [usedPrompt, setUsedPrompt] = useState('');
   const [examples, setExamples] = useState<string[]>(FALLBACK_EXAMPLES);
   const [history, setHistory] = useState<ImagineHistoryEntry[]>(() => loadHistory());
   const srcRef = useRef('');
@@ -83,10 +122,12 @@ export default function ImaginePage() {
     trackEvent('imagine_generate', text);
     setSubmitted(text);
 
-    if (!opts?.skipCache) {
+    const styleHint = STYLES.find(x => x.key === style)?.hint ?? '';
+    if (!opts?.skipCache && !styleHint) {
       const cached = findCached(text);
       if (cached) {
         setSource(cached.source);
+        setUsedPrompt('');
         if (srcRef.current) URL.revokeObjectURL(srcRef.current);
         srcRef.current = '';
         setSrc(cached.dataUrl);
@@ -97,10 +138,12 @@ export default function ImaginePage() {
 
     setStatus('loading');
     try {
+      const finalPrompt = enhance ? await enhancePrompt(text, styleHint) : styleHint ? `${text}, ${styleHint}` : text;
+      setUsedPrompt(finalPrompt !== text ? finalPrompt : '');
       const res = await fetch('/api/image', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt: text }),
+        body: JSON.stringify({ prompt: finalPrompt }),
       });
       if (!res.ok) throw new Error('generation failed');
       const blob = await res.blob();
@@ -130,6 +173,7 @@ export default function ImaginePage() {
     setPrompt(entry.prompt);
     setSubmitted(entry.prompt);
     setSource(entry.source);
+    setUsedPrompt('');
     if (srcRef.current) URL.revokeObjectURL(srcRef.current);
     srcRef.current = '';
     setSrc(entry.dataUrl);
@@ -143,6 +187,7 @@ export default function ImaginePage() {
     setPrompt('');
     setSubmitted('');
     setSource('');
+    setUsedPrompt('');
     if (srcRef.current) URL.revokeObjectURL(srcRef.current);
     srcRef.current = '';
     setSrc('');
@@ -225,6 +270,37 @@ export default function ImaginePage() {
           </button>
         </div>
 
+        {/* Enhance + style controls */}
+        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center', marginTop: '12px' }}>
+          <button
+            onClick={() => setEnhance(v => !v)}
+            disabled={status === 'loading'}
+            title="Let AI expand your idea into a detailed prompt before painting"
+            className="search-chip"
+            style={{
+              display: 'inline-flex', alignItems: 'center', gap: '5px',
+              borderColor: enhance ? 'var(--accent)' : undefined,
+              color: enhance ? 'var(--accent)' : undefined,
+            }}
+          >
+            <Sparkles size={11} /> enhance {enhance ? 'on' : 'off'}
+          </button>
+          {STYLES.map(st => (
+            <button
+              key={st.key}
+              onClick={() => setStyle(st.key)}
+              disabled={status === 'loading'}
+              className="search-chip"
+              style={{
+                borderColor: style === st.key ? 'var(--accent)' : undefined,
+                color: style === st.key ? 'var(--accent)' : undefined,
+              }}
+            >
+              {st.label}
+            </button>
+          ))}
+        </div>
+
         {/* Example chips (idle only) */}
         {status === 'idle' && (
           <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: '16px' }}>
@@ -257,7 +333,7 @@ export default function ImaginePage() {
               {status === 'error' && (
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px', color: 'var(--text-dim)', padding: '24px', textAlign: 'center' }}>
                   <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '0.75rem' }}>
-                    generation failed. the model may be warming up, try again.
+                    all image models are busy or out of free quota right now. try again in a minute.
                   </span>
                   <button onClick={() => generate(submitted)} className="search-chip" style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
                     <RotateCw size={11} /> retry
@@ -279,8 +355,8 @@ export default function ImaginePage() {
                   fontFamily: "'JetBrains Mono', monospace", fontSize: '0.66rem',
                   color: 'var(--text-dim)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                   maxWidth: '55%',
-                }}>
-                  {source === 'hf-flux' ? 'Core' : source === 'pollinations' ? 'Lite' : 'generated'} · {submitted}
+                }} title={usedPrompt || submitted}>
+                  {source === 'cloudflare-flux' || source === 'nvidia-flux' || source === 'hf-flux' ? 'Core' : source === 'pollinations' ? 'Lite' : 'generated'} · {submitted}
                 </span>
                 <div style={{ display: 'flex', gap: '6px' }}>
                   <button onClick={() => generate(submitted, { skipCache: true })} className="search-chip" style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
@@ -291,6 +367,17 @@ export default function ImaginePage() {
                   </a>
                 </div>
               </div>
+            )}
+            {status === 'done' && usedPrompt && (
+              <details style={{ padding: '0 16px 12px', borderTop: '1px solid var(--border)' }}>
+                <summary style={{
+                  cursor: 'pointer', padding: '10px 0 4px', fontFamily: "'JetBrains Mono', monospace",
+                  fontSize: '0.66rem', color: 'var(--text-dim)',
+                }}>
+                  enhanced prompt
+                </summary>
+                <p style={{ margin: '6px 0 0', fontSize: '0.78rem', lineHeight: 1.55, color: 'var(--text-muted)' }}>{usedPrompt}</p>
+              </details>
             )}
           </div>
         )}

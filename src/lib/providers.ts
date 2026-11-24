@@ -24,7 +24,7 @@ export type ModelTier = 'fast' | 'synth' | 'web' | 'chat';
 // Forces a single named provider instead of the tier's default fallback
 // chain - powers the search page's Photon/Core/Pro model toggle, and the
 // chatbot's image-attachment flow (only Gemini here handles vision input).
-export type ProviderOverride = 'groq' | 'cerebras' | 'huggingface' | 'gemini';
+export type ProviderOverride = 'groq' | 'cerebras' | 'huggingface' | 'gemini' | 'nvidia' | 'cohere';
 
 export interface StreamOptions {
   messages: ChatMessage[];
@@ -133,4 +133,33 @@ export async function chat(opts: Omit<StreamOptions, 'onToken' | 'onAttempt'>): 
   const text: string = data?.text ?? '';
   if (!text.trim()) throw new Error('empty answer');
   return text;
+}
+
+export interface WebSource { title: string; url: string }
+
+// Like chat(), but also returns the cited sources (web tier only - Gemini's
+// Google Search grounding reports which pages the answer came from).
+export async function chatWithSources(
+  opts: Omit<StreamOptions, 'onToken' | 'onAttempt'>,
+): Promise<{ text: string; sources: WebSource[] }> {
+  const res = await fetch(ENDPOINT, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      tier: opts.tier,
+      messages: opts.messages,
+      maxTokens: opts.maxTokens,
+      temperature: opts.temperature,
+      provider: opts.provider,
+      stream: false,
+    }),
+  });
+  if (!res.ok) await proxyError(res);
+  const data = await res.json();
+  const text: string = data?.text ?? '';
+  if (!text.trim()) throw new Error('empty answer');
+  const sources: WebSource[] = Array.isArray(data?.sources)
+    ? data.sources.filter((s: WebSource) => s && typeof s.url === 'string')
+    : [];
+  return { text, sources };
 }

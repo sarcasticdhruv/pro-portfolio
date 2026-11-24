@@ -10,7 +10,7 @@
 // both settle. Any worker may fail without killing the search - the
 // synthesizer works with whatever material survived.
 import { searchContent, type ScoredMatch } from './contentIndex';
-import { streamChat, chat, hasAnyProvider, hasWebSearch, type ProviderOverride } from './providers';
+import { streamChat, chat, chatWithSources, hasAnyProvider, hasWebSearch, type ProviderOverride } from './providers';
 import { fetchWebRefs, hasImageIntent, withTimeout, type WebRefs, type WebImage } from './webTools';
 import { detectDocIntent, detectDocKind, hasImageGenIntent, extractTopic } from './exportAnswer';
 
@@ -18,13 +18,16 @@ export type Lane = 'site' | 'web' | 'both';
 
 // The search page's model toggle. Only changes which provider answers the
 // final synthesis - photon/core stay on the fast dedicated-silicon providers,
-// pro opts into HF's slower but more thoughtfully-reasoned models.
+// pro opts into Gemini's slower, more thoughtfully-reasoned model.
 export type ModelChoice = 'photon' | 'core' | 'pro';
 
+// Cerebras and Hugging Face are out of free credits, so Core now runs on
+// NVIDIA's Nemotron Ultra (550B) and Pro on Gemini's reasoning model. The
+// proxy falls back to the rest of the chain if the chosen one is down.
 const MODEL_CHOICE_PROVIDER: Record<ModelChoice, ProviderOverride> = {
   photon: 'groq',
-  core: 'cerebras',
-  pro: 'huggingface',
+  core: 'nvidia',
+  pro: 'gemini',
 };
 
 export interface AgentStep {
@@ -176,19 +179,16 @@ export async function runSearch(
   const runWeb = lane !== 'site' && hasWebSearch();
   let agentsUsed = 2;
 
-  const webTask: Promise<string | null> = (async () => {
+  const webTask: Promise<{ text: string; sources: { title: string; url: string }[] } | null> = (async () => {
     if (!runWeb) return null;
     agentsUsed++;
     startStep('web', 'Searching the web');
     try {
-      // groq/compound-mini is the only working web-search model on our plan
-      // (see api/llm.ts) and has a tight 8000 TPM-per-key budget, so keep
-      // this call lean to lower the odds of tripping that cap. This is a
-      // ping, not a wait: give it 1.5s to answer - if it's slow or
-      // rate-limited, stop immediately and let the synthesizer proceed with
-      // whatever refs/analyst/site content is already available rather than
-      // eating into the search's overall response-time budget.
-      const text = await withTimeout(chat({
+      // The web tier runs on Gemini's Google Search grounding (api/llm.ts),
+      // which takes ~4-6s. Give it 8s: if it is slower or fails, skip it and
+      // let the synthesizer proceed with refs/analyst/site content already
+      // available instead of eating into the overall response budget.
+      const web = await withTimeout(chatWithSources({
         tier: 'web',
         maxTokens: 400,
         temperature: 0.3,
@@ -200,9 +200,9 @@ export async function runSearch(
           },
           { role: 'user', content: effectiveQuery },
         ],
-      }), 1500);
-      endStep('web', 'findings collected');
-      return text;
+      }), 8000);
+      endStep('web', `${web.sources.length} source${web.sources.length === 1 ? '' : 's'} found`);
+      return web;
     } catch {
       endStep('web', 'unavailable, skipped', 'error');
       return null;
@@ -255,7 +255,21 @@ export async function runSearch(
     }
   })();
 
-  const [webFindings, refs, analystNotes] = await Promise.all([webTask, refsTask, analystTask]);
+  const [web, refs, analystNotes] = await Promise.all([webTask, refsTask, analystTask]);
+  const webFindings = web?.text ?? null;
+
+  // Grounded web sources join the site sources so the answer can cite both
+  // with [n]. They go in before the loose reference snippets so their
+  // numbers continue straight on from the site content's.
+  const webSourceStart = result.sources.length;
+  for (const w of web?.sources ?? []) {
+    result.sources.push({
+      title: w.title,
+      url: w.url,
+      kind: 'web',
+      snippet: (() => { try { return new URL(w.url).hostname.replace(/^www\./, ''); } catch { return w.url; } })(),
+    });
+  }
 
   if (refs) {
     result.images = refs.images;
@@ -279,7 +293,12 @@ export async function runSearch(
       `SITE CONTENT (cite these inline with bracket numbers like [1]):\n${siteContext(relevant)}`,
     );
   }
-  if (webFindings) materials.push(`WEB RESEARCH FINDINGS (primary - from a live web search):\n${webFindings}`);
+  if (webFindings) {
+    const list = (web?.sources ?? []).map((w, i) => `[${webSourceStart + i + 1}] ${w.title} - ${w.url}`).join('\n');
+    materials.push(
+      `WEB RESEARCH FINDINGS (primary - from a live web search):\n${webFindings}${list ? `\n\nWEB SOURCES (cite with these bracket numbers):\n${list}` : ''}`,
+    );
+  }
   // Encyclopedic references only make the cut when they clearly overlap the
   // query - tangential snippets dilute the synthesis and hurt answer quality.
   const queryTokens = effectiveQuery.toLowerCase().split(/\W+/).filter(t => t.length > 3);
@@ -302,8 +321,8 @@ export async function runSearch(
 
   const citeRule = docKind && docKind !== 'article'
     ? 'Do not use bracket citations, footnotes or any other citation markers - just write the content directly.'
-    : relevant.length > 0
-      ? 'Cite SITE CONTENT items inline with bracket numbers like [1]. That is the only citation format allowed - never emit any other marker (no 【】, no [WEB], no footnotes).'
+    : relevant.length > 0 || (web?.sources.length ?? 0) > 0
+      ? 'Cite SITE CONTENT items and WEB SOURCES inline with their bracket numbers like [1] or [3], placed right after the claim they support. Only cite numbers that are actually listed. That is the only citation format allowed - never emit any other marker (no 【】, no [WEB], no footnotes).'
       : 'Do not use bracket citations or any citation markers at all - just state the facts.';
 
   const docKindNote =

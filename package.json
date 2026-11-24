@@ -5,7 +5,10 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "prebuild": "node scripts/generate-sitemap.mjs && node scripts/generate-llms-txt.mjs",
+    "prebuild": "node scripts/generate-sitemap.mjs && node scripts/generate-llms-txt.mjs && node scripts/generate-rss.mjs",
+    "seo:check": "node scripts/seo-check.mjs",
+    "health": "node scripts/health-check.mjs",
+    "indexnow": "node scripts/indexnow.mjs",
     "build": "tsc && vite build",
     "postbuild": "node scripts/prerender.mjs",
     "preview": "vite preview"

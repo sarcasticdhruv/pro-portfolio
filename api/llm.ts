@@ -58,7 +58,6 @@ function buildPool(): Provider[] {
         // Large, i.e. plan-tier restriction, not transient) - verified live,
         // so trying it first just burns 2 guaranteed-dead attempts on every
         // search. `compound-mini` is the one that actually answers.
-        web: 'groq/compound-mini',
       },
     });
   }
@@ -97,6 +96,37 @@ function buildPool(): Provider[] {
     });
   }
 
+  // NVIDIA NIM (free developer credits, OpenAI-compatible). Nemotron Ultra is
+  // the best-quality model we can reach for free and answers in ~1s, so it
+  // leads the synth tier. (GLM-5.3-flash hangs and Mistral-Large-4 takes
+  // 60s+ here - verified live - so they are deliberately not used.)
+  const nvidia = envKeys('NVIDIA_API_KEY', 'NVIDIA_API_KEY_2');
+  if (nvidia.length) {
+    pool.push({
+      name: 'nvidia',
+      url: 'https://integrate.api.nvidia.com/v1/chat/completions',
+      keys: nvidia,
+      models: {
+        fast: ['nvidia/nemotron-3-ultra-550b-a55b', 'nvidia/nemotron-3.5-lightning-30b-a3b'],
+        synth: 'nvidia/nemotron-3-ultra-550b-a55b',
+        chat: 'nvidia/nemotron-3-ultra-550b-a55b',
+      },
+    });
+  }
+
+  // Cohere trial key (free, rate-limited, non-commercial) - last-resort
+  // fallback via its OpenAI-compatible endpoint, so it only runs once every
+  // other provider has failed.
+  const cohere = envKeys('COHERE_API_KEY', 'COHERE_API_KEY_2');
+  if (cohere.length) {
+    pool.push({
+      name: 'cohere',
+      url: 'https://api.cohere.ai/compatibility/v1/chat/completions',
+      keys: cohere,
+      models: { fast: 'command-r7b-12-2024', synth: 'command-a-03-2025', chat: 'command-a-03-2025' },
+    });
+  }
+
   return pool;
 }
 
@@ -110,10 +140,10 @@ const POOL = buildPool();
 // since its answers are genuinely better reasoned but its throughput is
 // slower and less consistent (measured live: 7-26s full streams).
 const TIER_ORDER: Record<Tier, string[]> = {
-  synth: ['groq', 'cerebras', 'huggingface', 'gemini'],
-  fast: ['cerebras', 'groq', 'huggingface', 'gemini'],
-  chat: ['groq', 'huggingface', 'cerebras', 'gemini'],
-  web: ['groq'],
+  synth: ['nvidia', 'groq', 'gemini', 'cohere', 'huggingface', 'cerebras'],
+  fast: ['groq', 'nvidia', 'gemini', 'cohere', 'cerebras', 'huggingface'],
+  chat: ['groq', 'nvidia', 'gemini', 'cohere', 'huggingface', 'cerebras'],
+  web: [],
 };
 
 function chainFor(tier: Tier): Provider[] {
@@ -254,6 +284,63 @@ async function commitOnFirstToken(
   });
 }
 
+// Web-search tier: Gemini's built-in Google Search grounding (native API, not
+// the OpenAI-compat endpoint). Replaces groq/compound-mini, which Groq removed.
+// Always returns a buffered answer; streaming callers get it as one SSE chunk.
+interface WebSource { title: string; url: string }
+
+// Grounding links are vertexaisearch redirect URLs; resolve each to the real
+// page (parallel, 2s cap) so sources link to the actual site.
+async function resolveSource(uri: string, title: string): Promise<WebSource> {
+  if (!uri.includes('vertexaisearch.cloud.google.com')) return { title: title || uri, url: uri };
+  try {
+    const r = await fetch(uri, { redirect: 'manual', signal: AbortSignal.timeout(2000) });
+    const loc = r.headers.get('location');
+    if (loc) return { title: title || new URL(loc).hostname, url: loc };
+  } catch { /* keep redirect link */ }
+  return { title: title || uri, url: uri };
+}
+
+async function webSearchViaGemini(messages: unknown, maxTokens?: number, temperature?: number): Promise<{ text: string; sources: WebSource[] } | null> {
+  type Msg = { role: string; content: unknown };
+  const list = (messages as Msg[]).filter(m => m && typeof m.content === 'string');
+  const system = list.filter(m => m.role === 'system').map(m => m.content as string).join('\n');
+  const contents = list.filter(m => m.role !== 'system').map(m => ({
+    role: m.role === 'assistant' ? 'model' : 'user',
+    parts: [{ text: m.content as string }],
+  }));
+  for (const key of envKeys('GEMINI_API_KEY', 'GEMINI_API_KEY_2', 'GEMINI_API_KEY_3', 'GEMINI_API_KEY_4')) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 12000);
+    try {
+      const r = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent', {
+        method: 'POST',
+        headers: { 'x-goog-api-key': key, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...(system ? { systemInstruction: { parts: [{ text: system }] } } : {}),
+          contents,
+          tools: [{ google_search: {} }],
+          generationConfig: { maxOutputTokens: maxTokens ?? 600, temperature: temperature ?? 0.3 },
+        }),
+        signal: controller.signal,
+      });
+      clearTimeout(timer);
+      if (!r.ok) continue;
+      const data = await r.json();
+      const text: string = (data?.candidates?.[0]?.content?.parts ?? []).map((p: { text?: string }) => p.text ?? '').join('').trim();
+      if (!text) continue;
+      const chunks: { web?: { uri?: string; title?: string } }[] = data?.candidates?.[0]?.groundingMetadata?.groundingChunks ?? [];
+      const seen = new Set<string>();
+      const raw = chunks.filter(c => c.web?.uri && !seen.has(c.web.uri) && seen.add(c.web.uri)).slice(0, 5);
+      const sources = await Promise.all(raw.map(c => resolveSource(c.web!.uri!, c.web!.title ?? '')));
+      return { text, sources };
+    } catch {
+      clearTimeout(timer);
+    }
+  }
+  return null;
+}
+
 export default async function handler(req: Request): Promise<Response> {
   if (req.method !== 'POST') return json({ error: 'method not allowed' }, 405);
 
@@ -263,6 +350,8 @@ export default async function handler(req: Request): Promise<Response> {
     // order - used by the search page's Photon/Core/Pro model toggle so the
     // visitor can explicitly pick speed vs HF's deeper reasoning.
     provider?: string;
+    // With `provider`, disables fallback to other providers (health checks).
+    strict?: boolean;
   };
   try {
     body = await req.json();
@@ -274,9 +363,25 @@ export default async function handler(req: Request): Promise<Response> {
   const messages = body.messages;
   if (!tier || !Array.isArray(messages)) return json({ error: 'missing tier or messages' }, 400);
 
+  if (tier === 'web') {
+    const web = await webSearchViaGemini(messages, body.maxTokens, body.temperature);
+    if (!web) return json({ error: 'web search unavailable' }, 502);
+    const { text, sources } = web;
+    if (body.stream === false) return json({ text, sources, provider: 'gemini-grounded' });
+    const sse = `data: ${JSON.stringify({ choices: [{ delta: { content: text, role: 'assistant' }, finish_reason: 'stop', index: 0 }] })}\n\ndata: [DONE]\n\n`;
+    return new Response(sse, {
+      headers: { 'Content-Type': 'text/event-stream; charset=utf-8', 'Cache-Control': 'no-cache, no-transform', 'X-LLM-Provider': 'gemini-grounded' },
+    });
+  }
+
+  // A forced provider (the search page's model toggle) goes first but no
+  // longer dead-ends: if it is out of credits the rest of the tier's chain
+  // still answers, instead of the whole search failing.
+  const base = chainFor(tier);
+  const forced = body.provider ? POOL.filter(p => p.name === body.provider && !!p.models[tier]) : [];
   const chain = body.provider
-    ? POOL.filter(p => p.name === body.provider && !!p.models[tier])
-    : chainFor(tier);
+    ? (body.strict ? forced : [...forced, ...base.filter(p => p.name !== body.provider)])
+    : base;
   if (!chain.length) return json({ error: `no provider configured for tier ${tier}` }, 503);
 
   const wantStream = body.stream !== false; // default to streaming
