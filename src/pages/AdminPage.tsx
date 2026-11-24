@@ -106,6 +106,19 @@ function ActionCell({ event, detail, path }: { event: string; detail: string | n
   );
 }
 
+function localTimeIn(tz: string | null | undefined): string | null {
+  if (!tz) return null;
+  try { return new Date().toLocaleTimeString('en-US', { timeZone: tz, hour: 'numeric', minute: '2-digit' }); } catch { return null; }
+}
+
+function referrerHost(ref: string | null): string | null {
+  if (!ref) return null;
+  try {
+    const h = new URL(ref).hostname.replace(/^www\./, '');
+    return h === location.hostname ? null : h;
+  } catch { return ref.slice(0, 30); }
+}
+
 // ISP/org name plus a proxy/hosting flag, from the free-tier IP intel cache
 // (see src/lib/ipIntel.ts) - null when that IP hasn't been enriched yet.
 function NetworkCell({ intel }: { intel: IpIntel | null }) {
@@ -221,6 +234,11 @@ export default function AdminPage() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // visitor id -> lead name/"reached out", for the badge in the Visitors table
+  const leadByVisitor = new Map(
+    leads.filter(l => l.visitorId).map(l => [l.visitorId as string, l.name ? `lead: ${l.name.split(' ')[0]}` : 'reached out']),
+  );
 
   const filteredVisitors = natureFilter === 'all'
     ? visitors
@@ -384,15 +402,19 @@ export default function AdminPage() {
             </button>
           ))}
         </div>
+        {/* Stretched past the page column (this table only) so every field
+            fits without squeezing: up to 1600px, never wider than the viewport. */}
         <div style={{
+          position: 'relative', left: '50%', transform: 'translateX(-50%)',
+          width: 'min(1600px, calc(100vw - 32px))',
           overflowX: 'auto', border: '1px solid var(--border)', borderRadius: '12px',
           marginBottom: '36px', background: 'var(--surface)',
         }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.78rem', fontFamily: "'JetBrains Mono', monospace" }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.76rem', fontFamily: "'JetBrains Mono', monospace" }}>
             <thead>
               <tr style={{ borderBottom: '1px solid var(--border)', textAlign: 'left', color: 'var(--text-dim)' }}>
-                {['', 'visitor', 'ip', 'location', 'network', 'device', 'nature', 'visits', 'events', 'first seen', 'last seen', 'last page'].map(h => (
-                  <th key={h} style={{ padding: '10px 14px', fontWeight: 600, whiteSpace: 'nowrap' }}>{h}</th>
+                {['', 'visitor', 'ip', 'location', 'local time', 'network', 'device', 'nature', 'came from', 'visits', 'events', 'seen (first → last)', 'last page'].map(h => (
+                  <th key={h} style={{ padding: '10px 9px', fontWeight: 600, whiteSpace: 'nowrap' }}>{h}</th>
                 ))}
               </tr>
             </thead>
@@ -408,27 +430,51 @@ export default function AdminPage() {
                       <td style={{ padding: '10px 8px 10px 14px', color: 'var(--text-dim)' }}>
                         {isOpen ? <ChevronDown size={13} /> : <ChevronRight size={13} />}
                       </td>
-                      <td style={{ padding: '10px 14px', color: 'var(--text-dim)' }}>{v.visitorId.slice(0, 8)}</td>
-                      <td style={{ padding: '10px 14px', color: 'var(--text)' }}>{v.ip ?? '-'}</td>
-                      <td style={{ padding: '10px 14px', color: 'var(--text)' }}>
-                        {[v.city, v.country].filter(Boolean).join(', ') || '-'}
+                      <td style={{ padding: '10px 9px', color: 'var(--text-dim)', whiteSpace: 'nowrap' }}>
+                        {v.visitorId.slice(0, 8)}
+                        {leadByVisitor.has(v.visitorId) && (
+                          <span
+                            onClick={e => { e.stopPropagation(); setView('inbox'); }}
+                            title="This visitor reached out - open Inbox"
+                            style={{ marginLeft: '6px', cursor: 'pointer' }}
+                          >
+                            <Pill label={leadByVisitor.get(v.visitorId)!} tone="accent" />
+                          </span>
+                        )}
                       </td>
-                      <td style={{ padding: '10px 14px', color: 'var(--text)' }}>
+                      <td style={{ padding: '10px 9px', color: 'var(--text)', whiteSpace: 'nowrap' }}>{v.ip ?? '-'}</td>
+                      <td style={{ padding: '10px 9px', color: 'var(--text)', minWidth: '160px' }}>
+                        {[v.city, v.ipIntel?.region, v.country].filter(Boolean).join(', ') || '-'}
+                        {v.ipIntel?.postal && <span style={{ color: 'var(--text-dim)' }}> {v.ipIntel.postal}</span>}
+                        {v.ipIntel?.lat != null && v.ipIntel?.lon != null && (
+                          <a
+                            href={`https://www.google.com/maps?q=${v.ipIntel.lat},${v.ipIntel.lon}`}
+                            target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()}
+                            style={{ color: 'var(--accent)', textDecoration: 'none', marginLeft: '6px' }}
+                          >map</a>
+                        )}
+                      </td>
+                      <td style={{ padding: '10px 9px', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
+                        {localTimeIn(v.ipIntel?.timezone) ?? '-'}
+                      </td>
+                      <td style={{ padding: '10px 9px', color: 'var(--text)', whiteSpace: 'nowrap' }}>
                         <NetworkCell intel={v.ipIntel} />
                       </td>
-                      <td style={{ padding: '10px 14px', color: 'var(--text)' }}>{parseUA(v.userAgent)}</td>
-                      <td style={{ padding: '10px 14px' }}>
+                      <td style={{ padding: '10px 9px', color: 'var(--text)', whiteSpace: 'nowrap' }}>{parseUA(v.userAgent)}</td>
+                      <td style={{ padding: '10px 9px' }}>
                         <Pill label={NATURE_LABELS[v.nature]} tone={natureTone(v.nature)} />
                       </td>
-                      <td style={{ padding: '10px 14px', color: 'var(--text)' }}>{v.visitCount}</td>
-                      <td style={{ padding: '10px 14px', color: 'var(--text-muted)' }}>{v.eventCount}</td>
-                      <td style={{ padding: '10px 14px', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>{timeAgo(v.firstSeen)}</td>
-                      <td style={{ padding: '10px 14px', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>{timeAgo(v.lastSeen)}</td>
-                      <td style={{ padding: '10px 14px', color: 'var(--text-muted)' }}>{v.lastPath ?? '-'}</td>
+                      <td style={{ padding: '10px 9px', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
+                        {referrerHost(v.lastReferrer) ?? 'direct'}
+                      </td>
+                      <td style={{ padding: '10px 9px', color: 'var(--text)' }}>{v.visitCount}</td>
+                      <td style={{ padding: '10px 9px', color: 'var(--text-muted)' }}>{v.eventCount}</td>
+                      <td style={{ padding: '10px 9px', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>{timeAgo(v.firstSeen)} → {timeAgo(v.lastSeen)}</td>
+                      <td style={{ padding: '10px 9px', color: 'var(--text-muted)', maxWidth: '220px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={v.lastPath ?? undefined}>{v.lastPath ?? '-'}</td>
                     </tr>
                     {isOpen && (
                       <tr key={`${v.visitorId}-detail`} style={{ borderBottom: '1px solid var(--border)' }}>
-                        <td colSpan={12} style={{ padding: '0 14px 14px 40px', background: 'var(--surface-2)' }}>
+                        <td colSpan={13} style={{ padding: '0 14px 14px 40px', background: 'var(--surface-2)' }}>
                           {timelineLoading === v.visitorId ? (
                             <p style={{ color: 'var(--text-dim)', padding: '10px 0' }}>loading...</p>
                           ) : (
@@ -454,7 +500,7 @@ export default function AdminPage() {
                 );
               })}
               {filteredVisitors.length === 0 && (
-                <tr><td colSpan={12} style={{ padding: '20px 14px', color: 'var(--text-dim)', textAlign: 'center' }}>no visits recorded yet</td></tr>
+                <tr><td colSpan={13} style={{ padding: '20px 14px', color: 'var(--text-dim)', textAlign: 'center' }}>no visits recorded yet</td></tr>
               )}
             </tbody>
           </table>

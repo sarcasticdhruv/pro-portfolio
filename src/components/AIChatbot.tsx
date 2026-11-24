@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { streamChatbot, transcribeAudio } from '../lib/chatbotClient';
 import { connectLiveVoice, type LiveVoiceController } from '../lib/liveVoice';
 import type { ChatMessage, WebSource } from '../lib/providers';
-import { planTools, runTools, type AgentStep, type AgentAction } from '../lib/chatAgent';
+import { planTools, runTools, parsePlan, looksLikeToolCall, type AgentStep, type AgentAction } from '../lib/chatAgent';
 import ChatContactForm from './ChatContactForm';
 import {
   saveLead, extractLead, buildTranscript, hasContactSignal, hasContactIntent,
@@ -146,7 +146,8 @@ This chat is agentic. Before you reply, the app can search my site, search the l
 - Site results are real content from my site; prefer them over the profile above when they are more specific.
 - Never say you cannot browse the web, see current info, or make images. If a tool FAILED, say so in one short line and still help.
 - Buttons for sources, drafts and links are added automatically. Do not repeat raw URLs in your text, and do not add an ACTION tag for an email draft (its button already exists).
-- If someone wants to talk to me, hire me or work with me and has not shared how to reach them, ask once, naturally, for their name and email or phone number so I can get back to them. When they share it, confirm in one line that I'll be in touch. Never ask twice in a row, never pressure.
+- If someone wants to talk to me, hire me or work with me, I always need their email or phone number, otherwise I have no way to get back to them. Ask for it (plus their name) in a friendly, low-pressure way. When they share it, confirm in one line that I'll be in touch at that address.
+- Never output JSON, code-like tool calls or {"tool": ...} objects; tools are run by the app, you only write the reply.
 - The chat shows plain text only: never use markdown (no **bold**, no # headings, no * bullets). For an email draft write "Subject: ..." on one line, then the body.
 `;
 
@@ -170,6 +171,11 @@ function parseActions(text: string): { clean: string; actions: Action[] } {
     // still slip them in, so normalize them out of every reply.
     .replace(/(\d)\s*\u2013\s*(\d)/g, '$1-$2') // ranges: 2024\u20132025 -> 2024-2025
     .replace(/\s*[\u2014\u2013]\s*/g, ', ')
+    // The bubble renders plain text; drop markdown emphasis and heading marks
+    // the model sometimes emits so they never show up as raw symbols.
+    .replace(/\*\*([^*\n]+)\*\*/g, '$1')
+    .replace(/__([^_\n]+)__/g, '$1')
+    .replace(/^#{1,6}\s+/gm, '')
     .trim();
   return { clean, actions };
 }
@@ -303,6 +309,12 @@ export default function AIChatbot() {
   const messagesRef = useRef<Msg[]>([]);
   const leadSavedRef = useRef(false);
   const leadCapturedUpToRef = useRef(0);
+  // "Wants to connect" is sticky for the session; until we hold an email or
+  // phone, every reply asks for one and a contact form stays offered.
+  const wantsToConnectRef = useRef(false);
+  const contactKnownRef = useRef(false);
+  const [contactKnown, setContactKnown] = useState(false);
+  const formShownRef = useRef(false);
   // Once a contact form is submitted, older unsent forms are hidden.
   const [sentFormMsgId, setSentFormMsgId] = useState<number | null>(null);
 
@@ -381,6 +393,8 @@ export default function AIChatbot() {
       }
     }
   }, [open]);
+
+  const lastFormMsgId = [...messages].reverse().find(m => m.form)?.id ?? null;
 
   // Blurring before the panel becomes aria-hidden (not after) matters: React
   // applies aria-hidden on the same commit as the state update, so blurring
@@ -491,6 +505,25 @@ export default function AIChatbot() {
         });
       }
 
+      // ── Contact capture: never let a "let's connect" end without a way back ──
+      const contactTool = calls.find(c => c.name === 'contact_form' || c.name === 'draft_email');
+      if (contactTool || hasContactIntent(userMsg.content)) wantsToConnectRef.current = true;
+      const justShared = hasContactSignal(userMsg.content);
+      if (justShared) { contactKnownRef.current = true; setContactKnown(true); }
+      // Contact already in hand: a form would just be clutter.
+      if (contactKnownRef.current && placed) updateAssistant({ form: undefined });
+      let contactBlock = '';
+      if (wantsToConnectRef.current && justShared) {
+        contactBlock = '\n\n=== CONTACT STATUS ===\nThe visitor just shared their contact details in their last message. Thank them by name if known and confirm in one short line that I will get back to them there. Do not ask for contact details again.';
+      } else if (wantsToConnectRef.current && !contactKnownRef.current) {
+        contactBlock = '\n\n=== CONTACT STATUS (REQUIRED) ===\nThe visitor wants to connect with me but has NOT given an email or phone number yet. Without it I cannot reach them. Answer what they said, then ask for their email or phone number (and name, if unknown) in one short, friendly line. Mention they can type it here or use the form below. If they already declined, do not push: give them my email nrdhruv654@gmail.com instead.';
+        // the planner may not have shown the form; make sure one is offered
+        if (!calls.some(c => c.name === 'contact_form') && !formShownRef.current) {
+          updateAssistant({ form: { message: userMsg.content.slice(0, 300) } });
+        }
+      }
+      if (calls.some(c => c.name === 'contact_form') || (wantsToConnectRef.current && !contactKnownRef.current)) formShownRef.current = true;
+
       // Cheap always-on context, used only when the planner did not already
       // fetch the same thing through a tool.
       const usedTool = (n: string) => calls.some(c => c.name === n);
@@ -522,18 +555,55 @@ export default function AIChatbot() {
       };
       if (toolActions.length) updateAssistant({ actions: mergeActions([]) });
 
-      await streamChatbot([{ role: 'system', content: SYSTEM_PROMPT + blogContext + movieContext + toolBlock }, ...history], {
-        maxTokens: 600,
-        temperature: 0.72,
-        hasImage: !!image,
-        onToken: delta => {
-          streamed += delta;
-          const { clean, actions } = parseActions(stripTrailingPartialAction(streamed));
-          updateAssistant({ content: clean, actions: mergeActions(actions) });
-        },
-      });
+      const answer = async (extraContext: string) => {
+        streamed = '';
+        await streamChatbot([{ role: 'system', content: SYSTEM_PROMPT + blogContext + movieContext + extraContext + contactBlock }, ...history], {
+          maxTokens: 600,
+          temperature: 0.72,
+          hasImage: !!image,
+          onToken: delta => {
+            streamed += delta;
+            // A reply that starts as JSON is a tool call in disguise: keep it
+            // off screen (dots stay up) until we know what it is.
+            if (looksLikeToolCall(streamed)) return;
+            const { clean, actions } = parseActions(stripTrailingPartialAction(streamed));
+            updateAssistant({ content: clean, actions: mergeActions(actions) });
+          },
+        });
+      };
+      await answer(toolBlock);
 
-      const contactTool = calls.find(c => c.name === 'contact_form' || c.name === 'draft_email');
+      // Recovery: the answer model asked for a tool itself (planner missed
+      // it). Run that tool for real, then answer again with its results.
+      if (looksLikeToolCall(streamed)) {
+        const recovered = parsePlan(streamed);
+        if (recovered.length > 0) {
+          const outcome = await runTools(recovered, { movies: moviesRef.current }, steps => updateAssistant({ steps }));
+          toolActions = [...toolActions, ...outcome.actions];
+          updateAssistant({
+            genImage: outcome.image,
+            sources: outcome.sources.length ? outcome.sources : undefined,
+            form: contactKnownRef.current ? undefined : outcome.form,
+          });
+          await answer(`${toolBlock}\n\n=== TOOL RESULTS (for this message only) ===\n${outcome.context}`);
+        }
+        if (looksLikeToolCall(streamed)) {
+          streamed = 'Sorry, that one tripped me up. Could you say it again?';
+          updateAssistant({ content: streamed });
+        }
+      }
+
+      // Hard guarantee: while someone who wants to connect has not given an
+      // email or phone, the reply always ends by asking for one.
+      if (wantsToConnectRef.current && !contactKnownRef.current && !justShared) {
+        const cleanNow = parseActions(streamed).clean;
+        if (!/e-?mail|phone|number|reach you|contact details/i.test(cleanNow)) {
+          streamed = `${streamed.trimEnd()}\n\nWhat's the best email or phone number to reach you? You can type it here or use the form below.`;
+          const { clean, actions } = parseActions(streamed);
+          updateAssistant({ content: clean, actions: mergeActions(actions) });
+        }
+      }
+
       void captureLead(
         contactTool?.name === 'draft_email' ? 'email-draft' : 'chat',
         [...messages, { role: 'user', content: userMsg.content }, { role: 'assistant', content: parseActions(streamed).clean }],
@@ -654,6 +724,11 @@ export default function AIChatbot() {
       onStateChange: s => {
         if (s === 'live') setLiveState('live');
         if (s === 'closed') {
+          // Final pass over the whole call: catches details that came in a
+          // form the live triggers missed, and merges them into the lead.
+          if (wantsToConnectRef.current) {
+            void captureLead('voice', messagesRef.current.map(m => ({ role: m.role, content: m.content })), true);
+          }
           setLiveState('idle');
           liveControllerRef.current = null;
           resetVoiceVisual();
@@ -683,7 +758,11 @@ export default function AIChatbot() {
       },
       onTurnComplete: () => {
         liveAssistantMsgIdRef.current = null;
-        void captureLead('voice', messagesRef.current.map(m => ({ role: m.role, content: m.content })));
+        const turns = messagesRef.current.map(m => ({ role: m.role, content: m.content }));
+        const said = turns.filter(t => t.role === 'user').map(t => t.content).join('\n');
+        if (hasContactIntent(said)) wantsToConnectRef.current = true;
+        if (hasContactSignal(said)) { contactKnownRef.current = true; setContactKnown(true); }
+        void captureLead('voice', turns);
       },
       onInterrupted: () => {
         liveAssistantMsgIdRef.current = null;
@@ -868,6 +947,7 @@ export default function AIChatbot() {
             </div>
           )}
 
+          {/* only the newest contact form is shown; older copies are stale */}
           {messages.map(m => (
             <div key={m.id} style={{ display: 'flex', flexDirection: 'column', alignItems: m.role === 'user' ? 'flex-end' : 'flex-start', gap: '6px' }}>
               {m.imageUrl && (
@@ -987,11 +1067,11 @@ export default function AIChatbot() {
               )}
 
               {/* Inline contact form (agent's contact_form tool) */}
-              {m.form && (sentFormMsgId === null || sentFormMsgId === m.id) && (
+              {m.form && (sentFormMsgId !== null ? sentFormMsgId === m.id : !contactKnown && m.id === lastFormMsgId) && (
                 <ChatContactForm
                   initial={m.form}
                   getTranscript={() => buildTranscript(messagesRef.current.map(x => ({ role: x.role, content: x.content })))}
-                  onSubmitted={() => { leadSavedRef.current = true; setSentFormMsgId(m.id); }}
+                  onSubmitted={() => { leadSavedRef.current = true; contactKnownRef.current = true; setContactKnown(true); setSentFormMsgId(m.id); }}
                 />
               )}
 

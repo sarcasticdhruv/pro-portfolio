@@ -77,6 +77,13 @@ export interface PlannerTurn {
 // Returns [] on any failure: the chatbot then behaves like a plain chat,
 // which is always a safe fallback.
 export async function planTools(turns: PlannerTurn[]): Promise<ToolCall[]> {
+  // One retry: a transient 429/502 on the planner would otherwise silently
+  // turn an agentic turn into a plain chat reply.
+  const first = await planOnce(turns);
+  return first ?? (await planOnce(turns)) ?? [];
+}
+
+async function planOnce(turns: PlannerTurn[]): Promise<ToolCall[] | null> {
   const last = turns[turns.length - 1]?.content.trim() ?? '';
   if (!last || GREETING_RE.test(last)) return [];
 
@@ -97,8 +104,14 @@ export async function planTools(turns: PlannerTurn[]): Promise<ToolCall[]> {
     }), 6000);
     return parsePlan(raw);
   } catch {
-    return [];
+    return null;
   }
+}
+
+// True when a reply is a tool call written as JSON instead of prose.
+export function looksLikeToolCall(text: string): boolean {
+  const t = text.trimStart();
+  return t.startsWith('{') && /"(tool|tools|name)"\s*:/.test(t.slice(0, 200));
 }
 
 export function parsePlan(raw: string): ToolCall[] {
@@ -107,7 +120,11 @@ export function parsePlan(raw: string): ToolCall[] {
   if (start === -1 || end <= start) return [];
   try {
     const data = JSON.parse(raw.slice(start, end + 1));
-    const list: unknown[] = Array.isArray(data?.tools) ? data.tools : [];
+    // Accept {"tools":[...]} and the single-call shapes models improvise:
+    // {"tool":"x","args":{}} / {"name":"x","args":{}}
+    const list: unknown[] = Array.isArray(data?.tools) ? data.tools
+      : (data?.tool || data?.name) ? [{ name: data.tool ?? data.name, args: data.args ?? data.arguments ?? {} }]
+      : [];
     const calls: ToolCall[] = [];
     for (const item of list) {
       const t = item as { name?: string; args?: Record<string, unknown> };

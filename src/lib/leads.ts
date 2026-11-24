@@ -33,14 +33,32 @@ export function findContactInfo(text: string): { email?: string; phone?: string 
   return { email, phone };
 }
 
+// Voice transcripts spell numbers out: "plus nine one nine eight seven...".
+// Seven or more digit words in a row is a phone number being read out.
+const SPOKEN_PHONE_RE = /\b(?:(?:zero|oh|one|two|three|four|five|six|seven|eight|nine|double|triple|plus)\b[\s,.-]*){7,}/i;
+
 export function hasContactSignal(text: string): boolean {
   const { email, phone } = findContactInfo(text);
-  return !!(email || phone || SPOKEN_EMAIL_RE.test(text));
+  return !!(email || phone || SPOKEN_EMAIL_RE.test(text) || SPOKEN_PHONE_RE.test(text));
 }
 
 // Intent phrases that mean "this person wants to reach Dhruv", even before
 // they share any contact details.
-const INTENT_RE = /\b(hire|hiring|recruit|job|role|position|opening|freelance|contract|collab(orate|oration)?|work (with|together)|partner(ship)?|consult(ing)?|project for|get in touch|reach (out|you)|contact (you|me)|talk to (you|dhruv)|call (me|you)|schedule|meeting|interview|quote|proposal)\b/i;
+const INTENT_RE = new RegExp([
+  String.raw`\b(hire|hiring|recruit(ing)?|headhunt)\w*\b.*\b(you|dhruv|him)\b`,
+  String.raw`\b(you|dhruv)\b.*\b(hire|hiring|recruit|freelance|consult|available for)`,
+  String.raw`\bwant(ed)? to hire\b`,
+  String.raw`\b(work|partner|team up|build something) (with|together)\b`,
+  String.raw`\bcollab(orate|oration|orating)?\b`,
+  String.raw`\b(get|keep|be) in touch\b`,
+  String.raw`\breach (out|you)\b`,
+  String.raw`\bcontact (you|dhruv|him)\b`,
+  String.raw`\b(talk|speak|chat) (to|with) (you|dhruv|him)\b`,
+  String.raw`\bconnect (with )?(you|dhruv)\b|\blet'?s connect\b|\bwant to connect\b`,
+  String.raw`\b(job|role|position|internship) (offer|opportunity|opening) for you\b|\bopportunity for you\b`,
+  String.raw`\b(schedule|set up|book|have) a (call|meeting|chat)\b|\bhop on a call\b|\binterview you\b`,
+  String.raw`\b(freelance|consulting|contract) (work|project|gig|role)\b`,
+].join('|'), 'i');
 
 export function hasContactIntent(text: string): boolean {
   return INTENT_RE.test(text);
