@@ -1,6 +1,6 @@
 // Site-wide graph-paper backdrop: a faint 64px grid fixed behind every page,
 // plus an accent-colored copy of the grid that glows softly around the
-// cursor. Blog pages skip it (they have their own paper texture).
+// cursor. Blog pages skip it so long-form reading stays clean.
 //
 // Cursor position goes straight to CSS variables once per animation frame,
 // so moving the mouse never re-renders React. The spotlight is disabled on

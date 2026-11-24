@@ -1,6 +1,5 @@
 import './index.css';
-import { useEffect } from 'react';
-import { Outlet, useLocation } from 'react-router-dom';
+import { Outlet } from 'react-router-dom';
 import { useTheme } from './hooks/useTheme';
 import { useVisitTracking } from './hooks/useVisitTracking';
 import { trackEvent } from './lib/track';
@@ -14,12 +13,6 @@ import GridBackdrop from './components/GridBackdrop';
 export default function App() {
   const { theme, toggleTheme, transition } = useTheme();
   useVisitTracking();
-
-  // Blog pages get a paper texture background (see .paper-bg in index.css).
-  const { pathname } = useLocation();
-  useEffect(() => {
-    document.body.classList.toggle('paper-bg', pathname === '/blog' || pathname.startsWith('/blog/'));
-  }, [pathname]);
 
   const handleToggleTheme = (origin?: { x: number; y: number }) => {
     trackEvent('toggle_theme', `-> ${theme === 'dark' ? 'light' : 'dark'}`);
