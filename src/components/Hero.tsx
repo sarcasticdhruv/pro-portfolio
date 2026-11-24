@@ -56,13 +56,13 @@ export default function Hero({ github }: Props) {
   // revealed in a soft circle around the pointer. Position goes straight to
   // CSS variables (one rAF per frame, no React re-render), and the effect is
   // skipped on touch screens and for reduced-motion users.
-  const sectionRef = useRef<HTMLElement>(null);
+  const sectionRef = useRef<HTMLDivElement>(null);
   const rafRef = useRef(0);
   const spotlightOn = typeof window !== 'undefined'
     && window.matchMedia('(hover: hover) and (pointer: fine)').matches
     && !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-  function onGridMove(e: MouseEvent<HTMLElement>) {
+  function onGridMove(e: MouseEvent<HTMLDivElement>) {
     if (!spotlightOn || !sectionRef.current) return;
     const el = sectionRef.current;
     const { clientX, clientY } = e;
@@ -81,23 +81,13 @@ export default function Hero({ github }: Props) {
   useEffect(() => () => cancelAnimationFrame(rafRef.current), []);
 
   return (
-    <section
-      id="hero"
+    // Full-width wrapper: the grid and its cursor spotlight span the whole
+    // viewport width, while the hero content stays in its 1200px column.
+    <div
       ref={sectionRef}
       onMouseMove={onGridMove}
       onMouseLeave={onGridLeave}
-      style={{
-        minHeight: '100vh',
-        display: 'flex',
-        flexDirection: 'column',
-        justifyContent: 'center',
-        padding: '88px 32px 40px',
-        maxWidth: '1200px',
-        width: '100%',
-        margin: '0 auto',
-        position: 'relative',
-        overflow: 'hidden',
-      }}
+      style={{ position: 'relative', width: '100%', overflow: 'hidden' }}
     >
       {/* Grid bg */}
       <div style={{
@@ -105,8 +95,8 @@ export default function Hero({ github }: Props) {
         backgroundImage: `linear-gradient(var(--border) 1px, transparent 1px), linear-gradient(90deg, var(--border) 1px, transparent 1px)`,
         backgroundSize: '64px 64px',
         opacity: 0.45,
-        maskImage: 'radial-gradient(ellipse 80% 80% at 30% 50%, black 30%, transparent 100%)',
-        WebkitMaskImage: 'radial-gradient(ellipse 80% 80% at 30% 50%, black 30%, transparent 100%)',
+        maskImage: 'radial-gradient(ellipse 75% 85% at 50% 50%, black 40%, transparent 100%)',
+        WebkitMaskImage: 'radial-gradient(ellipse 75% 85% at 50% 50%, black 40%, transparent 100%)',
       }} />
       {/* Grid spotlight: same 64px grid in the accent color, visible only in
           a soft circle around the cursor, with a faint glow underneath. */}
@@ -122,6 +112,21 @@ export default function Hero({ github }: Props) {
         }} />
       )}
 
+    <section
+      id="hero"
+      style={{
+        minHeight: '100vh',
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'center',
+        padding: '88px 32px 40px',
+        maxWidth: '1200px',
+        width: '100%',
+        margin: '0 auto',
+        position: 'relative',
+        overflow: 'hidden',
+      }}
+    >
       {/* TOP: Status badge + Name + Typewriter - full width */}
       <div style={{ position: 'relative', zIndex: 1, marginBottom: '24px', maxWidth: '100%', overflow: 'hidden' }}>
         {/* Status */}
@@ -481,5 +486,6 @@ export default function Hero({ github }: Props) {
         }
       `}</style>
     </section>
+    </div>
   );
 }
