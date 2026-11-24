@@ -87,7 +87,7 @@ export default function ContactForm() {
   }
 
   return (
-    <form onSubmit={submit} noValidate style={{ display: 'flex', flexDirection: 'column', gap: '14px', position: 'relative' }}>
+    <form onSubmit={submit} noValidate style={{ display: 'flex', flexDirection: 'column', gap: '14px', position: 'relative', flex: 1 }}>
       <div className="cf-row">
         <div>
           <label style={labelStyle} htmlFor="cf-name">name</label>
@@ -130,10 +130,11 @@ export default function ContactForm() {
           ))}
         </div>
       </div>
-      <div>
+      {/* Grows to fill the card when the side column is taller */}
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
         <label style={labelStyle} htmlFor="cf-message">message</label>
         <textarea
-          id="cf-message" rows={4} style={{ ...field, resize: 'vertical', lineHeight: 1.55 }}
+          id="cf-message" rows={4} style={{ ...field, resize: 'vertical', lineHeight: 1.55, flex: 1, minHeight: '110px' }}
           value={message} onChange={e => setMessage(e.target.value)}
           placeholder="The role, the project, or the problem you're working on"
         />
@@ -143,7 +144,7 @@ export default function ContactForm() {
         style={{ position: 'absolute', left: '-9999px', width: '1px', height: '1px', opacity: 0 }}
       />
       {problem && <p style={{ color: '#FF6B6B', fontSize: '0.8rem', margin: 0 }}>{problem}</p>}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap' }}>
+      <div className="cf-actions" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap' }}>
         <span style={{ fontSize: '0.74rem', color: 'var(--text-dim)' }}>Goes straight to me. Only used to reply.</span>
         <button type="submit" className="btn btn-primary" disabled={state === 'sending'} style={{ display: 'flex', alignItems: 'center', gap: '7px', cursor: 'pointer' }}>
           {state === 'sending' ? <Loader2 size={13} className="cf-spin" /> : <Send size={13} />}
@@ -152,7 +153,11 @@ export default function ContactForm() {
       </div>
       <style>{`
         .cf-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-        @media (max-width: 520px) { .cf-row { grid-template-columns: 1fr; } }
+        @media (max-width: 520px) {
+          .cf-row { grid-template-columns: 1fr; }
+          .cf-actions { flex-direction: column-reverse; align-items: stretch !important; }
+          .cf-actions .btn { justify-content: center; }
+        }
         #contact input:focus, #contact textarea:focus { border-color: var(--accent) !important; }
         @keyframes cf-spin-kf { to { transform: rotate(360deg); } }
         .cf-spin { animation: cf-spin-kf 1s linear infinite; }

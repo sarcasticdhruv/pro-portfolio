@@ -4,6 +4,7 @@ import { useScrollReveal } from '../hooks/useScrollReveal';
 import ContactForm from './ContactForm';
 
 const IST_TZ = 'Asia/Kolkata';
+const mono = "'JetBrains Mono', monospace";
 
 // IST business hours the recruiter can expect a reply in, used to color the
 // live dot green/amber/red the same way the Hero "available" badge does.
@@ -40,51 +41,92 @@ export default function Contact() {
       transition: 'opacity 0.65s ease, transform 0.65s ease',
     }}>
       <div className="container">
-        <div className="contact-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '72px', alignItems: 'start' }}>
+        {/* Header: heading on the left, intro copy on the right, bottoms aligned */}
+        <div className="contact-head">
           <div>
             <p className="label" style={{ marginBottom: '14px' }}>06 / contact</p>
-            <h2 className="section-heading" style={{ marginBottom: '22px' }}>
+            <h2 className="section-heading" style={{ margin: 0 }}>
               Let's build<br /><span style={{ color: 'var(--accent)' }}>something.</span>
             </h2>
-            <p style={{ color: 'var(--text-muted)', marginBottom: '20px', lineHeight: 1.8 }}>
+          </div>
+          <div>
+            <p style={{ color: 'var(--text)', marginBottom: '12px', lineHeight: 1.7, fontSize: '1.02rem' }}>
               Open to AI/ML engineering roles, research collaborations, and interesting problems.
             </p>
-            <p style={{ color: 'var(--text-muted)', marginBottom: '28px', lineHeight: 1.8, fontSize: '0.91rem' }}>
-              Currently between Raipur and Hyderabad. Open to relocating worldwide - will need
-              visa sponsorship for UK/US/EU roles. Will debug your production incident at 2am
+            <p style={{ color: 'var(--text-muted)', margin: 0, lineHeight: 1.75, fontSize: '0.9rem' }}>
+              Currently between Raipur and Hyderabad. Open to relocating worldwide, with visa
+              sponsorship for UK/US/EU roles. Will debug your production incident at 2am
               if the problem is interesting enough.
             </p>
+          </div>
+        </div>
 
-            <ContactForm />
-
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap', marginTop: '18px' }}>
-              <span style={{ fontSize: '0.8rem', color: 'var(--text-dim)' }}>Prefer email?</span>
-              <button onClick={copyEmail} className="btn btn-outline" style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '7px', padding: '7px 12px' }}>
-                {copied ? <Check size={13} /> : <Copy size={13} />}
-                {copied ? 'copied!' : 'copy email'}
-              </button>
+        <div className="contact-grid">
+          {/* Form card */}
+          <div className="contact-card contact-form-card">
+            <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap', marginBottom: '22px', paddingBottom: '18px', borderBottom: '1px solid var(--border)' }}>
+              <h3 style={{ fontFamily: "'Syne', sans-serif", fontWeight: 700, fontSize: '1.15rem', color: 'var(--text)', margin: 0 }}>
+                Send a message
+              </h3>
+              <span style={{ fontFamily: mono, fontSize: '0.64rem', color: 'var(--text-dim)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+                reply within a day
+              </span>
             </div>
+            <ContactForm />
           </div>
 
-          <div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1px' }}>
-              {LINKS.map(link => <ContactRow key={link.label} link={link} />)}
-            </div>
-
-            <div style={{ marginTop: '28px', padding: '18px 20px', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '8px', borderLeft: '3px solid var(--accent)', boxShadow: 'var(--shadow-sm)' }}>
-              <p style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '0.68rem', color: 'var(--accent)', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: '7px' }}>
+          {/* Side column: status on top, links below, stretched to match the form */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', minWidth: 0 }}>
+            <div className="contact-card" style={{ padding: '22px 22px 20px', borderLeft: '3px solid var(--accent)' }}>
+              <p style={{ fontFamily: mono, fontSize: '0.66rem', color: 'var(--accent)', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: '8px' }}>
                 status
               </p>
-              <p style={{ fontSize: '0.86rem', color: 'var(--text-muted)', lineHeight: 1.7, marginBottom: '14px' }}>
+              <p style={{ fontSize: '0.86rem', color: 'var(--text-muted)', lineHeight: 1.65, marginBottom: '16px' }}>
                 Available for <span style={{ color: 'var(--text)' }}>full-time AI/ML/SWE roles</span> (relocation + sponsorship OK) and <span style={{ color: 'var(--text)' }}>freelance collaborations</span>.
               </p>
               <TimezoneWidget />
+            </div>
+
+            <div className="contact-card" style={{ padding: '8px', flex: 1, display: 'flex', flexDirection: 'column' }}>
+              <p style={{ fontFamily: mono, fontSize: '0.66rem', color: 'var(--text-dim)', letterSpacing: '0.08em', textTransform: 'uppercase', padding: '12px 14px 6px', margin: 0 }}>
+                elsewhere
+              </p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', flex: 1 }}>
+                {LINKS.map(link => <ContactRow key={link.label} link={link} />)}
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', flexWrap: 'wrap', margin: '6px 6px 4px', padding: '12px 8px 6px', borderTop: '1px solid var(--border)' }}>
+                <span style={{ fontSize: '0.8rem', color: 'var(--text-dim)' }}>Prefer plain email?</span>
+                <button onClick={copyEmail} className="btn btn-outline" style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '7px', padding: '6px 12px' }}>
+                  {copied ? <Check size={13} /> : <Copy size={13} />}
+                  {copied ? 'copied!' : 'copy email'}
+                </button>
+              </div>
             </div>
           </div>
         </div>
       </div>
       <style>{`
-        @media (max-width: 768px) { .contact-grid { grid-template-columns: 1fr !important; gap: 36px !important; } }
+        .contact-head {
+          display: grid; grid-template-columns: 1fr 1fr; gap: 56px; align-items: end;
+          margin-bottom: 44px;
+        }
+        .contact-grid {
+          display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+          gap: 20px; align-items: stretch;
+        }
+        .contact-card {
+          background: var(--surface); border: 1px solid var(--border);
+          border-radius: 14px; box-shadow: var(--shadow-sm);
+        }
+        .contact-form-card { padding: 28px 30px; display: flex; flex-direction: column; }
+        .contact-card input, .contact-card textarea { background: var(--bg) !important; }
+        @media (max-width: 900px) {
+          .contact-head { grid-template-columns: 1fr; gap: 18px; margin-bottom: 32px; }
+          .contact-grid { grid-template-columns: 1fr; }
+        }
+        @media (max-width: 520px) {
+          .contact-form-card { padding: 22px 18px !important; }
+        }
       `}</style>
     </section>
   );
