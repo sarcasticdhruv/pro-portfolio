@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type KeyboardEvent } from 'react';
+import { enhancePrompt } from '../lib/imagePrompt';
 import { Link } from 'react-router-dom';
 import {
   Search, CircleCheck, CircleX, Loader2, History, ChevronDown, ChevronUp, TrendingUp,
@@ -597,10 +598,14 @@ function GeneratedImagePanel({ prompt }: { prompt: string }) {
     setStatus('loading');
     (async () => {
       try {
+        // Same enhancer as /imagine: short search phrasing ("a swan") makes
+        // flat images; a detailed prompt makes much better ones.
+        const finalPrompt = await enhancePrompt(prompt);
+        if (cancelled) return;
         const res = await fetch('/api/image', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ prompt }),
+          body: JSON.stringify({ prompt: finalPrompt }),
         });
         if (!res.ok) throw new Error('gen failed');
         const blob = await res.blob();

@@ -24,8 +24,13 @@ const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions';
 const GROQ_TRANSCRIBE_URL = 'https://api.groq.com/openai/v1/audio/transcriptions';
 const WHISPER_MODEL = 'whisper-large-v3-turbo';
 
+// Set after the direct key is rejected (401/403): a revoked key stays revoked,
+// so stop paying a failed round trip on every message for the rest of the
+// session and go straight to the proxy.
+let directKeyDead = false;
+
 export function hasDirectChat(): boolean {
-  return !!GROQ_KEY;
+  return !!GROQ_KEY && !directKeyDead;
 }
 
 export interface ChatbotStreamOptions {
@@ -40,7 +45,7 @@ export interface ChatbotStreamOptions {
 }
 
 export async function streamChatbot(messages: ChatMessage[], opts: ChatbotStreamOptions = {}): Promise<string> {
-  if (GROQ_KEY && !opts.hasImage) {
+  if (hasDirectChat() && !opts.hasImage) {
     try {
       return await streamGroqDirect(messages, opts);
     } catch {
@@ -71,6 +76,7 @@ async function streamGroqDirect(messages: ChatMessage[], opts: ChatbotStreamOpti
       messages,
     }),
   });
+  if (res.status === 401 || res.status === 403) directKeyDead = true;
   if (!res.ok || !res.body) throw new Error(`groq direct ${res.status}`);
 
   const reader = res.body.getReader();
@@ -112,7 +118,7 @@ async function streamGroqDirect(messages: ChatMessage[], opts: ChatbotStreamOpti
 // delay for a short clip - the transcription model itself is unchanged
 // (still whisper-large-v3-turbo), so quality is identical either way.
 export async function transcribeAudio(blob: Blob): Promise<string> {
-  if (GROQ_KEY) {
+  if (hasDirectChat()) {
     try {
       return await transcribeGroqDirect(blob);
     } catch {
@@ -139,6 +145,7 @@ async function transcribeGroqDirect(blob: Blob): Promise<string> {
     headers: { Authorization: `Bearer ${GROQ_KEY}` },
     body: form,
   });
+  if (res.status === 401 || res.status === 403) directKeyDead = true;
   if (!res.ok) throw new Error(`groq direct ${res.status}`);
 
   const data = await res.json();
