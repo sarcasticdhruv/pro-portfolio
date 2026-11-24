@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, type KeyboardEvent, type ChangeEvent } from 'react';
-import { X, Send, Sparkles, ArrowRight, ExternalLink, Mic, Square, Loader2, Plus, AudioWaveform, Check, CircleAlert, Download } from 'lucide-react';
+import { X, Send, Sparkles, ArrowRight, ExternalLink, Mic, Square, Loader2, Plus, AudioWaveform, Check, CircleAlert, Download, ChevronDown, MessageSquarePlus } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { streamChatbot, transcribeAudio } from '../lib/chatbotClient';
 import { connectLiveVoice, type LiveVoiceController } from '../lib/liveVoice';
@@ -231,6 +231,9 @@ interface Msg {
 
 let msgId = 0;
 
+const GREETING = "Hey it's Dhruv. Well, an AI that answers the way I would. Ask me about my work, my projects, the stack I use, or how to reach me.";
+const greetingMsg = (): Msg => ({ id: msgId++, role: 'assistant', content: GREETING });
+
 const SUGGESTIONS = [
   "What's Dhruv working on?",
   'What happened in AI this week?',
@@ -317,6 +320,12 @@ export default function AIChatbot() {
   const formShownRef = useRef(false);
   // Once a contact form is submitted, older unsent forms are hidden.
   const [sentFormMsgId, setSentFormMsgId] = useState<number | null>(null);
+  // "Start new conversation": a menu under the header avatar/title, plus a
+  // pill that surfaces while scrolling through a longer chat.
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [newChatPill, setNewChatPill] = useState(false);
+  const pillTimerRef = useRef<number | undefined>(undefined);
+  const pillHoverRef = useRef(false);
 
   // Measured: the full string needs ~148px but only ~122px is available at
   // 360px and ~85px at 320px, so it truncated on small phones. Shortening the
@@ -373,11 +382,7 @@ export default function AIChatbot() {
       if (!isCoarsePointer()) setTimeout(() => inputRef.current?.focus(), 120);
       if (!hasOpened) {
         setHasOpened(true);
-        setMessages([{
-          id: msgId++,
-          role: 'assistant',
-          content: "Hey it's Dhruv. Well, an AI that answers the way I would. Ask me about my work, my projects, the stack I use, or how to reach me.",
-        }]);
+        setMessages([greetingMsg()]);
       }
       // Fire-and-forget: warms moviesRef so a later "what have you watched"
       // question doesn't pay fetch latency on top of the LLM call. /api/movies
@@ -402,7 +407,38 @@ export default function AIChatbot() {
   // trigger the browser's focus/aria-hidden warning.
   function closeChat() {
     inputRef.current?.blur();
+    setMenuOpen(false);
     setOpen(false);
+  }
+
+  // Wipes the thread back to the greeting. The lead session is kept on
+  // purpose: it's the same visitor, so anything they already shared (and a
+  // contact we already hold) stays attached to one Inbox entry.
+  function startNewConversation() {
+    if (loading || transcribing) return;
+    if (liveState !== 'idle') stopLiveVoice();
+    setMenuOpen(false);
+    setNewChatPill(false);
+    setMessages([greetingMsg()]);
+    setInput('');
+    setError('');
+    setAttachedImage(null);
+    setSentFormMsgId(null);
+    wantsToConnectRef.current = false;
+    formShownRef.current = false;
+    leadCapturedUpToRef.current = 0;
+    if (!isCoarsePointer()) setTimeout(() => inputRef.current?.focus(), 60);
+  }
+
+  const userTurns = messages.filter(m => m.role === 'user').length;
+
+  function onBodyScroll() {
+    if (userTurns < 2 || loading) return;
+    setNewChatPill(true);
+    window.clearTimeout(pillTimerRef.current);
+    pillTimerRef.current = window.setTimeout(() => {
+      if (!pillHoverRef.current) setNewChatPill(false);
+    }, 2600);
   }
 
   function handleAction(action: Action) {
@@ -863,8 +899,8 @@ export default function AIChatbot() {
           position: 'fixed',
           bottom: open ? '104px' : '72px',
           right: 'clamp(12px, 4vw, 24px)',
-          width: 'clamp(286px, 92vw, 384px)',
-          height: open ? 'min(560px, 82vh)' : '0px',
+          width: 'clamp(296px, 94vw, 424px)',
+          height: open ? 'min(640px, calc(100vh - 128px))' : '0px',
           opacity: open ? 1 : 0,
           pointerEvents: open ? 'all' : 'none',
           zIndex: 4000,
@@ -886,6 +922,14 @@ export default function AIChatbot() {
           background: 'var(--surface-2)',
           flexShrink: 0,
         }}>
+          <button
+            type="button"
+            className="chat-head-btn"
+            onClick={() => setMenuOpen(v => !v)}
+            aria-haspopup="menu"
+            aria-expanded={menuOpen}
+            title="Conversation options"
+          >
           <div style={{ position: 'relative', flexShrink: 0 }}>
             <img
               src="/profile-avatar.webp" alt="Dhruv"
@@ -904,12 +948,14 @@ export default function AIChatbot() {
             <div style={{
               fontFamily: "'Syne', sans-serif", fontWeight: 700,
               fontSize: '0.88rem', color: 'var(--text)', letterSpacing: '-0.01em',
-            }}>Ask Dhruv</div>
+              display: 'flex', alignItems: 'center', gap: '4px',
+            }}>Ask Dhruv <ChevronDown size={13} style={{ color: 'var(--text-dim)', transition: 'transform 0.18s', transform: menuOpen ? 'rotate(180deg)' : 'none' }} /></div>
             <div style={{
               fontFamily: "'JetBrains Mono', monospace",
               fontSize: '0.65rem', color: 'var(--accent)', letterSpacing: '0.04em',
             }}>{SUBTITLES[subtitleIdx]}</div>
           </div>
+          </button>
           <button
             onClick={closeChat}
             aria-label="Close chat"
@@ -925,9 +971,43 @@ export default function AIChatbot() {
           </button>
         </div>
 
+        {menuOpen && (
+          <>
+            <div onClick={() => setMenuOpen(false)} style={{ position: 'absolute', inset: 0, zIndex: 5 }} />
+            <div role="menu" className="chat-menu">
+              <button role="menuitem" type="button" onClick={startNewConversation} disabled={loading || transcribing}>
+                <MessageSquarePlus size={14} />
+                <span>
+                  <strong>Start new conversation</strong>
+                  <small>Clears this chat and starts fresh</small>
+                </span>
+              </button>
+            </div>
+          </>
+        )}
+
+        <button
+          type="button"
+          className="chat-newpill"
+          data-show={newChatPill && !menuOpen ? '1' : '0'}
+          tabIndex={newChatPill ? 0 : -1}
+          onClick={startNewConversation}
+          onMouseEnter={() => { pillHoverRef.current = true; }}
+          onMouseLeave={() => {
+            pillHoverRef.current = false;
+            window.clearTimeout(pillTimerRef.current);
+            pillTimerRef.current = window.setTimeout(() => setNewChatPill(false), 1200);
+          }}
+        >
+          <MessageSquarePlus size={13} /> start new conversation
+        </button>
+
         {/* Messages */}
         <div
           ref={bodyRef}
+          // wheel/touch only: the auto scroll-to-bottom on new messages must not trigger it
+          onWheel={onBodyScroll}
+          onTouchMove={onBodyScroll}
           style={{
             flex: 1, overflowY: 'auto',
             padding: '16px 14px 8px',
@@ -1477,6 +1557,41 @@ export default function AIChatbot() {
            nowrap alone would let it overflow, so the font shrinks on mobile to
            make one line actually fit rather than just forcing it. */
         .chat-empty-hint { white-space: nowrap; }
+        .chat-head-btn {
+          flex: 1; min-width: 0; display: flex; align-items: center; gap: 10px;
+          background: none; border: none; padding: 4px 6px; margin: -4px -6px;
+          border-radius: 10px; cursor: pointer; text-align: left; color: inherit;
+          transition: background 0.15s;
+        }
+        .chat-head-btn:hover, .chat-head-btn[aria-expanded="true"] { background: var(--border); }
+        .chat-menu {
+          position: absolute; top: 64px; left: 12px; z-index: 6; min-width: 240px;
+          background: var(--surface); border: 1px solid var(--border-2); border-radius: 12px;
+          box-shadow: var(--shadow-lg); padding: 5px; animation: chat-pop 0.16s ease;
+        }
+        .chat-menu button {
+          width: 100%; display: flex; gap: 10px; align-items: flex-start; text-align: left;
+          background: none; border: none; border-radius: 8px; padding: 9px 10px;
+          color: var(--accent); cursor: pointer;
+        }
+        .chat-menu button:hover:not(:disabled) { background: var(--accent-glow); }
+        .chat-menu button:disabled { opacity: 0.5; cursor: not-allowed; }
+        .chat-menu svg { margin-top: 2px; flex-shrink: 0; }
+        .chat-menu strong { display: block; font-size: 0.82rem; font-weight: 600; color: var(--text); }
+        .chat-menu small { display: block; font-size: 0.7rem; color: var(--text-dim); margin-top: 2px; }
+        .chat-newpill {
+          position: absolute; top: 74px; left: 50%; z-index: 4;
+          display: flex; align-items: center; gap: 6px;
+          padding: 7px 13px; border-radius: 100px; cursor: pointer;
+          background: var(--surface); color: var(--accent);
+          border: 1px solid var(--accent-dim); box-shadow: var(--shadow-md);
+          font-family: 'JetBrains Mono', monospace; font-size: 0.68rem; white-space: nowrap;
+          transform: translate(-50%, -8px); opacity: 0; pointer-events: none;
+          transition: opacity 0.2s ease, transform 0.2s ease;
+        }
+        .chat-newpill[data-show="1"] { opacity: 1; transform: translate(-50%, 0); pointer-events: auto; }
+        .chat-newpill:hover { background: var(--accent-glow); }
+        @keyframes chat-pop { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
         @media (max-width: 640px) {
           .chat-empty-hint { font-size: 0.64rem !important; }
           .chat-text-input::placeholder { font-size: 0.74rem; }
