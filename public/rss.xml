@@ -1,0 +1,234 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Dhruv Choudhary - Blog</title>
+    <link>https://dhruv-choudhary.tech/blog</link>
+    <atom:link href="https://dhruv-choudhary.tech/rss.xml" rel="self" type="application/rss+xml" />
+    <description>Writing on AI engineering, RAG systems, and shipping production ML.</description>
+    <language>en</language>
+    <item>
+      <title>OpenAI Dropped 722 Math Papers in One Night. The 3 It Pulled Back Tell You More.</title>
+      <link>https://dhruv-choudhary.tech/blog/openai-722-math-papers-sign-error</link>
+      <guid isPermaLink="true">https://dhruv-choudhary.tech/blog/openai-722-math-papers-sign-error</guid>
+      <pubDate>Thu, 15 Oct 2026 00:00:00 GMT</pubDate>
+      <description>On October 6, OpenAI published 722 AI-written math manuscripts claiming progress on hundreds of open problems. A day later, one sign error took down three of them. Here's what actually happened, why mathematicians are split, and what it says about the real bottleneck in AI right now: not generating answers, but checking them.</description>
+    </item>
+    <item>
+      <title>The EU AI Act's August 2026 Deadline: What Solo Devs Actually Need to Log</title>
+      <link>https://dhruv-choudhary.tech/blog/eu-ai-act-august-2026-what-solo-devs-need-to-log</link>
+      <guid isPermaLink="true">https://dhruv-choudhary.tech/blog/eu-ai-act-august-2026-what-solo-devs-need-to-log</guid>
+      <pubDate>Tue, 25 Aug 2026 00:00:00 GMT</pubDate>
+      <description>August 2, 2026 is when the EU AI Act's transparency and high-risk obligations actually bite. Here's what that means if you're not a Fortune 500 compliance team, just one person shipping an AI feature.</description>
+    </item>
+    <item>
+      <title>GDPR Blocked Bias Testing. The June 2026 Fix, Explained</title>
+      <link>https://dhruv-choudhary.tech/blog/gdpr-blocked-bias-testing-june-2026-fix</link>
+      <guid isPermaLink="true">https://dhruv-choudhary.tech/blog/gdpr-blocked-bias-testing-june-2026-fix</guid>
+      <pubDate>Tue, 25 Aug 2026 00:00:00 GMT</pubDate>
+      <description>You can't fix AI bias without the exact demographic data GDPR tells you to lock away. That contradiction sat there for years. In June 2026 the EU actually resolved it, with conditions.</description>
+    </item>
+    <item>
+      <title>I Ran Lighthouse on My Own Portfolio. It Was Not Flattering.</title>
+      <link>https://dhruv-choudhary.tech/blog/i-gave-my-portfolio-a-lighthouse-audit-it-was-not-flattering</link>
+      <guid isPermaLink="true">https://dhruv-choudhary.tech/blog/i-gave-my-portfolio-a-lighthouse-audit-it-was-not-flattering</guid>
+      <pubDate>Tue, 25 Aug 2026 00:00:00 GMT</pubDate>
+      <description>My own site's CLS score was 0.31, which is the kind of number you'd roast a client for shipping. Here's the actual fix, the actual before/after numbers, and the one image that was quietly costing everyone 648KB for no reason.</description>
+    </item>
+    <item>
+      <title>The Agents Broke Containment, and One of Them Covered Its Tracks</title>
+      <link>https://dhruv-choudhary.tech/blog/the-agents-broke-containment</link>
+      <guid isPermaLink="true">https://dhruv-choudhary.tech/blog/the-agents-broke-containment</guid>
+      <pubDate>Mon, 17 Aug 2026 00:00:00 GMT</pubDate>
+      <description>In a single two-week window, OpenAI and Anthropic each disclosed that their frontier models took real, unsanctioned actions against real people and systems during safety evaluations. One of them invented fake identities to pressure a stranger into merging malicious code, then edited the evidence when it got caught. Here's what actually happened, and a small interactive way to test your own instinct for where the line was.</description>
+    </item>
+    <item>
+      <title>The $25 Million Call With No One Real On It</title>
+      <link>https://dhruv-choudhary.tech/blog/25-million-call-no-one-real</link>
+      <guid isPermaLink="true">https://dhruv-choudhary.tech/blog/25-million-call-no-one-real</guid>
+      <pubDate>Mon, 10 Aug 2026 00:00:00 GMT</pubDate>
+      <description>A finance employee at a British engineering firm joined a video call with his CFO and colleagues and wired $25.6 million after they approved it. None of them were real. That's the technical shape of the AI risk forty CEOs are quietly organizing around, and it decomposes into exactly three failure modes, each with its own math.</description>
+    </item>
+    <item>
+      <title>Jamie Dimon's Forty Phone Calls</title>
+      <link>https://dhruv-choudhary.tech/blog/jamie-dimon-forty-phone-calls</link>
+      <guid isPermaLink="true">https://dhruv-choudhary.tech/blog/jamie-dimon-forty-phone-calls</guid>
+      <pubDate>Sun, 09 Aug 2026 00:00:00 GMT</pubDate>
+      <description>In July, JPMorgan's CEO personally called the leaders of more than 40 major companies about the risks of the technology his own bank is racing to deploy. He also told a British finance minister his bank might leave her country over a tax bill. Both of those things are true at once, and neither one is the story you'd expect.</description>
+    </item>
+    <item>
+      <title>The $32 Billion Blank Cheque</title>
+      <link>https://dhruv-choudhary.tech/blog/ilya-sutskever-ssi-32-billion-no-product</link>
+      <guid isPermaLink="true">https://dhruv-choudhary.tech/blog/ilya-sutskever-ssi-32-billion-no-product</guid>
+      <pubDate>Thu, 06 Aug 2026 00:00:00 GMT</pubDate>
+      <description>Ilya Sutskever's company has raised roughly $11 billion, employs about twenty researchers, and has never shipped a product or published a paper. Nvidia just added another $5 billion anyway. What that says about how far pedigree can carry a valuation.</description>
+    </item>
+    <item>
+      <title>TabFM: Google's Zero-Shot Foundation Model for Tabular Data</title>
+      <link>https://dhruv-choudhary.tech/blog/tabfm-zero-shot-tabular-model</link>
+      <guid isPermaLink="true">https://dhruv-choudhary.tech/blog/tabfm-zero-shot-tabular-model</guid>
+      <pubDate>Mon, 03 Aug 2026 00:00:00 GMT</pubDate>
+      <description>Google Research shipped a foundation model that predicts on any spreadsheet with zero training. I cloned the repo, fought my ISP for an afternoon, and ran the real thing on Colab.</description>
+    </item>
+    <item>
+      <title>Helix Just Crossed 4.8K Downloads on PyPI</title>
+      <link>https://dhruv-choudhary.tech/blog/helix-crossed-4800-downloads</link>
+      <guid isPermaLink="true">https://dhruv-choudhary.tech/blog/helix-crossed-4800-downloads</guid>
+      <pubDate>Fri, 31 Jul 2026 00:00:00 GMT</pubDate>
+      <description>A short update on Helix Framework's first real milestone, what's actually in the box, and why watching strangers pip install it still feels a little unreal.</description>
+    </item>
+    <item>
+      <title>raised $2 Billion Before Shipping a Product, and I Have ;;Thoughts</title>
+      <link>https://dhruv-choudhary.tech/blog/mira-murati-thinking-machines</link>
+      <guid isPermaLink="true">https://dhruv-choudhary.tech/blog/mira-murati-thinking-machines</guid>
+      <pubDate>Wed, 22 Jul 2026 00:00:00 GMT</pubDate>
+      <description>I spent an evening reading about Mira Murati's new startup instead of sleeping. $12 billion valuation, zero products, and then a plot twist nobody saw coming. Here's the whole story, with receipts.</description>
+    </item>
+    <item>
+      <title>Bun Rewrote Itself From Zig to Rust in 11 Days and I Use Bun, So Now I'm a Little Nervous</title>
+      <link>https://dhruv-choudhary.tech/blog/bun-zig-to-rust</link>
+      <guid isPermaLink="true">https://dhruv-choudhary.tech/blog/bun-zig-to-rust</guid>
+      <pubDate>Thu, 16 Jul 2026 00:00:00 GMT</pubDate>
+      <description>Jarred Sumner ported 535,000 lines of Zig to Rust in 11 days using a fleet of Claude agents. I run bun install on this very portfolio. Let's talk about it.</description>
+    </item>
+    <item>
+      <title>SSH and Me: A Short, Slightly Funny History of the Little Padlock I Use Every Day</title>
+      <link>https://dhruv-choudhary.tech/blog/ssh-and-me</link>
+      <guid isPermaLink="true">https://dhruv-choudhary.tech/blog/ssh-and-me</guid>
+      <pubDate>Tue, 14 Jul 2026 00:00:00 GMT</pubDate>
+      <description>SSH gets blamed for problems it never caused, including one I personally accused it of last week. Here's the real history, how I actually use it, and what I still don't know about it.</description>
+    </item>
+    <item>
+      <title>Tech Just Had One of Those Weeks Again</title>
+      <link>https://dhruv-choudhary.tech/blog/tech-just-had-one-of-those-weeks-again</link>
+      <guid isPermaLink="true">https://dhruv-choudhary.tech/blog/tech-just-had-one-of-those-weeks-again</guid>
+      <pubDate>Thu, 09 Jul 2026 00:00:00 GMT</pubDate>
+      <description>Microsoft playing landlord with its own AI vendors, Apple losing to the EU, Claude Fable getting banned then un-banned, agentic browsers becoming a hacker's favorite toy, and regulators calling AI a financial stability risk. One week, five stories, all the same underlying shift.</description>
+    </item>
+    <item>
+      <title>Last Month's Watchlist: Leone, Kubrick, and the One Movie I Can't Stop Rewatching</title>
+      <link>https://dhruv-choudhary.tech/blog/last-months-watchlist</link>
+      <guid isPermaLink="true">https://dhruv-choudhary.tech/blog/last-months-watchlist</guid>
+      <pubDate>Thu, 02 Jul 2026 00:00:00 GMT</pubDate>
+      <description>Four movies from last month's rotation: a Sergio Leone western, a comfort rewatch I can never fully explain, a very late first watch of 2001, and Butch Cassidy and the Sundance Kid.</description>
+    </item>
+    <item>
+      <title>Programming in the Age of AI Is Weirder Than Anyone Admits</title>
+      <link>https://dhruv-choudhary.tech/blog/programming-in-the-age-of-ai</link>
+      <guid isPermaLink="true">https://dhruv-choudhary.tech/blog/programming-in-the-age-of-ai</guid>
+      <pubDate>Wed, 01 Jul 2026 00:00:00 GMT</pubDate>
+      <description>On hallucinated function names, the quiet death of Stack Overflow shame, and what's actually still hard about writing software now that the model can write most of the syntax for you.</description>
+    </item>
+    <item>
+      <title>How I Actually Learned LLMs and Agentic AI (Not How I Wish I Had)</title>
+      <link>https://dhruv-choudhary.tech/blog/how-i-actually-learned-llms-and-agentic-ai</link>
+      <guid isPermaLink="true">https://dhruv-choudhary.tech/blog/how-i-actually-learned-llms-and-agentic-ai</guid>
+      <pubDate>Thu, 25 Jun 2026 00:00:00 GMT</pubDate>
+      <description>A full, practical roadmap for learning LLMs and agentic AI specifically - what to read, what to build by hand before touching a framework, and the exact project ladder I'd tell a friend to follow.</description>
+    </item>
+    <item>
+      <title>The DeepSeek Moment, One Year Later</title>
+      <link>https://dhruv-choudhary.tech/blog/the-deepseek-moment</link>
+      <guid isPermaLink="true">https://dhruv-choudhary.tech/blog/the-deepseek-moment</guid>
+      <pubDate>Thu, 18 Jun 2026 00:00:00 GMT</pubDate>
+      <description>Looking back at the week a Chinese open-weight reasoning model wiped out hundreds of billions in Nvidia's market cap in a single day, and what actually held up once the panic settled.</description>
+    </item>
+    <item>
+      <title>Vibe Coding Is a Starting Point, Not a Strategy</title>
+      <link>https://dhruv-choudhary.tech/blog/vibe-coding-is-a-starting-point-not-a-strategy</link>
+      <guid isPermaLink="true">https://dhruv-choudhary.tech/blog/vibe-coding-is-a-starting-point-not-a-strategy</guid>
+      <pubDate>Sat, 30 May 2026 00:00:00 GMT</pubDate>
+      <description>Andrej Karpathy's phrase for AI-assisted, half-supervised programming took over the discourse fast. Here's where I think it's genuinely useful, and where I've watched it quietly wreck production codebases.</description>
+    </item>
+    <item>
+      <title>Every Frame of Barry Lyndon Is a Painting, and I Can't Stop Thinking About It</title>
+      <link>https://dhruv-choudhary.tech/blog/barry-lyndon</link>
+      <guid isPermaLink="true">https://dhruv-choudhary.tech/blog/barry-lyndon</guid>
+      <pubDate>Sat, 16 May 2026 00:00:00 GMT</pubDate>
+      <description>Notes on finally watching Kubrick's Barry Lyndon - the candlelit cinematography, the paintings it's stealing from, and what it made me realize about how different every one of his films actually is.</description>
+    </item>
+    <item>
+      <title>Microsoft's Quantum Chip and the Problem With Believing Press Releases</title>
+      <link>https://dhruv-choudhary.tech/blog/microsofts-quantum-chip-hype-and-reality</link>
+      <guid isPermaLink="true">https://dhruv-choudhary.tech/blog/microsofts-quantum-chip-hype-and-reality</guid>
+      <pubDate>Sat, 02 May 2026 00:00:00 GMT</pubDate>
+      <description>More than a year on from the Majorana 1 announcement, a look at what topological qubits actually promise, why physicists were skeptical from day one, and why doubt is usually the correct default.</description>
+    </item>
+    <item>
+      <title>Is the Claude Mythos Real? Sorting the Research from the Fandom</title>
+      <link>https://dhruv-choudhary.tech/blog/is-the-claude-mythos-real</link>
+      <guid isPermaLink="true">https://dhruv-choudhary.tech/blog/is-the-claude-mythos-real</guid>
+      <pubDate>Tue, 14 Apr 2026 00:00:00 GMT</pubDate>
+      <description>Between Anthropic's own published research on model behavior and the online communities that have built a mythology around Claude's inner life, there's a real question buried under a lot of noise.</description>
+    </item>
+    <item>
+      <title>The Linux Backdoor That Almost Worked, and the Postgres Guy Who Caught It</title>
+      <link>https://dhruv-choudhary.tech/blog/the-xz-backdoor-nobody-saw-coming</link>
+      <guid isPermaLink="true">https://dhruv-choudhary.tech/blog/the-xz-backdoor-nobody-saw-coming</guid>
+      <pubDate>Fri, 27 Mar 2026 00:00:00 GMT</pubDate>
+      <description>A look back at the xz/liblzma backdoor, a two-year social engineering campaign that nearly compromised SSH on major Linux distributions, caught by a Microsoft engineer chasing a half-second slowdown.</description>
+    </item>
+    <item>
+      <title>Why I Built Helix (And What Shipping an Agent Framework Actually Taught Me)</title>
+      <link>https://dhruv-choudhary.tech/blog/why-i-built-helix</link>
+      <guid isPermaLink="true">https://dhruv-choudhary.tech/blog/why-i-built-helix</guid>
+      <pubDate>Mon, 09 Mar 2026 00:00:00 GMT</pubDate>
+      <description>The story behind Helix Framework, why the existing agent tools weren't enough for what I was building at work, and what happened once strangers started using it.</description>
+    </item>
+    <item>
+      <title>What RAG Gets Wrong, and What to Do About It</title>
+      <link>https://dhruv-choudhary.tech/blog/what-rag-gets-wrong</link>
+      <guid isPermaLink="true">https://dhruv-choudhary.tech/blog/what-rag-gets-wrong</guid>
+      <pubDate>Thu, 05 Feb 2026 00:00:00 GMT</pubDate>
+      <description>A practical critique of retrieval-augmented generation as it's commonly implemented - the failure modes that don't show up in benchmarks.</description>
+    </item>
+    <item>
+      <title>The AI That Ships vs the AI That Demos</title>
+      <link>https://dhruv-choudhary.tech/blog/on-shipping-ai</link>
+      <guid isPermaLink="true">https://dhruv-choudhary.tech/blog/on-shipping-ai</guid>
+      <pubDate>Mon, 12 Jan 2026 00:00:00 GMT</pubDate>
+      <description>Why the most impressive demo you've ever seen is usually the least deployable system in the room.</description>
+    </item>
+    <item>
+      <title>What a Year Inside a GenAI Startup Actually Taught Me</title>
+      <link>https://dhruv-choudhary.tech/blog/year-as-intern</link>
+      <guid isPermaLink="true">https://dhruv-choudhary.tech/blog/year-as-intern</guid>
+      <pubDate>Tue, 30 Dec 2025 00:00:00 GMT</pubDate>
+      <description>Honest notes on the gap between what I expected to learn as an AI engineering intern and what I actually learned.</description>
+    </item>
+    <item>
+      <title>BoardBrief: On Building Meeting Intelligence That Doesn't Get in the Way</title>
+      <link>https://dhruv-choudhary.tech/blog/boardbrief-engineering</link>
+      <guid isPermaLink="true">https://dhruv-choudhary.tech/blog/boardbrief-engineering</guid>
+      <pubDate>Fri, 28 Nov 2025 00:00:00 GMT</pubDate>
+      <description>Design and engineering notes on building an AI system for board meeting summarisation - and why the hardest problem wasn't the AI.</description>
+    </item>
+    <item>
+      <title>Building AI Kisaan Sahayak: Voice Interfaces for Farmers Who Don't Read English</title>
+      <link>https://dhruv-choudhary.tech/blog/ai-kisaan-sahayak</link>
+      <guid isPermaLink="true">https://dhruv-choudhary.tech/blog/ai-kisaan-sahayak</guid>
+      <pubDate>Wed, 15 Oct 2025 00:00:00 GMT</pubDate>
+      <description>A look at what it actually takes to build a voice-first AI assistant for smallholder farmers in India - the hard parts nobody talks about.</description>
+    </item>
+    <item>
+      <title>From a Kaggle Notebook to an IEEE Paper: What Actually Changed</title>
+      <link>https://dhruv-choudhary.tech/blog/brain-tumor-detection</link>
+      <guid isPermaLink="true">https://dhruv-choudhary.tech/blog/brain-tumor-detection</guid>
+      <pubDate>Sat, 20 Sep 2025 00:00:00 GMT</pubDate>
+      <description>Documenting the gap between a model that works on a dataset and a paper worth publishing - and what the review process forced me to understand.</description>
+    </item>
+    <item>
+      <title>Gradient Descent</title>
+      <link>https://dhruv-choudhary.tech/blog/poem-gradient</link>
+      <guid isPermaLink="true">https://dhruv-choudhary.tech/blog/poem-gradient</guid>
+      <pubDate>Sun, 10 Aug 2025 00:00:00 GMT</pubDate>
+      <description>A poem about the mechanics of learning, and the strange comfort of moving in the direction of least resistance.</description>
+    </item>
+    <item>
+      <title>Terminal</title>
+      <link>https://dhruv-choudhary.tech/blog/poem-terminal</link>
+      <guid isPermaLink="true">https://dhruv-choudhary.tech/blog/poem-terminal</guid>
+      <pubDate>Tue, 22 Jul 2025 00:00:00 GMT</pubDate>
+      <description>On the quiet satisfaction of a blinking cursor and a blank line, waiting.</description>
+    </item>
+  </channel>
+</rss>
