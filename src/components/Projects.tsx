@@ -113,6 +113,8 @@ export default function Projects({ github }: Props) {
           </div>
         </div>
 
+        {/* Repo list sits on a card so the backdrop grid stays out of the text */}
+        <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '12px', padding: '6px', boxShadow: 'var(--shadow-sm)' }}>
         {github.loading ? (
           // Reserves roughly the same height as 6 loaded RepoRows (the
           // default page size before "show more") so the GitHub API
@@ -138,6 +140,7 @@ export default function Projects({ github }: Props) {
             {otherRepos.map(repo => <RepoRow key={repo.id} repo={repo} />)}
           </div>
         )}
+        </div>
 
         {github.repos.length > 6 && (
           <button onClick={() => setShowAll(v => !v)} className="btn btn-outline" style={{ marginTop: '20px', fontSize: '0.76rem' }}>
@@ -170,7 +173,7 @@ function FeaturedCard({ project }: { project: typeof FEATURED[number] & { ghRepo
       onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)}
       style={{
         display: 'flex', flexDirection: 'column', padding: '22px',
-        background: 'var(--bg)', border: '1px solid',
+        background: 'var(--surface)', border: '1px solid',
         borderColor: hovered ? 'var(--accent-dim)' : 'var(--border)',
         borderRadius: '10px', textDecoration: 'none',
         transition: 'all 0.22s ease',

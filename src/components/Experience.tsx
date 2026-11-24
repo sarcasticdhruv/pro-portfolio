@@ -158,7 +158,7 @@ export default function Experience() {
                   </div>
 
                   {role.bullets && (
-                    <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 14px', display: 'flex', flexDirection: 'column', gap: '9px' }}>
+                    <ul className="exp-card" style={{ listStyle: 'none', margin: '0 0 14px', display: 'flex', flexDirection: 'column', gap: '9px' }}>
                       {role.bullets.map(b => (
                         <li key={b} style={{ display: 'flex', gap: '10px', color: 'var(--text-muted)', fontSize: '0.91rem', lineHeight: 1.7 }}>
                           <span style={{ color: 'var(--accent)', flexShrink: 0, marginTop: '2px', fontFamily: "'JetBrains Mono', monospace", fontSize: '0.82rem' }}>›</span>
@@ -169,9 +169,9 @@ export default function Experience() {
                   )}
 
                   {role.projects && (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '18px', marginBottom: '16px' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '16px' }}>
                       {role.projects.map(p => (
-                        <div key={p.name} style={{ paddingTop: '14px', borderTop: '1px solid var(--border)' }}>
+                        <div key={p.name} className="exp-card">
                           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginBottom: '6px' }}>
                             <h4 style={{ fontFamily: "'Syne', sans-serif", fontWeight: 700, fontSize: '0.93rem', color: 'var(--text)' }}>
                               {p.name}
@@ -185,7 +185,7 @@ export default function Experience() {
                           {p.caseStudy ? (
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '7px', marginBottom: p.tools.length ? '11px' : 0 }}>
                               {([['problem', p.caseStudy.problem], ['approach', p.caseStudy.approach], ['impact', p.caseStudy.impact]] as const).map(([label, text]) => (
-                                <div key={label} style={{ display: 'flex', gap: '10px' }}>
+                                <div key={label} className="exp-cs-row" style={{ display: 'flex', gap: '10px' }}>
                                   <span style={{
                                     flexShrink: 0, width: '68px',
                                     fontFamily: "'JetBrains Mono', monospace", fontSize: '0.62rem',
@@ -220,7 +220,13 @@ export default function Experience() {
 
             {/* Education card */}
             <style>{`
+              .exp-card {
+                background: var(--surface); border: 1px solid var(--border);
+                border-radius: 12px; padding: 18px 22px; box-shadow: var(--shadow-sm);
+              }
               @media (max-width: 480px) {
+                .exp-card { padding: 14px 14px; }
+                .exp-cs-row { flex-direction: column; gap: 2px !important; }
                 .exp-subtitle { text-align: left !important; }
                 .exp-timeline { padding-left: 20px !important; }
                 .exp-dot { left: -28px !important; }

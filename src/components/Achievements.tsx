@@ -83,7 +83,7 @@ export default function Achievements() {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '18px' }}>
           {ACHIEVEMENTS.map(a => (
             <div key={a.title} style={{
-              padding: '22px', background: 'var(--bg)',
+              padding: '22px', background: 'var(--surface)',
               border: '1px solid', borderColor: a.highlight ? 'var(--accent-dim)' : 'var(--border)',
               borderRadius: '10px', position: 'relative', overflow: 'hidden',
               boxShadow: 'var(--shadow-sm)',
