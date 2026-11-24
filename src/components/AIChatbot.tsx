@@ -1,9 +1,15 @@
 import { useState, useRef, useEffect, type KeyboardEvent, type ChangeEvent } from 'react';
-import { X, Send, Sparkles, ArrowRight, ExternalLink, Mic, Square, Loader2, Plus, AudioWaveform } from 'lucide-react';
+import { X, Send, Sparkles, ArrowRight, ExternalLink, Mic, Square, Loader2, Plus, AudioWaveform, Check, CircleAlert, Download } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { streamChatbot, transcribeAudio } from '../lib/chatbotClient';
 import { connectLiveVoice, type LiveVoiceController } from '../lib/liveVoice';
-import type { ChatMessage } from '../lib/providers';
+import type { ChatMessage, WebSource } from '../lib/providers';
+import { planTools, runTools, type AgentStep, type AgentAction } from '../lib/chatAgent';
+import ChatContactForm from './ChatContactForm';
+import {
+  saveLead, extractLead, buildTranscript, hasContactSignal, hasContactIntent,
+  type LeadDetails, type LeadSource,
+} from '../lib/leads';
 import { searchContent } from '../lib/contentIndex';
 import type { Movie } from '../pages/WatchedPage';
 
@@ -133,6 +139,15 @@ Examples:
   User: "what did you say about the EU AI Act?" (with a matching RELEVANT BLOG POSTS excerpt) → answer from the excerpt, ending with [ACTION|navigate|/blog/eu-ai-act-august-2026-what-solo-devs-need-to-log|Read the full post]
 
 You can include up to 2 actions. Do not include actions for general knowledge questions that don't need navigation. Never put action tags anywhere except the very end of your reply.
+
+=== TOOLS (ALREADY RUN FOR YOU) ===
+This chat is agentic. Before you reply, the app can search my site, search the live web, generate images, check my film log, and draft an email to me. When it did, the results are in a "TOOL RESULTS" block appended below. Use them:
+- Web findings are current; trust them over your own memory for anything recent. Mention where a fact came from naturally ("per the Node.js release notes"), never with bracket numbers.
+- Site results are real content from my site; prefer them over the profile above when they are more specific.
+- Never say you cannot browse the web, see current info, or make images. If a tool FAILED, say so in one short line and still help.
+- Buttons for sources, drafts and links are added automatically. Do not repeat raw URLs in your text, and do not add an ACTION tag for an email draft (its button already exists).
+- If someone wants to talk to me, hire me or work with me and has not shared how to reach them, ask once, naturally, for their name and email or phone number so I can get back to them. When they share it, confirm in one line that I'll be in touch. Never ask twice in a row, never pressure.
+- The chat shows plain text only: never use markdown (no **bold**, no # headings, no * bullets). For an email draft write "Subject: ..." on one line, then the body.
 `;
 
 // ── Action parsing ────────────────────────────────────────────────────────────
@@ -151,6 +166,10 @@ function parseActions(text: string): { clean: string; actions: Action[] } {
       }
       return '';
     })
+    // The persona never uses em/en dashes (they read as AI-written); models
+    // still slip them in, so normalize them out of every reply.
+    .replace(/(\d)\s*\u2013\s*(\d)/g, '$1-$2') // ranges: 2024\u20132025 -> 2024-2025
+    .replace(/\s*[\u2014\u2013]\s*/g, ', ')
     .trim();
   return { clean, actions };
 }
@@ -197,6 +216,10 @@ interface Msg {
   content: string;
   actions?: Action[];
   imageUrl?: string;
+  steps?: AgentStep[];
+  genImage?: { url: string; prompt: string };
+  sources?: WebSource[];
+  form?: LeadDetails;
   id: number;
 }
 
@@ -204,9 +227,9 @@ let msgId = 0;
 
 const SUGGESTIONS = [
   "What's Dhruv working on?",
-  'Tell me about his AI projects',
-  'What skills does he have?',
-  'How can I contact him?',
+  'What happened in AI this week?',
+  'Draw my dream desk setup',
+  'Help me email you about a role',
 ];
 
 const TEASERS = [
@@ -274,6 +297,14 @@ export default function AIChatbot() {
   // data for prompt-building, not something that should re-render the panel
   // when it arrives.
   const moviesRef = useRef<Movie[] | null>(null);
+  // Latest messages for callbacks that outlive a render (live voice), plus
+  // lead-capture bookkeeping: one lead per session, re-saved only when the
+  // visitor shares something new.
+  const messagesRef = useRef<Msg[]>([]);
+  const leadSavedRef = useRef(false);
+  const leadCapturedUpToRef = useRef(0);
+  // Once a contact form is submitted, older unsent forms are hidden.
+  const [sentFormMsgId, setSentFormMsgId] = useState<number | null>(null);
 
   // Measured: the full string needs ~148px but only ~122px is available at
   // 360px and ~85px at 320px, so it truncated on small phones. Shortening the
@@ -289,6 +320,8 @@ export default function AIChatbot() {
     window.addEventListener('resize', pick);
     return () => window.removeEventListener('resize', pick);
   }, []);
+
+  useEffect(() => { messagesRef.current = messages; }, [messages]);
 
   useEffect(() => {
     if (bodyRef.current) {
@@ -380,6 +413,21 @@ export default function AIChatbot() {
     }
   }
 
+  // Saves "this person wants to reach Dhruv" to the admin Inbox. Triggers on
+  // contact details (email/phone, typed or spoken) or clear contact intent,
+  // runs in the background, and never touches the visible chat.
+  async function captureLead(source: LeadSource, turns: { role: 'user' | 'assistant'; content: string }[], forced = false) {
+    const userTurns = turns.filter(t => t.role === 'user');
+    const fresh = userTurns.slice(leadCapturedUpToRef.current).map(t => t.content).join('\n');
+    const signal = hasContactSignal(fresh);
+    const intent = hasContactIntent(fresh);
+    if (!forced && !signal && !(intent && !leadSavedRef.current)) return;
+    leadCapturedUpToRef.current = userTurns.length;
+    const transcript = buildTranscript(turns);
+    const details = await extractLead(transcript);
+    if (await saveLead(source, details, transcript)) leadSavedRef.current = true;
+  }
+
   async function send(text?: string) {
     const content = (text ?? input).trim();
     const image = attachedImage;
@@ -411,7 +459,42 @@ export default function AIChatbot() {
       // already bundled client-side (see contentIndex.ts), so this costs
       // nothing extra over the network - only a few hundred extra tokens of
       // system-prompt context on the requests that actually need it.
-      const blogMatches = content
+      const updateAssistant = (patch: Partial<Msg>) => {
+        if (!placed) {
+          placed = true;
+          setLoading(false);
+          setMessages(prev => [...prev, { id: assistantId, role: 'assistant', content: '', ...patch }]);
+        } else {
+          setMessages(prev => prev.map(m => (m.id === assistantId ? { ...m, ...patch } : m)));
+        }
+      };
+
+      // ── Agent: plan tools, run them, then answer with their results ──────
+      // Image attachments skip planning: the vision model answers directly.
+      const calls = image ? [] : await planTools([
+        ...messages.map(m => ({ role: m.role, content: m.content, imagePrompt: m.genImage?.prompt })),
+        { role: 'user' as const, content: userMsg.content },
+      ]);
+
+      let toolContext = '';
+      let toolActions: AgentAction[] = [];
+      let toolSources: WebSource[] = [];
+      if (calls.length > 0) {
+        const outcome = await runTools(calls, { movies: moviesRef.current }, steps => updateAssistant({ steps }));
+        toolContext = outcome.context;
+        toolActions = outcome.actions;
+        toolSources = outcome.sources;
+        updateAssistant({
+          genImage: outcome.image,
+          sources: toolSources.length ? toolSources : undefined,
+          form: outcome.form,
+        });
+      }
+
+      // Cheap always-on context, used only when the planner did not already
+      // fetch the same thing through a tool.
+      const usedTool = (n: string) => calls.some(c => c.name === n);
+      const blogMatches = content && !usedTool('search_site')
         ? searchContent(content, 3).filter(m => m.record.kind === 'blog')
         : [];
       const blogContext = blogMatches.length
@@ -419,29 +502,43 @@ export default function AIChatbot() {
             .map(m => `Title: "${m.record.title}"\nURL: ${m.record.url}\nExcerpt: ${m.record.text.slice(0, 1200)}`)
             .join('\n\n')}`
         : '';
-      const movieContext = content ? matchMovies(content, moviesRef.current) : '';
+      const movieContext = content && !usedTool('get_films') ? matchMovies(content, moviesRef.current) : '';
+      const toolBlock = toolContext ? `\n\n=== TOOL RESULTS (for this message only) ===\n${toolContext}` : '';
 
-      await streamChatbot([{ role: 'system', content: SYSTEM_PROMPT + blogContext + movieContext }, ...history], {
-        maxTokens: 500,
+      const mergeActions = (fromText: Action[]): Action[] | undefined => {
+        const all = [...toolActions, ...fromText];
+        // Dedupe by target AND label: the model sometimes re-emits its own
+        // mailto/link for something a tool already made a button for.
+        const seen = new Set<string>();
+        const hasToolMail = toolActions.some(a => a.target.startsWith('mailto:'));
+        const out = all.filter(a => {
+          if (hasToolMail && a.target.startsWith('mailto:') && !toolActions.includes(a)) return false;
+          const keys = [a.target, a.label.toLowerCase()];
+          if (keys.some(k => seen.has(k))) return false;
+          keys.forEach(k => seen.add(k));
+          return true;
+        }).slice(0, 3);
+        return out.length ? out : undefined;
+      };
+      if (toolActions.length) updateAssistant({ actions: mergeActions([]) });
+
+      await streamChatbot([{ role: 'system', content: SYSTEM_PROMPT + blogContext + movieContext + toolBlock }, ...history], {
+        maxTokens: 600,
         temperature: 0.72,
         hasImage: !!image,
         onToken: delta => {
           streamed += delta;
           const { clean, actions } = parseActions(stripTrailingPartialAction(streamed));
-          if (!placed) {
-            placed = true;
-            setLoading(false);
-            setMessages(prev => [...prev, {
-              id: assistantId, role: 'assistant', content: clean,
-              actions: actions.length ? actions : undefined,
-            }]);
-          } else {
-            setMessages(prev => prev.map(m => (
-              m.id === assistantId ? { ...m, content: clean, actions: actions.length ? actions : undefined } : m
-            )));
-          }
+          updateAssistant({ content: clean, actions: mergeActions(actions) });
         },
       });
+
+      const contactTool = calls.find(c => c.name === 'contact_form' || c.name === 'draft_email');
+      void captureLead(
+        contactTool?.name === 'draft_email' ? 'email-draft' : 'chat',
+        [...messages, { role: 'user', content: userMsg.content }, { role: 'assistant', content: parseActions(streamed).clean }],
+        !!contactTool,
+      );
     } catch (e: any) {
       if (!placed) setError(e.message ?? 'Something went wrong.');
     } finally {
@@ -586,6 +683,7 @@ export default function AIChatbot() {
       },
       onTurnComplete: () => {
         liveAssistantMsgIdRef.current = null;
+        void captureLead('voice', messagesRef.current.map(m => ({ role: m.role, content: m.content })));
       },
       onInterrupted: () => {
         liveAssistantMsgIdRef.current = null;
@@ -779,6 +877,54 @@ export default function AIChatbot() {
                   style={{ maxWidth: '60%', maxHeight: '140px', borderRadius: '12px', border: '1px solid var(--border)', objectFit: 'cover', display: 'block' }}
                 />
               )}
+              {/* Agent steps (tools the chatbot ran for this reply) */}
+              {m.steps && m.steps.length > 0 && (
+                <div style={{
+                  display: 'flex', flexDirection: 'column', gap: '4px', maxWidth: '85%',
+                  padding: '7px 11px', borderRadius: '10px',
+                  border: '1px dashed var(--border)', background: 'var(--surface)',
+                }}>
+                  {m.steps.map(st => (
+                    <div key={st.id} style={{
+                      display: 'flex', alignItems: 'center', gap: '7px',
+                      fontFamily: "'JetBrains Mono', monospace", fontSize: '0.68rem',
+                      color: st.status === 'error' ? '#FF6B6B' : 'var(--text-dim)',
+                    }}>
+                      {st.status === 'running' && <Loader2 size={11} className="spin-slow" style={{ color: 'var(--accent)' }} />}
+                      {st.status === 'done' && <Check size={11} style={{ color: 'var(--accent)' }} />}
+                      {st.status === 'error' && <CircleAlert size={11} />}
+                      <span>{st.label}</span>
+                      {st.detail && <span style={{ opacity: 0.7 }}>· {st.detail}</span>}
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Image generated by the agent's image tool */}
+              {m.genImage && (
+                <div style={{ position: 'relative', maxWidth: '85%' }}>
+                  <img
+                    src={m.genImage.url}
+                    alt={m.genImage.prompt}
+                    style={{ width: '100%', maxWidth: '300px', borderRadius: '12px', border: '1px solid var(--border)', display: 'block' }}
+                  />
+                  <a
+                    href={m.genImage.url}
+                    download="dhruv-chat-image.jpg"
+                    title="Download image"
+                    style={{
+                      position: 'absolute', right: '8px', bottom: '8px',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      width: '28px', height: '28px', borderRadius: '50%',
+                      background: 'rgba(0,0,0,0.55)', color: '#fff',
+                    }}
+                  >
+                    <Download size={13} />
+                  </a>
+                </div>
+              )}
+
+              {(m.role === 'user' || m.content) ? (
               <div style={{
                 maxWidth: '85%',
                 padding: '9px 13px',
@@ -795,6 +941,59 @@ export default function AIChatbot() {
               }}>
                 {m.content}
               </div>
+              ) : m.steps && !m.steps.some(st => st.status === 'running') ? (
+                <div style={{
+                  padding: '10px 14px', borderRadius: '14px 14px 14px 4px',
+                  background: 'var(--surface-2)', border: '1px solid var(--border)',
+                  display: 'flex', gap: '5px', alignItems: 'center',
+                }}>
+                  {[0, 1, 2].map(i => (
+                    <span key={i} style={{
+                      width: '6px', height: '6px', borderRadius: '50%',
+                      background: 'var(--accent)', display: 'inline-block',
+                      animation: `chatDot 1.1s ease-in-out ${i * 0.18}s infinite`,
+                    }} />
+                  ))}
+                </div>
+              ) : null}
+
+              {/* Web sources the agent used */}
+              {m.sources && m.sources.length > 0 && (
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px', maxWidth: '85%' }}>
+                  {m.sources.slice(0, 4).map((src, i) => {
+                    let host = src.title;
+                    try { host = new URL(src.url).hostname.replace(/^www\./, ''); } catch { /* keep title */ }
+                    return (
+                      <a
+                        key={src.url + i}
+                        href={src.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        title={src.title}
+                        style={{
+                          display: 'inline-flex', alignItems: 'center', gap: '4px',
+                          padding: '3px 9px', borderRadius: '100px',
+                          border: '1px solid var(--border)', background: 'var(--surface)',
+                          color: 'var(--text-dim)', textDecoration: 'none',
+                          fontFamily: "'JetBrains Mono', monospace", fontSize: '0.64rem',
+                          maxWidth: '170px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                        }}
+                      >
+                        <ExternalLink size={9} style={{ flexShrink: 0 }} />{host}
+                      </a>
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* Inline contact form (agent's contact_form tool) */}
+              {m.form && (sentFormMsgId === null || sentFormMsgId === m.id) && (
+                <ChatContactForm
+                  initial={m.form}
+                  getTranscript={() => buildTranscript(messagesRef.current.map(x => ({ role: x.role, content: x.content })))}
+                  onSubmitted={() => { leadSavedRef.current = true; setSentFormMsgId(m.id); }}
+                />
+              )}
 
               {/* Action buttons */}
               {m.actions && m.actions.length > 0 && (
@@ -1179,6 +1378,8 @@ export default function AIChatbot() {
       </button>
 
       <style>{`
+        @keyframes spin-slow-kf { to { transform: rotate(360deg); } }
+        .spin-slow { animation: spin-slow-kf 1s linear infinite; }
         @keyframes chatDot {
           0%, 80%, 100% { transform: scale(0.7); opacity: 0.4; }
           40% { transform: scale(1); opacity: 1; }

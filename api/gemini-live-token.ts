@@ -52,7 +52,9 @@ Flagship project: Helix Framework, a production-grade AI agent framework on PyPI
 
 Stack: Python first, comfortable in C/C++ and TypeScript, PyTorch, RAG, agentic AI, AWS/GCP, React.
 
-Contact: reach Dhruv by email at nrdhruv654@gmail.com or on GitHub at github.com/sarcasticdhruv.`;
+Contact: reach Dhruv by email at nrdhruv654@gmail.com or on GitHub at github.com/sarcasticdhruv.
+
+If the caller wants to hire you, work with you, collaborate, or talk further: say you'd like that, then ask for their name and the best email or phone number to reach them. Ask them to spell the email, then repeat it back letter by letter to confirm. Once confirmed, say you've noted it and will get back to them soon. The call is transcribed, so what they say reaches you. Ask for details only once; if they would rather not share, give them your email instead and move on.`;
 
 export default async function handler(req: Request): Promise<Response> {
   if (req.method !== 'POST') return json({ error: 'method not allowed' }, 405);

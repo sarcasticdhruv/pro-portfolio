@@ -1,7 +1,8 @@
 import { Fragment, useEffect, useState } from 'react';
-import { Lock, RotateCw, Users, Activity, ChevronDown, ChevronRight } from 'lucide-react';
+import { Lock, RotateCw, Users, Activity, ChevronDown, ChevronRight, Inbox, BarChart3 } from 'lucide-react';
 import { useSEO } from '../hooks/useSEO';
 import VisitorAnalytics, { type Analytics } from '../components/admin/VisitorAnalytics';
+import LeadsInbox, { type Lead } from '../components/admin/LeadsInbox';
 import { Pill } from '../components/charts/Charts';
 import { NATURE_LABELS, type VisitorNature } from '../lib/visitorNature';
 
@@ -136,6 +137,35 @@ export default function AdminPage() {
   const [timelineLoading, setTimelineLoading] = useState<string | null>(null);
   const [natureFilter, setNatureFilter] = useState<VisitorNature | 'all'>('all');
 
+  // Two views on one page: site visitors, and the Inbox of people who tried
+  // to reach me through the chatbot (form, chat, voice).
+  const [view, setView] = useState<'visitors' | 'inbox'>('visitors');
+  const [leads, setLeads] = useState<Lead[]>([]);
+  const [leadsError, setLeadsError] = useState('');
+  // Charts are long; keep them folded until asked for.
+  const [showCharts, setShowCharts] = useState(false);
+
+  async function loadLeads(k: string) {
+    try {
+      const res = await fetch(`/api/leads?key=${encodeURIComponent(k)}`);
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.error ?? 'request failed');
+      setLeads(data.leads ?? []);
+      setLeadsError('');
+    } catch (e) {
+      setLeadsError(e instanceof Error ? e.message : 'failed to load inbox');
+    }
+  }
+
+  function setLeadStatus(id: number, status: Lead['status']) {
+    setLeads(prev => prev.map(l => (l.id === id ? { ...l, status } : l)));
+    fetch(`/api/leads?key=${encodeURIComponent(key)}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id, status }),
+    }).catch(() => {});
+  }
+
   async function load(k: string) {
     setLoading(true);
     setFetchError('');
@@ -153,6 +183,7 @@ export default function AdminPage() {
       setRecent(data.recent ?? []);
       setAnalytics(data.analytics ?? null);
       setAuthed(true);
+      void loadLeads(k);
       sessionStorage.setItem(SESSION_KEY, k);
     } catch (e) {
       setFetchError(e instanceof Error ? e.message : 'failed to load');
@@ -253,10 +284,10 @@ export default function AdminPage() {
       <div style={{ maxWidth: '1080px', margin: '0 auto', padding: '0 clamp(16px, 5vw, 24px)' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '28px' }}>
           <h1 className="font-display" style={{ fontSize: 'clamp(1.5rem, 3.5vw, 2rem)', fontWeight: 700 }}>
-            Visitors<span style={{ color: 'var(--accent)' }}>.</span>
+            {view === 'visitors' ? 'Visitors' : 'Inbox'}<span style={{ color: 'var(--accent)' }}>.</span>
           </h1>
           <button
-            onClick={() => void load(key)}
+            onClick={() => { void load(key); void loadLeads(key); }}
             disabled={loading}
             style={{
               display: 'flex', alignItems: 'center', gap: '6px',
@@ -276,7 +307,58 @@ export default function AdminPage() {
           </p>
         )}
 
-        <VisitorAnalytics analytics={analytics} visitors={visitors} />
+        {/* View switch */}
+        <div style={{
+          display: 'inline-flex', gap: '4px', padding: '4px', marginBottom: '24px',
+          border: '1px solid var(--border)', borderRadius: '10px', background: 'var(--surface)',
+        }}>
+          {([
+            { key: 'visitors', label: 'Visitors', Icon: Users, badge: 0 },
+            { key: 'inbox', label: 'Inbox', Icon: Inbox, badge: leads.filter(l => l.status === 'new').length },
+          ] as const).map(t => (
+            <button
+              key={t.key}
+              onClick={() => setView(t.key)}
+              style={{
+                display: 'inline-flex', alignItems: 'center', gap: '7px', padding: '8px 16px',
+                borderRadius: '7px', border: 'none', cursor: 'pointer',
+                background: view === t.key ? 'var(--accent)' : 'transparent',
+                color: view === t.key ? 'var(--chat-user-text)' : 'var(--text-muted)',
+                fontFamily: "'JetBrains Mono', monospace", fontSize: '0.76rem', fontWeight: 600,
+              }}
+            >
+              <t.Icon size={13} /> {t.label}
+              {t.badge > 0 && (
+                <span style={{
+                  minWidth: '18px', height: '18px', borderRadius: '9px', padding: '0 5px',
+                  display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.64rem',
+                  background: view === t.key ? 'var(--chat-user-text)' : 'var(--accent)',
+                  color: view === t.key ? 'var(--accent)' : 'var(--chat-user-text)',
+                }}>{t.badge}</span>
+              )}
+            </button>
+          ))}
+        </div>
+
+        {view === 'inbox' ? (
+          <LeadsInbox leads={leads} error={leadsError} onStatus={setLeadStatus} />
+        ) : (<>
+        {/* Analytics charts: folded by default */}
+        <button
+          onClick={() => setShowCharts(v => !v)}
+          style={{
+            width: '100%', display: 'flex', alignItems: 'center', gap: '8px',
+            padding: '11px 14px', marginBottom: showCharts ? '14px' : '28px',
+            background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '10px',
+            cursor: 'pointer', color: 'var(--text-muted)', fontFamily: "'JetBrains Mono', monospace", fontSize: '0.74rem',
+          }}
+        >
+          {showCharts ? <ChevronDown size={13} /> : <ChevronRight size={13} />}
+          <BarChart3 size={13} style={{ color: 'var(--accent)' }} />
+          {showCharts ? 'hide analytics' : 'show analytics'}
+          <span style={{ marginLeft: 'auto', color: 'var(--text-dim)' }}>{visitors.length} visitors</span>
+        </button>
+        {showCharts && <VisitorAnalytics analytics={analytics} visitors={visitors} />}
 
         {/* Visitors table */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '7px', marginBottom: '10px' }}>
@@ -418,6 +500,7 @@ export default function AdminPage() {
             </tbody>
           </table>
         </div>
+        </>)}
       </div>
     </main>
   );
