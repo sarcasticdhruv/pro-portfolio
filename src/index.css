@@ -466,3 +466,56 @@ body.paper-bg::after {
     url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='400'%3E%3Cfilter id='f'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.012 0.55' numOctaves='2' seed='3'/%3E%3CfeColorMatrix values='0 0 0 0 0.8 0 0 0 0 0.9 0 0 0 0 0.82 0 0 0 0.03 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23f)'/%3E%3C/svg%3E"),
     url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.85 0 0 0 0 0.95 0 0 0 0 0.88 0 0 0 0.07 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)'/%3E%3C/svg%3E");
 }
+
+/* Crumpled-paper look for the blog. Real crumpled paper is faceted: straight
+   creases where two planes meet, shaded on one side and fading across the
+   plane. So: 10 fold lines (sharp edge, soft falloff, some reversed) at
+   varied angles, plus faint fine wrinkles from lit turbulence noise with
+   its contrast compressed so it never turns blobby. One non-repeating
+   sheet fixed to the viewport. Masked to ~40% strength behind the centered
+   reading column so the folds never fight the text. */
+[data-theme] body.paper-bg::before,
+body.paper-bg::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  /* overrides the site-wide light-mode grain overlay (opacity 0.028) that
+     uses this same pseudo-element */
+  opacity: 1;
+  mix-blend-mode: multiply;
+  background-image:
+    linear-gradient(112deg, transparent 18%, rgba(92, 70, 36, 0.085) 18.15%, transparent 31%),
+    linear-gradient(63deg, transparent 20%, rgba(92, 70, 36, 0.085) 31%, transparent 31.15%),
+    linear-gradient(158deg, transparent 47%, rgba(92, 70, 36, 0.085) 47.15%, transparent 60%),
+    linear-gradient(24deg, transparent 47%, rgba(92, 70, 36, 0.085) 58%, transparent 58.15%),
+    linear-gradient(97deg, transparent 72%, rgba(92, 70, 36, 0.085) 72.15%, transparent 85%),
+    linear-gradient(141deg, transparent 72%, rgba(92, 70, 36, 0.085) 83%, transparent 83.15%),
+    linear-gradient(76deg, transparent 9%, rgba(92, 70, 36, 0.085) 9.15%, transparent 22%),
+    linear-gradient(9deg, transparent 39%, rgba(92, 70, 36, 0.085) 39.15%, transparent 52%),
+    linear-gradient(131deg, transparent 53%, rgba(92, 70, 36, 0.085) 64%, transparent 64.15%),
+    linear-gradient(48deg, transparent 90%, rgba(92, 70, 36, 0.085) 90.15%, transparent 103%),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='1600' height='1000' viewBox='0 0 1600 1000' preserveAspectRatio='none'%3E%3Cfilter id='c' x='0' y='0' width='100%25' height='100%25'%3E%3CfeTurbulence type='turbulence' baseFrequency='0.006 0.009' numOctaves='3' seed='23'/%3E%3CfeDiffuseLighting lighting-color='%23ffffff' surfaceScale='6' diffuseConstant='1.1'%3E%3CfeDistantLight azimuth='235' elevation='40'/%3E%3C/feDiffuseLighting%3E%3CfeComponentTransfer%3E%3CfeFuncR type='linear' slope='0.28' intercept='0.72'/%3E%3CfeFuncG type='linear' slope='0.28' intercept='0.72'/%3E%3CfeFuncB type='linear' slope='0.28' intercept='0.72'/%3E%3C/feComponentTransfer%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23c)'/%3E%3C/svg%3E");
+  background-size: 100% 100%, 100% 100%, 100% 100%, 100% 100%, 100% 100%, 100% 100%, 100% 100%, 100% 100%, 100% 100%, 100% 100%, 100% 100%;
+  background-repeat: no-repeat;
+  -webkit-mask-image: radial-gradient(ellipse 34% 75% at 50% 50%, rgba(0, 0, 0, 0.4) 0%, rgba(0, 0, 0, 0.6) 60%, #000 100%);
+  mask-image: radial-gradient(ellipse 34% 75% at 50% 50%, rgba(0, 0, 0, 0.4) 0%, rgba(0, 0, 0, 0.6) 60%, #000 100%);
+}
+/* Dark stock: same folds as deeper shadow planes; wrinkles blended as soft
+   light so ridges glint faintly instead of greying the page. */
+:root:not([data-theme="light"]) body.paper-bg::before {
+  mix-blend-mode: normal;
+  background-image:
+    linear-gradient(112deg, transparent 18%, rgba(0, 0, 0, 0.26) 18.15%, transparent 31%),
+    linear-gradient(63deg, transparent 20%, rgba(0, 0, 0, 0.26) 31%, transparent 31.15%),
+    linear-gradient(158deg, transparent 47%, rgba(0, 0, 0, 0.26) 47.15%, transparent 60%),
+    linear-gradient(24deg, transparent 47%, rgba(0, 0, 0, 0.26) 58%, transparent 58.15%),
+    linear-gradient(97deg, transparent 72%, rgba(0, 0, 0, 0.26) 72.15%, transparent 85%),
+    linear-gradient(141deg, transparent 72%, rgba(0, 0, 0, 0.26) 83%, transparent 83.15%),
+    linear-gradient(76deg, transparent 9%, rgba(0, 0, 0, 0.26) 9.15%, transparent 22%),
+    linear-gradient(9deg, transparent 39%, rgba(0, 0, 0, 0.26) 39.15%, transparent 52%),
+    linear-gradient(131deg, transparent 53%, rgba(0, 0, 0, 0.26) 64%, transparent 64.15%),
+    linear-gradient(48deg, transparent 90%, rgba(0, 0, 0, 0.26) 90.15%, transparent 103%);
+  background-size: 100% 100%, 100% 100%, 100% 100%, 100% 100%, 100% 100%, 100% 100%, 100% 100%, 100% 100%, 100% 100%, 100% 100%;
+}
