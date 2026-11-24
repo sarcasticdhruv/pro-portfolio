@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Mail, Github, Linkedin, Twitter, Link, ArrowUpRight, Copy, Check, Globe2 } from 'lucide-react';
 import { useScrollReveal } from '../hooks/useScrollReveal';
+import ContactForm from './ContactForm';
 
 const IST_TZ = 'Asia/Kolkata';
 
@@ -48,17 +49,17 @@ export default function Contact() {
             <p style={{ color: 'var(--text-muted)', marginBottom: '20px', lineHeight: 1.8 }}>
               Open to AI/ML engineering roles, research collaborations, and interesting problems.
             </p>
-            <p style={{ color: 'var(--text-muted)', marginBottom: '32px', lineHeight: 1.8, fontSize: '0.91rem' }}>
+            <p style={{ color: 'var(--text-muted)', marginBottom: '28px', lineHeight: 1.8, fontSize: '0.91rem' }}>
               Currently between Raipur and Hyderabad. Open to relocating worldwide - will need
               visa sponsorship for UK/US/EU roles. Will debug your production incident at 2am
               if the problem is interesting enough.
             </p>
 
-            <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-              <a href="mailto:nrdhruv654@gmail.com" className="btn btn-primary">
-                <Mail size={13} /> say hello
-              </a>
-              <button onClick={copyEmail} className="btn btn-outline" style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '7px' }}>
+            <ContactForm />
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap', marginTop: '18px' }}>
+              <span style={{ fontSize: '0.8rem', color: 'var(--text-dim)' }}>Prefer email?</span>
+              <button onClick={copyEmail} className="btn btn-outline" style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '7px', padding: '7px 12px' }}>
                 {copied ? <Check size={13} /> : <Copy size={13} />}
                 {copied ? 'copied!' : 'copy email'}
               </button>

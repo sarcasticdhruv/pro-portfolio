@@ -83,6 +83,55 @@ async function enrichIp(ip: string): Promise<void> {
   }
 }
 
+// Email to my real inbox via Resend (free tier: 3k emails/month). Off until
+// RESEND_API_KEY is set. Without a verified domain Resend only delivers to
+// the account owner's address, which is exactly who this is for.
+interface LeadMail {
+  source: string; name: string | null; email: string | null; phone: string | null; company: string | null;
+  intent: string | null; message: string | null; city: string | null; country: string | null; page: string | null;
+}
+
+async function notifyByEmail(l: LeadMail): Promise<void> {
+  const key = process.env.RESEND_API_KEY;
+  if (!key) return;
+  const to = process.env.NOTIFY_EMAIL || 'nrdhruv654@gmail.com';
+  const from = process.env.NOTIFY_FROM || 'Portfolio <onboarding@resend.dev>';
+  const via = l.source === 'form' ? 'contact form' : l.source === 'voice' ? 'voice call' : l.source === 'email-draft' ? 'chat (email draft)' : 'chat';
+  const who = l.name || l.email || l.phone || 'Someone';
+  const lines = [
+    `${who} wants to reach you (${via}).`,
+    '',
+    l.message ? `"${l.message}"` : null,
+    '',
+    l.name ? `Name:     ${l.name}` : null,
+    l.email ? `Email:    ${l.email}` : null,
+    l.phone ? `Phone:    ${l.phone}` : null,
+    l.company ? `Company:  ${l.company}` : null,
+    l.intent ? `About:    ${l.intent}` : null,
+    (l.city || l.country) ? `Location: ${[l.city, l.country].filter(Boolean).join(', ')} (approx., from IP)` : null,
+    l.page ? `Page:     ${l.page}` : null,
+    '',
+    'Full details, location and conversation: https://dhruv-choudhary.tech/admin (Inbox tab)',
+    l.email ? 'Reply to this email to answer them directly.' : null,
+  ].filter(v => v !== null).join('\n');
+  try {
+    await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        from,
+        to: [to],
+        subject: `New lead: ${who}${l.intent ? ` (${l.intent})` : ''} via ${via}`,
+        text: lines,
+        ...(l.email ? { reply_to: l.email } : {}),
+      }),
+      signal: AbortSignal.timeout(8000),
+    });
+  } catch {
+    // best effort; the lead is already saved in the Inbox
+  }
+}
+
 async function handlePost(req: Request): Promise<Response> {
   let b: Record<string, unknown>;
   try {
@@ -114,6 +163,9 @@ async function handlePost(req: Request): Promise<Response> {
 
   const decode = (h: string | null) => { try { return h ? decodeURIComponent(h) : null; } catch { return h; } };
 
+  const prev = (await sql`SELECT email, phone, source FROM leads WHERE client_id = ${clientId}`).rows[0] as
+    { email: string | null; phone: string | null; source: string } | undefined;
+
   const { rows } = await sql`
     INSERT INTO leads (client_id, visitor_id, source, name, email, phone, company, intent, message, transcript,
                        ip, country, region, city, user_agent, page)
@@ -137,6 +189,22 @@ async function handlePost(req: Request): Promise<Response> {
     RETURNING id
   `;
   if (ip) waitUntil(enrichIp(ip));
+
+  // Email me only when something worth acting on happens: a form submission,
+  // or the first time this person's email/phone becomes known. Repeat saves
+  // from the same chat (new messages, re-extraction) stay silent.
+  const hadContact = !!(prev?.email || prev?.phone);
+  const hasContact = !!(email || phone);
+  const firstForm = source === 'form' && prev?.source !== 'form';
+  if (firstForm || (hasContact && !hadContact)) {
+    const r = (await sql`SELECT * FROM leads WHERE client_id = ${clientId}`).rows[0];
+    if (r) {
+      waitUntil(notifyByEmail({
+        source: r.source, name: r.name, email: r.email, phone: r.phone, company: r.company,
+        intent: r.intent, message: r.message, city: r.city, country: r.country, page: r.page,
+      }));
+    }
+  }
   return json({ ok: true, id: rows[0]?.id });
 }
 
